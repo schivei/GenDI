@@ -87,7 +87,12 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
                 var argument = attributeData.ConstructorArguments[0];
                 if (argument.Value is int enumValue)
                 {
-                    lifetime = $"ServiceLifetime.{(Microsoft.Extensions.DependencyInjection.ServiceLifetime)enumValue}";
+                    lifetime = enumValue switch
+                    {
+                        0 => "ServiceLifetime.Singleton",
+                        1 => "ServiceLifetime.Scoped",
+                        _ => "ServiceLifetime.Transient"
+                    };
                 }
             }
 
@@ -194,7 +199,24 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
         return source.ToString();
     }
 
-    private sealed record ServiceRegistration(string ServiceType, string ImplementationType, string Lifetime, string FactoryBody);
+    private sealed class ServiceRegistration
+    {
+        public ServiceRegistration(string serviceType, string implementationType, string lifetime, string factoryBody)
+        {
+            ServiceType = serviceType;
+            ImplementationType = implementationType;
+            Lifetime = lifetime;
+            FactoryBody = factoryBody;
+        }
+
+        public string ServiceType { get; }
+
+        public string ImplementationType { get; }
+
+        public string Lifetime { get; }
+
+        public string FactoryBody { get; }
+    }
 
     private sealed class ServiceRegistrationComparer : IEqualityComparer<ServiceRegistration>
     {
@@ -207,7 +229,10 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
 
         public int GetHashCode(ServiceRegistration obj)
         {
-            return HashCode.Combine(obj.ServiceType, obj.ImplementationType);
+            unchecked
+            {
+                return ((obj.ServiceType?.GetHashCode() ?? 0) * 397) ^ (obj.ImplementationType?.GetHashCode() ?? 0);
+            }
         }
     }
 }

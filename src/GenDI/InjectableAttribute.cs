@@ -12,5 +12,5 @@ public sealed class InjectableAttribute : Attribute
 
     public ServiceLifetime Lifetime { get; }
 
-    public Type? ServiceType { get; init; }
+    public Type? ServiceType { get; set; }
 }
