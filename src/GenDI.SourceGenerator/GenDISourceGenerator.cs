@@ -159,7 +159,7 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
             constructor.Parameters.Select(parameter =>
             {
                 var parameterType = parameter.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                return $"({parameterType})GenDIResolutionPipeline.ResolveOrFallback(serviceProvider, typeof({parameterType}))!";
+                return $"({parameterType})GenDIResolutionPipeline.ResolveRequiredOrFallback(serviceProvider, typeof({parameterType}))";
             }));
 
         return $"new {implementationType}({parameters})";
@@ -229,6 +229,11 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
 
         public int GetHashCode(ServiceRegistration obj)
         {
+            if (obj is null)
+            {
+                throw new ArgumentNullException(nameof(obj));
+            }
+
             unchecked
             {
                 return ((obj.ServiceType?.GetHashCode() ?? 0) * 397) ^ (obj.ImplementationType?.GetHashCode() ?? 0);
