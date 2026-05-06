@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GenDI.SourceGenerator/GenDI.SourceGenerator.csproj" />
+    <Project Path="src/GenDI/GenDI.csproj" />
+  </Folder>
+</Solution>
