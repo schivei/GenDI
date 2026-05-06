@@ -19,17 +19,17 @@ dotnet add package GenDI
 ### Using `InjectableAttribute`
 
 ```csharp
-[Injectable]
+[Injectable(ServiceLifetime.Singleton, Order = 1, Group = "mygroup")]
 public class MeuServico : IMeuServico
 {
     public void Executar() => Console.WriteLine("Servico injetado!");
 }
 ```
 
-### Using `IInjectable`
+### Using `I*Injectable`
 
 ```csharp
-public class MeuServico : IMeuServico, IInjectable
+public class MeuServico : IMeuServico, ISingletonInjectable
 {
     public void Executar() => Console.WriteLine("Servico injetado!");
 }
@@ -62,7 +62,7 @@ app.Run();
 | Phase | Description                                               | Status     |
 |-------|-----------------------------------------------------------|------------|
 | 1     | `InjectableAttribute` - attribute-based registration      | Planned    |
-| 2     | `IInjectable` - interface-based registration              | Planned    |
+| 2     | `I*Injectable` - interface-based registration             | Planned    |
 | 3     | Microsoft DI integration (source-generated extensions)    | Planned    |
 | 4     | Advanced NativeAOT support (ILLink.xml, type preservation)| Planned    |
 | 5     | Official NuGet publication                                | Planned    |
