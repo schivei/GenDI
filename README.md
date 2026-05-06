@@ -51,7 +51,7 @@ app.Run();
 public class MyConsumer
 {
     [GenDI]
-    internal IMyService Service { get; init; } = default!;
+    internal required IMyService Service { get; init; }
 }
 ```
 
