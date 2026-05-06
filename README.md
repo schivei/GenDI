@@ -19,19 +19,19 @@ dotnet add package GenDI
 ### Using `InjectableAttribute`
 
 ```csharp
-[Injectable(ServiceLifetime.Singleton, Order = 1, Group = "mygroup")]
-public class MeuServico : IMeuServico
+[Injectable(ServiceLifetime.Singleton, ServiceType = typeof(IMyService))]
+public class MyService : IMyService
 {
-    public void Executar() => Console.WriteLine("Servico injetado!");
+    public void Execute() => Console.WriteLine("Service injected!");
 }
 ```
 
 ### Using `I*Injectable`
 
 ```csharp
-public class MeuServico : IMeuServico, ISingletonInjectable
+public class MyService : IMyService, ISingletonInjectable
 {
-    public void Executar() => Console.WriteLine("Servico injetado!");
+    public void Execute() => Console.WriteLine("Service injected!");
 }
 ```
 
