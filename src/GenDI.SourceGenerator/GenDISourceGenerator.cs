@@ -14,7 +14,7 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
             .CreateSyntaxProvider(
                 static (node, _) =>
                     node is ClassDeclarationSyntax classDeclaration &&
-                    (classDeclaration.BaseList is not null || classDeclaration.AttributeLists.Count > 0),
+                    classDeclaration.AttributeLists.Count > 0,
                 static (generatorContext, _) => generatorContext.SemanticModel.GetDeclaredSymbol((ClassDeclarationSyntax)generatorContext.Node) as INamedTypeSymbol)
             .Where(static symbol => symbol is not null)
             .Select(static (symbol, _) => symbol!)
@@ -26,9 +26,11 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
         {
             var (compilation, symbols) = source;
             var registrations = symbols
-                .Select(BuildRegistration)
-                .OfType<ServiceRegistration>()
+                .SelectMany(BuildRegistrations)
                 .Distinct(ServiceRegistrationComparer.Instance)
+                .OrderBy(static registration => registration.Group)
+                .ThenBy(static registration => registration.Order)
+                .ThenBy(static registration => registration.ServiceType, StringComparer.Ordinal)
                 .ToImmutableArray();
 
             if (registrations.Length == 0)
@@ -42,41 +44,41 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
         });
     }
 
-    private static ServiceRegistration? BuildRegistration(INamedTypeSymbol symbol)
+    private static IEnumerable<ServiceRegistration> BuildRegistrations(INamedTypeSymbol symbol)
     {
         if (symbol.TypeKind != TypeKind.Class || symbol.IsAbstract)
         {
-            return null;
+            return Enumerable.Empty<ServiceRegistration>();
         }
 
-        var hasInjectableAttribute = TryGetInjectableAttribute(symbol, out var lifetime, out var explicitServiceType);
-        var markerLifetime = GetMarkerLifetime(symbol);
-        if (!hasInjectableAttribute && markerLifetime is null)
+        if (!TryGetInjectableAttribute(symbol, out var lifetime, out var explicitServiceType, out var order, out var group))
         {
-            return null;
+            return Enumerable.Empty<ServiceRegistration>();
         }
 
-        lifetime ??= markerLifetime ?? "ServiceLifetime.Transient";
         var implementationType = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        var serviceType = explicitServiceType
-            ?? GetDefaultServiceType(symbol)
-            ?? implementationType;
         var constructor = symbol.InstanceConstructors
             .Where(static constructorSymbol => constructorSymbol.DeclaredAccessibility == Accessibility.Public)
             .OrderByDescending(static constructorSymbol => constructorSymbol.Parameters.Length)
             .FirstOrDefault();
 
         var factoryBody = BuildFactoryBody(symbol, implementationType, constructor);
-        return new ServiceRegistration(serviceType, implementationType, lifetime, factoryBody);
+        var serviceTypes = GetServiceTypes(symbol, implementationType, explicitServiceType);
+
+        return serviceTypes.Select(serviceType => new ServiceRegistration(serviceType, implementationType, lifetime, factoryBody, order, group));
     }
 
     private static bool TryGetInjectableAttribute(
         INamedTypeSymbol symbol,
-        out string? lifetime,
-        out string? explicitServiceType)
+        out string lifetime,
+        out string? explicitServiceType,
+        out int order,
+        out int group)
     {
-        lifetime = null;
+        lifetime = "ServiceLifetime.Transient";
         explicitServiceType = null;
+        order = int.MaxValue;
+        group = int.MaxValue;
 
         foreach (var attributeData in symbol.GetAttributes())
         {
@@ -101,12 +103,18 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
 
             foreach (var namedArgument in attributeData.NamedArguments)
             {
-                if (namedArgument.Key != "ServiceType" || namedArgument.Value.Value is not INamedTypeSymbol serviceTypeSymbol)
+                switch (namedArgument.Key)
                 {
-                    continue;
+                    case "ServiceType" when namedArgument.Value.Value is INamedTypeSymbol serviceTypeSymbol:
+                        explicitServiceType = serviceTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                        break;
+                    case "Order" when namedArgument.Value.Value is int orderValue:
+                        order = orderValue;
+                        break;
+                    case "Group" when namedArgument.Value.Value is int groupValue:
+                        group = groupValue;
+                        break;
                 }
-
-                explicitServiceType = serviceTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             }
 
             return true;
@@ -115,39 +123,48 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
         return false;
     }
 
-    private static string? GetMarkerLifetime(INamedTypeSymbol symbol)
+    private static ImmutableArray<string> GetServiceTypes(INamedTypeSymbol symbol, string implementationType, string? explicitServiceType)
     {
-        foreach (var interfaceSymbol in symbol.AllInterfaces)
+        var serviceTypes = new List<string>();
+        var attributedServiceFound = false;
+
+        if (!string.IsNullOrWhiteSpace(explicitServiceType))
         {
-            switch (interfaceSymbol.ToDisplayString())
-            {
-                case "GenDI.ISingletonInjectable":
-                    return "ServiceLifetime.Singleton";
-                case "GenDI.IScopedInjectable":
-                    return "ServiceLifetime.Scoped";
-                case "GenDI.ITransientInjectable":
-                case "GenDI.IInjectable":
-                    return "ServiceLifetime.Transient";
-            }
+            serviceTypes.Add(explicitServiceType!);
         }
 
-        return null;
+        foreach (var interfaceSymbol in symbol.AllInterfaces.Where(HasServiceInjectionAttribute))
+        {
+            attributedServiceFound = true;
+            serviceTypes.Add(interfaceSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+        }
+
+        var baseType = symbol.BaseType;
+        while (baseType is not null && baseType.SpecialType != SpecialType.System_Object)
+        {
+            if (HasServiceInjectionAttribute(baseType))
+            {
+                attributedServiceFound = true;
+                serviceTypes.Add(baseType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+            }
+
+            baseType = baseType.BaseType;
+        }
+
+        if (!attributedServiceFound)
+        {
+            serviceTypes.Add(implementationType);
+        }
+
+        return serviceTypes
+            .Distinct(StringComparer.Ordinal)
+            .ToImmutableArray();
     }
 
-    private static string? GetDefaultServiceType(INamedTypeSymbol symbol)
+    private static bool HasServiceInjectionAttribute(ITypeSymbol symbol)
     {
-        foreach (var interfaceSymbol in symbol.AllInterfaces)
-        {
-            var name = interfaceSymbol.ToDisplayString();
-            if (name.StartsWith("GenDI.", StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            return interfaceSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        }
-
-        return null;
+        return symbol.GetAttributes()
+            .Any(attributeData => attributeData.AttributeClass?.ToDisplayString() == "GenDI.ServiceInjectionAttribute");
     }
 
     private static string BuildFactoryBody(INamedTypeSymbol symbol, string implementationType, IMethodSymbol? constructor)
@@ -202,7 +219,7 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
         }
 
         return property.GetAttributes()
-            .Any(attributeData => attributeData.AttributeClass?.ToDisplayString() == "GenDI.GenDIAttribute");
+            .Any(attributeData => attributeData.AttributeClass?.ToDisplayString() == "GenDI.InjectAttribute");
     }
 
     private static string BuildGeneratedSource(ImmutableArray<ServiceRegistration> registrations, string projectNamespace)
@@ -262,12 +279,14 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
 
     private sealed class ServiceRegistration
     {
-        public ServiceRegistration(string serviceType, string implementationType, string lifetime, string factoryBody)
+        public ServiceRegistration(string serviceType, string implementationType, string lifetime, string factoryBody, int order, int group)
         {
             ServiceType = serviceType;
             ImplementationType = implementationType;
             Lifetime = lifetime;
             FactoryBody = factoryBody;
+            Order = order;
+            Group = group;
         }
 
         public string ServiceType { get; }
@@ -277,6 +296,10 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
         public string Lifetime { get; }
 
         public string FactoryBody { get; }
+
+        public int Order { get; }
+
+        public int Group { get; }
     }
 
     private sealed class ServiceRegistrationComparer : IEqualityComparer<ServiceRegistration>

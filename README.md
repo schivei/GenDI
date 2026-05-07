@@ -19,21 +19,30 @@ dotnet add package GenDI
 ### Using `InjectableAttribute`
 
 ```csharp
-[Injectable(ServiceLifetime.Singleton, ServiceType = typeof(IMyService))]
+[ServiceInjection]
+public interface IMyService
+{
+    void Execute();
+}
+
+[Injectable(ServiceLifetime.Singleton, Group = 10, Order = 1)]
 public class MyService : IMyService
 {
     public void Execute() => Console.WriteLine("Service injected!");
 }
 ```
 
-### Using `I*Injectable`
+`InjectableAttribute` supports:
 
-```csharp
-public class MyService : IMyService, ISingletonInjectable
-{
-    public void Execute() => Console.WriteLine("Service injected!");
-}
-```
+- `Lifetime` (constructor argument, default `Transient`)
+- `Group` (optional, default `int.MaxValue`)
+- `Order` (optional, default `int.MaxValue`)
+- `ServiceType` (optional explicit service contract)
+
+Service registration emission order is:
+1. `Group`
+2. `Order`
+3. Service type name (ordinal)
 
 ### Registering Services
 
@@ -50,10 +59,15 @@ app.Run();
 ```csharp
 public class MyConsumer
 {
-    [GenDI]
+    [Inject]
     internal required IMyService Service { get; init; }
 }
 ```
+
+### Service Contract Discovery
+
+- GenDI discovers services from `[ServiceInjection]` in implemented interfaces and base types.
+- If no `[ServiceInjection]` is found in the inheritance/implementation chain, the concrete class is registered as its own service.
 
 ---
 

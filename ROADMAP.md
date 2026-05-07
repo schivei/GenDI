@@ -16,12 +16,13 @@ This document outlines the planned phases of development for GenDI.
 
 ---
 
-## Phase 2 - IInjectable Interface and Microsoft DI Integration
+## Phase 2 - Attribute Model and Microsoft DI Integration
 
-**Goal**: Support interface-based registration and fully integrate with `Microsoft.Extensions.DependencyInjection`.
+**Goal**: Expand attribute-based registration and fully integrate with `Microsoft.Extensions.DependencyInjection`.
 
-- [ ] Implement `IInjectable` marker interface
-- [ ] Source generator support for `IInjectable` types
+- [ ] Implement `ServiceInjectionAttribute`
+- [ ] Source generator support for inheritance/interface traversal with `ServiceInjectionAttribute`
+- [ ] Registration ordering support (`Group`, `Order`, service name)
 - [ ] Support for `Singleton`, `Scoped`, and `Transient` lifetimes
 - [ ] Integration tests with a real `IServiceCollection`
 

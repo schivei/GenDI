@@ -6,5 +6,8 @@ This folder hosts the documentation website content for GenDI.
 
 - Getting started
 - Dependency registration patterns
+- `InjectableAttribute` (`Lifetime`, `Group`, `Order`, `ServiceType`)
+- `ServiceInjectionAttribute` contract discovery
+- `InjectAttribute` for init-only property injection
 - Source generator behavior
 - NativeAOT and trimming guidance
