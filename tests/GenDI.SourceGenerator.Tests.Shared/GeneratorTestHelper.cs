@@ -66,16 +66,13 @@ internal static class GeneratorTestHelper
             return candidate;
         }
 
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null)
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
         {
             var rootCandidate = Path.Combine(directory.FullName, "src", "GenDI.SourceGenerator", "bin", "Debug", "netstandard2.0", "GenDI.SourceGenerator.dll");
             if (File.Exists(rootCandidate))
             {
                 return rootCandidate;
             }
-
-            directory = directory.Parent;
         }
 
         throw new FileNotFoundException("GenDI.SourceGenerator.dll not found for source-generator tests.");

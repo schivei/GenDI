@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Xunit;
 
 namespace GenDI.Phase3.Validation.Tests;
@@ -18,7 +19,7 @@ public class Phase3PublishValidationTests
     public void NativeAot_publish_succeeds()
     {
         var projectPath = GetProjectPath("GenDI.Phase3.NativeAotValidation.App/GenDI.Phase3.NativeAotValidation.App.csproj");
-        RunDotnetPublish(projectPath, "-c Release -r linux-x64");
+        RunDotnetPublish(projectPath, $"-c Release -r {GetCurrentRuntimeIdentifier()}");
     }
 
     private static string GetProjectPath(string relativeProjectPath)
@@ -57,5 +58,25 @@ public class Phase3PublishValidationTests
         Assert.True(
             process.ExitCode == 0,
             $"dotnet {arguments} failed with exit code {process.ExitCode}.{Environment.NewLine}STDOUT:{Environment.NewLine}{output}{Environment.NewLine}STDERR:{Environment.NewLine}{error}");
+    }
+
+    private static string GetCurrentRuntimeIdentifier()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            return "linux-x64";
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return "win-x64";
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            return "osx-x64";
+        }
+
+        throw new PlatformNotSupportedException("Unsupported platform for NativeAOT publish validation.");
     }
 }
