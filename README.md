@@ -4,6 +4,16 @@
 
 GenDI is a dependency injection library built on top of C# *source generators*, providing full compatibility with NativeAOT and trimming. It works as an additional module to `Microsoft.Extensions.DependencyInjection`, allowing you to register services automatically at compile time — no reflection required.
 
+## Key features and developer benefits
+
+- **Less boilerplate, faster delivery**: use attributes instead of manual registration blocks.
+- **Readable generated flow**: activation is emitted as explicit `new` + `GetRequiredService<T>()`, making behavior easier to review and debug.
+- **Deterministic registration order**: supports `Group` + `Order` for predictable pipeline composition.
+- **Attribute-first contract mapping**: combine `[Injectable]`, `[Injectable<TService>]`, and `[ServiceInjection]` with clear intent.
+- **Keyed services support**: works with both native `[FromKeyedServices]` and GenDI `[Inject(Key = ...)]`.
+- **No runtime scanning cost**: compile-time generation improves startup consistency.
+- **AOT/trimming friendly by design**: safe path for teams that need NativeAOT, without forcing this concern for every project.
+
 ---
 
 ## Installation
