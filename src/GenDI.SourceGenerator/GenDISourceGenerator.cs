@@ -313,8 +313,15 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
 
         foreach (var registration in registrations)
         {
+            var registrationMethod = registration.Lifetime switch
+            {
+                "ServiceLifetime.Singleton" => "AddSingleton",
+                "ServiceLifetime.Scoped" => "AddScoped",
+                _ => "AddTransient"
+            };
+
             source.AppendLine(
-                $"        services.Add(new ServiceDescriptor(typeof({registration.ServiceType}), static serviceProvider => {registration.FactoryBody}, {registration.Lifetime}));");
+                $"        services.{registrationMethod}<{registration.ServiceType}>(static serviceProvider => {registration.FactoryBody});");
         }
 
         source.Append(

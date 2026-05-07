@@ -46,14 +46,12 @@ jobs:
           dotnet pack src/GenDI/GenDI.csproj --no-build --configuration Release --output ./packages
           dotnet pack src/GenDI.SourceGenerator/GenDI.SourceGenerator.csproj --no-build --configuration Release --output ./packages
 
-      - name: Publish to NuGet (bypass on failure)
-        continue-on-error: true
+      - name: Publish to NuGet
         run: dotnet nuget push ./packages/*.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
 
-      - name: Publish to GitHub Packages (bypass on failure)
-        continue-on-error: true
-        run: dotnet nuget push ./packages/*.nupkg --api-key $GITHUB_TOKEN --source https://nuget.pkg.github.com/schivei/index.json --skip-duplicate
+      - name: Publish to GitHub Packages
+        run: dotnet nuget push ./packages/*.nupkg --api-key "$GITHUB_TOKEN" --source https://nuget.pkg.github.com/schivei/index.json --skip-duplicate
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

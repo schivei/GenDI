@@ -26,6 +26,7 @@ const sidebars = {
       label: 'Advanced',
       items: [
         'advanced/nativeaot-and-trimming',
+        'advanced/benchmarks',
         'advanced/testing-and-validation',
       ],
     },

@@ -50,10 +50,10 @@ This document outlines the planned phases of development for GenDI.
 - [x] Add GitHub Pages deployment pipeline for the website
 - [x] Add CI/CD and scheduled publish workflows prepared for Sonar/NuGet with bypass (`continue-on-error`)
 - [x] Add `versions.props` and `pack.props` package/build metadata following the `net-mediate` pattern
-- [ ] Add BenchmarkDotNet project
-- [ ] Benchmark startup registration time vs. reflection-based DI
-- [ ] Profile and optimize generated code
-- [ ] Publish benchmark results in repository
+- [x] Add BenchmarkDotNet project
+- [x] Benchmark startup registration time vs. reflection-based DI
+- [x] Profile and optimize generated code
+- [x] Publish benchmark results in repository
 
 ---
 

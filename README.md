@@ -128,6 +128,21 @@ npm run build
 
 GitHub Pages deployment is handled by `.github/workflows/deploy-docs.yml`.
 
+## Benchmarks (Phase 4)
+
+GenDI now includes a dedicated BenchmarkDotNet project:
+
+- `tests/GenDI.Benchmarks`
+
+Primary benchmark focus is startup registration cost:
+
+- generated registration (`AddGenDIServices`)
+- reflection-based runtime scanning
+
+Latest published benchmark report:
+
+- `docs/BENCHMARKS.md`
+
 ## Packaging and CI/CD Baseline (Phase 4 / early Phase 5)
 
 The repository includes:
