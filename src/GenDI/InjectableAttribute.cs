@@ -9,13 +9,13 @@ public sealed class InjectableAttribute : Attribute
     /// Default value for ordering members when no explicit value is provided.
     /// Registrations with this value are emitted after lower values and use service type name (ordinal) as a tie-breaker.
     /// </summary>
-    public const int DefaultOrderGroup = int.MaxValue;
+    public const int DefaultOrderingValue = int.MaxValue;
 
     public InjectableAttribute(ServiceLifetime lifetime = ServiceLifetime.Transient)
     {
         Lifetime = lifetime;
-        Order = DefaultOrderGroup;
-        Group = DefaultOrderGroup;
+        Order = DefaultOrderingValue;
+        Group = DefaultOrderingValue;
     }
 
     public ServiceLifetime Lifetime { get; }
@@ -23,12 +23,12 @@ public sealed class InjectableAttribute : Attribute
     public Type? ServiceType { get; set; }
 
     /// <summary>
-    /// Optional order value inside a group. Defaults to <see cref="DefaultOrderGroup"/>.
+    /// Optional order value inside a group. Defaults to <see cref="DefaultOrderingValue"/> (<see cref="int.MaxValue"/>).
     /// </summary>
     public int Order { get; set; }
 
     /// <summary>
-    /// Optional group value used as first ordering key. Defaults to <see cref="DefaultOrderGroup"/>.
+    /// Optional group value used as first ordering key. Defaults to <see cref="DefaultOrderingValue"/> (<see cref="int.MaxValue"/>).
     /// </summary>
     public int Group { get; set; }
 }

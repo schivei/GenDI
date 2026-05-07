@@ -8,7 +8,7 @@ namespace GenDI.SourceGenerator;
 [Generator]
 public sealed class GenDISourceGenerator : IIncrementalGenerator
 {
-    private const int DefaultOrderGroup = int.MaxValue;
+    private const int DefaultOrderingValue = int.MaxValue;
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -16,7 +16,7 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
             .CreateSyntaxProvider(
                 static (node, _) =>
                     node is ClassDeclarationSyntax classDeclaration &&
-                    classDeclaration.AttributeLists.Count > 0,
+                    HasInjectableAttributeSyntax(classDeclaration),
                 static (generatorContext, _) => generatorContext.SemanticModel.GetDeclaredSymbol((ClassDeclarationSyntax)generatorContext.Node) as INamedTypeSymbol)
             .Where(static symbol => symbol is not null)
             .Select(static (symbol, _) => symbol!)
@@ -79,8 +79,8 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
     {
         lifetime = "ServiceLifetime.Transient";
         explicitServiceType = null;
-        order = DefaultOrderGroup;
-        group = DefaultOrderGroup;
+        order = DefaultOrderingValue;
+        group = DefaultOrderingValue;
 
         foreach (var attributeData in symbol.GetAttributes())
         {
@@ -130,9 +130,9 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
         var serviceTypes = new List<string>();
         var attributedServiceFound = false;
 
-        if (explicitServiceType is { } && !string.IsNullOrWhiteSpace(explicitServiceType))
+        if (!string.IsNullOrWhiteSpace(explicitServiceType))
         {
-            serviceTypes.Add(explicitServiceType);
+            serviceTypes.Add(explicitServiceType!);
         }
 
         foreach (var interfaceSymbol in symbol.AllInterfaces)
@@ -174,6 +174,23 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
     {
         return symbol.GetAttributes()
             .Any(attributeData => attributeData.AttributeClass?.ToDisplayString() == "GenDI.ServiceInjectionAttribute");
+    }
+
+    private static bool HasInjectableAttributeSyntax(ClassDeclarationSyntax classDeclaration)
+    {
+        foreach (var attributeList in classDeclaration.AttributeLists)
+        {
+            foreach (var attribute in attributeList.Attributes)
+            {
+                var attributeName = attribute.Name.ToString();
+                if (attributeName is "Injectable" or "InjectableAttribute" or "GenDI.Injectable" or "GenDI.InjectableAttribute")
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static string BuildFactoryBody(INamedTypeSymbol symbol, string implementationType, IMethodSymbol? constructor)
