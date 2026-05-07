@@ -7,6 +7,7 @@
 [![NuGet GenDI](https://img.shields.io/nuget/v/GenDI.svg)](https://www.nuget.org/packages/GenDI)
 [![NuGet GenDI.SourceGenerator](https://img.shields.io/nuget/v/GenDI.SourceGenerator.svg)](https://www.nuget.org/packages/GenDI.SourceGenerator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/schivei/GenDI/blob/main/LICENSE.md)
+[![Documentation](https://img.shields.io/badge/docs-website-blue)](https://elton.schivei.nom.br/net-mediate)
 
 GenDI is a dependency injection library built on top of C# *source generators*, providing full compatibility with NativeAOT and trimming. It works as an additional module to `Microsoft.Extensions.DependencyInjection`, allowing you to register services automatically at compile time — no reflection required.
 
