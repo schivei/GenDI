@@ -19,6 +19,5 @@
     <ReleaseVersion>$(Version)</ReleaseVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <NoWarn>$(NoWarn);nullable</NoWarn>
   </PropertyGroup>
 </Project>
