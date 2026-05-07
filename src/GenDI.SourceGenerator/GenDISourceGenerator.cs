@@ -64,8 +64,8 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
             .OrderByDescending(static constructorSymbol => constructorSymbol.Parameters.Length)
             .FirstOrDefault();
 
-        var factoryBody = BuildFactoryBody(symbol, implementationType, constructor);
         var serviceTypes = GetServiceTypes(symbol, implementationType, explicitServiceType);
+        var factoryBody = BuildFactoryBody(symbol, implementationType, constructor);
 
         return serviceTypes.Select(serviceType => new ServiceRegistration(serviceType, implementationType, lifetime, factoryBody, order, group));
     }
@@ -130,9 +130,9 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
         var serviceTypes = new List<string>();
         var attributedServiceFound = false;
 
-        if (explicitServiceType is string explicitServiceTypeValue && !string.IsNullOrWhiteSpace(explicitServiceTypeValue))
+        if (explicitServiceType is { } && !string.IsNullOrWhiteSpace(explicitServiceType))
         {
-            serviceTypes.Add(explicitServiceTypeValue);
+            serviceTypes.Add(explicitServiceType);
         }
 
         foreach (var interfaceSymbol in symbol.AllInterfaces)
@@ -160,6 +160,8 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
 
         if (!attributedServiceFound)
         {
+            // When no abstraction is explicitly marked with [ServiceInjection],
+            // register the concrete type as its own service contract.
             serviceTypes.Add(implementationType);
         }
 

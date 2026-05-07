@@ -6,7 +6,7 @@ namespace GenDI;
 public sealed class InjectableAttribute : Attribute
 {
     /// <summary>
-    /// Default value for <see cref="Order"/> and <see cref="Group"/> when no explicit ordering is provided.
+    /// Default value for ordering members when no explicit value is provided.
     /// Registrations with this value are emitted after lower values and use service type name (ordinal) as a tie-breaker.
     /// </summary>
     public const int DefaultOrderGroup = int.MaxValue;
@@ -22,7 +22,13 @@ public sealed class InjectableAttribute : Attribute
 
     public Type? ServiceType { get; set; }
 
+    /// <summary>
+    /// Optional order value inside a group. Defaults to <see cref="DefaultOrderGroup"/>.
+    /// </summary>
     public int Order { get; set; }
 
+    /// <summary>
+    /// Optional group value used as first ordering key. Defaults to <see cref="DefaultOrderGroup"/>.
+    /// </summary>
     public int Group { get; set; }
 }
