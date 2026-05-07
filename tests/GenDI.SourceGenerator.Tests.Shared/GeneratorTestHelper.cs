@@ -66,10 +66,10 @@ internal static class GeneratorTestHelper
             return candidate;
         }
 
-        var configurations = new[] { "Debug", "Release" };
+        var buildConfigurations = new[] { "Debug", "Release" };
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
         {
-            foreach (var configuration in configurations)
+            foreach (var configuration in buildConfigurations)
             {
                 var rootCandidate = Path.Combine(directory.FullName, "src", "GenDI.SourceGenerator", "bin", configuration, "netstandard2.0", "GenDI.SourceGenerator.dll");
                 if (File.Exists(rootCandidate))
