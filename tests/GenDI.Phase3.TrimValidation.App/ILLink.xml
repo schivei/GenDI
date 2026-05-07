@@ -1,5 +1,8 @@
 <linker>
   <assembly fullname="GenDI.Phase3.TrimValidation.App">
-    <type fullname="GenDI.Phase3.TrimValidation.App.DependencyInjection.GenDIServiceCollectionExtensions" preserve="all" />
+    <type
+      fullname="GenDI.Phase3.TrimValidation.App.DependencyInjection.GenDIServiceCollectionExtensions"
+      preserve="all"
+    />
   </assembly>
 </linker>

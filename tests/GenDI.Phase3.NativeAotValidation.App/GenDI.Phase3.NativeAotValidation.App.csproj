@@ -11,7 +11,12 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/GenDI/GenDI.csproj" />
-    <ProjectReference Include="../../src/GenDI.SourceGenerator/GenDI.SourceGenerator.csproj" PrivateAssets="all" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference
+      Include="../../src/GenDI.SourceGenerator/GenDI.SourceGenerator.csproj"
+      PrivateAssets="all"
+      OutputItemType="Analyzer"
+      ReferenceOutputAssembly="false"
+    />
   </ItemGroup>
 
   <ItemGroup>

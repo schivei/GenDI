@@ -33,7 +33,8 @@ public interface IBenchmarkService
 }
 
 [Injectable<IBenchmarkService>(ServiceLifetime.Transient, Group = 1, Order = 1)]
-public sealed class BenchmarkService(IBenchmarkClock clock, IBenchmarkRepository repository) : IBenchmarkService
+public sealed class BenchmarkService(IBenchmarkClock clock, IBenchmarkRepository repository)
+    : IBenchmarkService
 {
     public string Execute() => $"{repository.GetCount()}@{clock.UtcNow:O}";
 }

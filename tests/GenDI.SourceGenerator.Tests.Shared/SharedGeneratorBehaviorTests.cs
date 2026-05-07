@@ -15,7 +15,8 @@ public class SharedGeneratorBehaviorTests
             {
             }
             """,
-            TestSettings.IncludeGeneratedCodeInCoverageAttribute);
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
 
         if (TestSettings.IncludeGeneratedCodeInCoverageAttribute is false)
         {
@@ -23,7 +24,11 @@ public class SharedGeneratorBehaviorTests
         }
         else
         {
-            Assert.DoesNotContain("[ExcludeFromCodeCoverage]", generatedSource, StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "[ExcludeFromCodeCoverage]",
+                generatedSource,
+                StringComparison.Ordinal
+            );
         }
     }
 
@@ -67,13 +72,34 @@ public class SharedGeneratorBehaviorTests
                 }
             }
             """,
-            TestSettings.IncludeGeneratedCodeInCoverageAttribute);
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
 
-        Assert.Contains("services.AddScoped<global::Contracts.IExplicitContract>", generatedSource, StringComparison.Ordinal);
-        Assert.Contains("services.AddScoped<global::Contracts.IPipelineContract>", generatedSource, StringComparison.Ordinal);
-        Assert.Contains("services.AddScoped<global::Contracts.PipelineBase>", generatedSource, StringComparison.Ordinal);
-        Assert.Contains("new global::Contracts.ComplexService(serviceProvider.GetRequiredService<global::Contracts.IDependency>())", generatedSource, StringComparison.Ordinal);
-        Assert.Contains("@PropertyDependency = serviceProvider.GetRequiredService<global::Contracts.IPropertyDependency>()", generatedSource, StringComparison.Ordinal);
+        Assert.Contains(
+            "services.AddScoped<global::Contracts.IExplicitContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "services.AddScoped<global::Contracts.IPipelineContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "services.AddScoped<global::Contracts.PipelineBase>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "new global::Contracts.ComplexService(serviceProvider.GetRequiredService<global::Contracts.IDependency>())",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "@PropertyDependency = serviceProvider.GetRequiredService<global::Contracts.IPropertyDependency>()",
+            generatedSource,
+            StringComparison.Ordinal
+        );
     }
 
     [Fact]
@@ -113,11 +139,21 @@ public class SharedGeneratorBehaviorTests
             {
             }
             """,
-            TestSettings.IncludeGeneratedCodeInCoverageAttribute);
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
 
-        var indexC = generatedSource.IndexOf("services.AddTransient<global::Ordering.IC>", StringComparison.Ordinal);
-        var indexA = generatedSource.IndexOf("services.AddTransient<global::Ordering.IA>", StringComparison.Ordinal);
-        var indexB = generatedSource.IndexOf("services.AddTransient<global::Ordering.IB>", StringComparison.Ordinal);
+        var indexC = generatedSource.IndexOf(
+            "services.AddTransient<global::Ordering.IC>",
+            StringComparison.Ordinal
+        );
+        var indexA = generatedSource.IndexOf(
+            "services.AddTransient<global::Ordering.IA>",
+            StringComparison.Ordinal
+        );
+        var indexB = generatedSource.IndexOf(
+            "services.AddTransient<global::Ordering.IB>",
+            StringComparison.Ordinal
+        );
 
         Assert.True(indexC >= 0 && indexA >= 0 && indexB >= 0);
         Assert.True(indexC < indexA);

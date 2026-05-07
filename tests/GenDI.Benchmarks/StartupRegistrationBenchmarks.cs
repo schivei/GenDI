@@ -25,7 +25,10 @@ public class StartupRegistrationBenchmarks
     public string ReflectionRegistrationStartup()
     {
         var services = new ServiceCollection();
-        ReflectionRegistration.AddByReflection(services, typeof(StartupRegistrationBenchmarks).Assembly);
+        ReflectionRegistration.AddByReflection(
+            services,
+            typeof(StartupRegistrationBenchmarks).Assembly
+        );
 
         using var provider = services.BuildServiceProvider();
         var service = provider.GetRequiredService<IBenchmarkService>();
@@ -43,8 +46,15 @@ internal static class ReflectionRegistration
                 .GetCustomAttributes(inherit: false)
                 .First(attribute => IsInjectableAttribute(attribute.GetType()));
 
-            var lifetime = (ServiceLifetime)(injectableAttribute.GetType().GetProperty("Lifetime")?.GetValue(injectableAttribute) ?? ServiceLifetime.Transient);
-            var explicitServiceType = injectableAttribute.GetType().GetProperty("ServiceType")?.GetValue(injectableAttribute) as Type;
+            var lifetime = (ServiceLifetime)(
+                injectableAttribute.GetType().GetProperty("Lifetime")?.GetValue(injectableAttribute)
+                ?? ServiceLifetime.Transient
+            );
+            var explicitServiceType =
+                injectableAttribute
+                    .GetType()
+                    .GetProperty("ServiceType")
+                    ?.GetValue(injectableAttribute) as Type;
 
             var contracts = new HashSet<Type>();
             if (explicitServiceType is not null)
@@ -87,7 +97,8 @@ internal static class ReflectionRegistration
     {
         return type.IsClass
             && !type.IsAbstract
-            && type.GetCustomAttributes(inherit: false).Any(attribute => IsInjectableAttribute(attribute.GetType()));
+            && type.GetCustomAttributes(inherit: false)
+                .Any(attribute => IsInjectableAttribute(attribute.GetType()));
     }
 
     private static bool IsInjectableAttribute(Type attributeType)

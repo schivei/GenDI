@@ -12,38 +12,50 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var candidates = context.SyntaxProvider
-            .CreateSyntaxProvider(
+        var candidates = context
+            .SyntaxProvider.CreateSyntaxProvider(
                 static (node, _) =>
-                    node is ClassDeclarationSyntax classDeclaration &&
-                    HasInjectableAttributeSyntax(classDeclaration),
-                static (generatorContext, _) => generatorContext.SemanticModel.GetDeclaredSymbol((ClassDeclarationSyntax)generatorContext.Node) as INamedTypeSymbol)
+                    node is ClassDeclarationSyntax classDeclaration
+                    && HasInjectableAttributeSyntax(classDeclaration),
+                static (generatorContext, _) =>
+                    generatorContext.SemanticModel.GetDeclaredSymbol(
+                        (ClassDeclarationSyntax)generatorContext.Node
+                    ) as INamedTypeSymbol
+            )
             .Where(static symbol => symbol is not null)
             .Select(static (symbol, _) => symbol!)
             .Collect();
 
         var generationInput = context.CompilationProvider.Combine(candidates);
 
-        context.RegisterSourceOutput(generationInput, static (sourceProductionContext, source) =>
-        {
-            var (compilation, symbols) = source;
-            var registrations = symbols
-                .SelectMany(BuildRegistrations)
-                .Distinct(ServiceRegistrationComparer.Instance)
-                .OrderBy(static registration => registration.Group)
-                .ThenBy(static registration => registration.Order)
-                .ThenBy(static registration => registration.ServiceType, StringComparer.Ordinal)
-                .ToImmutableArray();
-
-            if (registrations.Length == 0)
+        context.RegisterSourceOutput(
+            generationInput,
+            static (sourceProductionContext, source) =>
             {
-                return;
-            }
+                var (compilation, symbols) = source;
+                var registrations = symbols
+                    .SelectMany(BuildRegistrations)
+                    .Distinct(ServiceRegistrationComparer.Instance)
+                    .OrderBy(static registration => registration.Group)
+                    .ThenBy(static registration => registration.Order)
+                    .ThenBy(static registration => registration.ServiceType, StringComparer.Ordinal)
+                    .ToImmutableArray();
 
-            sourceProductionContext.AddSource(
-                "GenDIServiceCollectionExtensions.g.cs",
-                BuildGeneratedSource(registrations, GetProjectNamespace(compilation), includeExcludeFromCodeCoverage: !IsGeneratedCodeCoverageEnabled(compilation)));
-        });
+                if (registrations.Length == 0)
+                {
+                    return;
+                }
+
+                sourceProductionContext.AddSource(
+                    "GenDIServiceCollectionExtensions.g.cs",
+                    BuildGeneratedSource(
+                        registrations,
+                        GetProjectNamespace(compilation),
+                        includeExcludeFromCodeCoverage: !IsGeneratedCodeCoverageEnabled(compilation)
+                    )
+                );
+            }
+        );
     }
 
     private static IEnumerable<ServiceRegistration> BuildRegistrations(INamedTypeSymbol symbol)
@@ -53,21 +65,38 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
             return Enumerable.Empty<ServiceRegistration>();
         }
 
-        if (!TryGetInjectableAttribute(symbol, out var lifetime, out var explicitServiceType, out var order, out var group))
+        if (
+            !TryGetInjectableAttribute(
+                symbol,
+                out var lifetime,
+                out var explicitServiceType,
+                out var order,
+                out var group
+            )
+        )
         {
             return Enumerable.Empty<ServiceRegistration>();
         }
 
         var implementationType = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        var constructor = symbol.InstanceConstructors
-            .Where(static constructorSymbol => constructorSymbol.DeclaredAccessibility == Accessibility.Public)
+        var constructor = symbol
+            .InstanceConstructors.Where(static constructorSymbol =>
+                constructorSymbol.DeclaredAccessibility == Accessibility.Public
+            )
             .OrderByDescending(static constructorSymbol => constructorSymbol.Parameters.Length)
             .FirstOrDefault();
 
         var serviceTypes = GetServiceTypes(symbol, implementationType, explicitServiceType);
         var factoryBody = BuildFactoryBody(symbol, implementationType, constructor);
 
-        return serviceTypes.Select(serviceType => new ServiceRegistration(serviceType, implementationType, lifetime, factoryBody, order, group));
+        return serviceTypes.Select(serviceType => new ServiceRegistration(
+            serviceType,
+            implementationType,
+            lifetime,
+            factoryBody,
+            order,
+            group
+        ));
     }
 
     private static bool TryGetInjectableAttribute(
@@ -75,7 +104,8 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
         out string lifetime,
         out string? explicitServiceType,
         out int order,
-        out int group)
+        out int group
+    )
     {
         lifetime = "ServiceLifetime.Transient";
         explicitServiceType = null;
@@ -99,14 +129,19 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
                     {
                         0 => "ServiceLifetime.Singleton",
                         1 => "ServiceLifetime.Scoped",
-                        _ => "ServiceLifetime.Transient"
+                        _ => "ServiceLifetime.Transient",
                     };
                 }
             }
 
-            if (attributeClass.Arity == 1 && attributeClass.TypeArguments[0] is ITypeSymbol serviceTypeSymbol)
+            if (
+                attributeClass.Arity == 1
+                && attributeClass.TypeArguments[0] is ITypeSymbol serviceTypeSymbol
+            )
             {
-                explicitServiceType = serviceTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                explicitServiceType = serviceTypeSymbol.ToDisplayString(
+                    SymbolDisplayFormat.FullyQualifiedFormat
+                );
             }
 
             foreach (var namedArgument in attributeData.NamedArguments)
@@ -128,7 +163,11 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
         return false;
     }
 
-    private static ImmutableArray<string> GetServiceTypes(INamedTypeSymbol symbol, string implementationType, string? explicitServiceType)
+    private static ImmutableArray<string> GetServiceTypes(
+        INamedTypeSymbol symbol,
+        string implementationType,
+        string? explicitServiceType
+    )
     {
         var serviceTypes = new List<string>();
         var attributedServiceFound = false;
@@ -150,7 +189,9 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
             }
 
             attributedServiceFound = true;
-            serviceTypes.Add(interfaceSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+            serviceTypes.Add(
+                interfaceSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+            );
         }
 
         var baseType = symbol.BaseType;
@@ -159,7 +200,9 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
             if (HasServiceInjectionAttribute(baseType))
             {
                 attributedServiceFound = true;
-                serviceTypes.Add(baseType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                serviceTypes.Add(
+                    baseType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+                );
             }
 
             baseType = baseType.BaseType;
@@ -172,15 +215,16 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
             serviceTypes.Add(implementationType);
         }
 
-        return serviceTypes
-            .Distinct(StringComparer.Ordinal)
-            .ToImmutableArray();
+        return serviceTypes.Distinct(StringComparer.Ordinal).ToImmutableArray();
     }
 
     private static bool HasServiceInjectionAttribute(ITypeSymbol symbol)
     {
-        return symbol.GetAttributes()
-            .Any(attributeData => attributeData.AttributeClass?.ToDisplayString() == "GenDI.ServiceInjectionAttribute");
+        return symbol
+            .GetAttributes()
+            .Any(attributeData =>
+                attributeData.AttributeClass?.ToDisplayString() == "GenDI.ServiceInjectionAttribute"
+            );
     }
 
     private static bool HasInjectableAttributeSyntax(ClassDeclarationSyntax classDeclaration)
@@ -190,11 +234,20 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
             foreach (var attribute in attributeList.Attributes)
             {
                 var attributeName = attribute.Name.ToString();
-                if (attributeName is "Injectable" or "InjectableAttribute" or "GenDI.Injectable" or "GenDI.InjectableAttribute"
+                if (
+                    attributeName
+                        is "Injectable"
+                            or "InjectableAttribute"
+                            or "GenDI.Injectable"
+                            or "GenDI.InjectableAttribute"
                     || attributeName.StartsWith("Injectable<", StringComparison.Ordinal)
                     || attributeName.StartsWith("InjectableAttribute<", StringComparison.Ordinal)
                     || attributeName.StartsWith("GenDI.Injectable<", StringComparison.Ordinal)
-                    || attributeName.StartsWith("GenDI.InjectableAttribute<", StringComparison.Ordinal))
+                    || attributeName.StartsWith(
+                        "GenDI.InjectableAttribute<",
+                        StringComparison.Ordinal
+                    )
+                )
                 {
                     return true;
                 }
@@ -207,22 +260,33 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
     private static bool IsInjectableAttribute(INamedTypeSymbol attributeClass)
     {
         var definitionDisplay = attributeClass.OriginalDefinition.ToDisplayString();
-        return definitionDisplay is "GenDI.InjectableAttribute" or "GenDI.InjectableAttribute<TService>";
+        return definitionDisplay
+            is "GenDI.InjectableAttribute"
+                or "GenDI.InjectableAttribute<TService>";
     }
 
-    private static string BuildFactoryBody(INamedTypeSymbol symbol, string implementationType, IMethodSymbol? constructor)
+    private static string BuildFactoryBody(
+        INamedTypeSymbol symbol,
+        string implementationType,
+        IMethodSymbol? constructor
+    )
     {
-        var parameters = constructor is null || constructor.Parameters.Length == 0
-            ? string.Empty
-            : string.Join(
-                ", ",
-                constructor.Parameters.Select(parameter =>
-                {
-                    var parameterType = parameter.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                    return $"serviceProvider.GetRequiredService<{parameterType}>()";
-                }));
+        var parameters =
+            constructor is null || constructor.Parameters.Length == 0
+                ? string.Empty
+                : string.Join(
+                    ", ",
+                    constructor.Parameters.Select(parameter =>
+                    {
+                        var parameterType = parameter.Type.ToDisplayString(
+                            SymbolDisplayFormat.FullyQualifiedFormat
+                        );
+                        return $"serviceProvider.GetRequiredService<{parameterType}>()";
+                    })
+                );
 
-        var injectableProperties = symbol.GetMembers()
+        var injectableProperties = symbol
+            .GetMembers()
             .OfType<IPropertySymbol>()
             .Where(IsInjectableInitProperty)
             .OrderBy(static property => property.Name, StringComparer.Ordinal)
@@ -237,16 +301,24 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
             "\n",
             injectableProperties.Select(property =>
             {
-                var propertyType = property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                var propertyType = property.Type.ToDisplayString(
+                    SymbolDisplayFormat.FullyQualifiedFormat
+                );
                 return $"                @{property.Name} = serviceProvider.GetRequiredService<{propertyType}>(),";
-            }));
+            })
+        );
 
         return $"new {implementationType}({parameters})\n            {{\n{initializers}\n            }}";
     }
 
     private static bool IsInjectableInitProperty(IPropertySymbol property)
     {
-        if (property.IsStatic || property.GetMethod is null || property.SetMethod is null || !property.SetMethod.IsInitOnly)
+        if (
+            property.IsStatic
+            || property.GetMethod is null
+            || property.SetMethod is null
+            || !property.SetMethod.IsInitOnly
+        )
         {
             return false;
         }
@@ -256,13 +328,19 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
             return false;
         }
 
-        if (property.SetMethod.DeclaredAccessibility is not (Accessibility.Public or Accessibility.Internal))
+        if (
+            property.SetMethod.DeclaredAccessibility
+            is not (Accessibility.Public or Accessibility.Internal)
+        )
         {
             return false;
         }
 
-        return property.GetAttributes()
-            .Any(attributeData => attributeData.AttributeClass?.ToDisplayString() == "GenDI.InjectAttribute");
+        return property
+            .GetAttributes()
+            .Any(attributeData =>
+                attributeData.AttributeClass?.ToDisplayString() == "GenDI.InjectAttribute"
+            );
     }
 
     private static bool IsGeneratedCodeCoverageEnabled(Compilation compilation)
@@ -274,7 +352,11 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
                 continue;
             }
 
-            if (attributeData.ConstructorArguments.Length > 0 && attributeData.ConstructorArguments[0].Value is bool includeGeneratedCodeInCoverage)
+            if (
+                attributeData.ConstructorArguments.Length > 0
+                && attributeData.ConstructorArguments[0].Value
+                    is bool includeGeneratedCodeInCoverage
+            )
             {
                 return includeGeneratedCodeInCoverage;
             }
@@ -285,13 +367,14 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
         return true;
     }
 
-    private static string BuildGeneratedSource(ImmutableArray<ServiceRegistration> registrations, string projectNamespace, bool includeExcludeFromCodeCoverage)
+    private static string BuildGeneratedSource(
+        ImmutableArray<ServiceRegistration> registrations,
+        string projectNamespace,
+        bool includeExcludeFromCodeCoverage
+    )
     {
         var source = new StringBuilder();
-        source.Append(
-            "// <auto-generated />\n" +
-            "#nullable enable\n" +
-            "using System;\n");
+        source.Append("// <auto-generated />\n" + "#nullable enable\n" + "using System;\n");
 
         if (includeExcludeFromCodeCoverage)
         {
@@ -299,17 +382,20 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
         }
 
         source.Append(
-            "using Microsoft.Extensions.DependencyInjection;\n\n" +
-            "namespace " + projectNamespace + ".DependencyInjection;\n\n" +
-            (includeExcludeFromCodeCoverage ? "[ExcludeFromCodeCoverage]\n" : string.Empty) +
-            "public static class GenDIServiceCollectionExtensions\n" +
-            "{\n" +
-            "    public static IServiceCollection AddGenDIServices(this IServiceCollection services)\n" +
-            "    {\n" +
-            "        if (services is null)\n" +
-            "        {\n" +
-            "            throw new ArgumentNullException(nameof(services));\n" +
-            "        }\n");
+            "using Microsoft.Extensions.DependencyInjection;\n\n"
+                + "namespace "
+                + projectNamespace
+                + ".DependencyInjection;\n\n"
+                + (includeExcludeFromCodeCoverage ? "[ExcludeFromCodeCoverage]\n" : string.Empty)
+                + "public static class GenDIServiceCollectionExtensions\n"
+                + "{\n"
+                + "    public static IServiceCollection AddGenDIServices(this IServiceCollection services)\n"
+                + "    {\n"
+                + "        if (services is null)\n"
+                + "        {\n"
+                + "            throw new ArgumentNullException(nameof(services));\n"
+                + "        }\n"
+        );
 
         foreach (var registration in registrations)
         {
@@ -317,20 +403,22 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
             {
                 "ServiceLifetime.Singleton" => "AddSingleton",
                 "ServiceLifetime.Scoped" => "AddScoped",
-                _ => "AddTransient"
+                _ => "AddTransient",
             };
 
             source.AppendLine(
-                $"        services.{registrationMethod}<{registration.ServiceType}>(static serviceProvider => {registration.FactoryBody});");
+                $"        services.{registrationMethod}<{registration.ServiceType}>(static serviceProvider => {registration.FactoryBody});"
+            );
         }
 
         source.Append(
             """
-            
+
                     return services;
                 }
             }
-            """);
+            """
+        );
 
         return source.ToString();
     }
@@ -346,7 +434,9 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
         var sanitizedAssemblyName = assemblyName!;
         var parts = sanitizedAssemblyName
             .Split('.')
-            .Select(static part => new string(part.Select(ch => char.IsLetterOrDigit(ch) || ch == '_' ? ch : '_').ToArray()))
+            .Select(static part => new string(
+                part.Select(ch => char.IsLetterOrDigit(ch) || ch == '_' ? ch : '_').ToArray()
+            ))
             .Where(static part => !string.IsNullOrWhiteSpace(part))
             .Select(static part => part.Length > 0 && char.IsDigit(part[0]) ? $"_{part}" : part)
             .ToImmutableArray();
@@ -356,7 +446,14 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
 
     private sealed class ServiceRegistration
     {
-        public ServiceRegistration(string serviceType, string implementationType, string lifetime, string factoryBody, int order, int group)
+        public ServiceRegistration(
+            string serviceType,
+            string implementationType,
+            string lifetime,
+            string factoryBody,
+            int order,
+            int group
+        )
         {
             ServiceType = serviceType;
             ImplementationType = implementationType;
@@ -385,7 +482,8 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
 
         public bool Equals(ServiceRegistration? x, ServiceRegistration? y)
         {
-            return x?.ServiceType == y?.ServiceType && x?.ImplementationType == y?.ImplementationType;
+            return x?.ServiceType == y?.ServiceType
+                && x?.ImplementationType == y?.ImplementationType;
         }
 
         public int GetHashCode(ServiceRegistration obj)
@@ -394,10 +492,10 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
             {
                 throw new ArgumentNullException(nameof(obj));
             }
-
             unchecked
             {
-                return ((obj.ServiceType?.GetHashCode() ?? 0) * 397) ^ (obj.ImplementationType?.GetHashCode() ?? 0);
+                return ((obj.ServiceType?.GetHashCode() ?? 0) * 397)
+                    ^ (obj.ImplementationType?.GetHashCode() ?? 0);
             }
         }
     }

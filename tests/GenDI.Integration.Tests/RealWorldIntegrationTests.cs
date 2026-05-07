@@ -62,7 +62,8 @@ public interface INonGeneratedDependsOnGenerated
     IGeneratedContract GeneratedContract { get; }
 }
 
-public sealed class NonGeneratedDependsOnGenerated(IGeneratedContract generatedContract) : INonGeneratedDependsOnGenerated
+public sealed class NonGeneratedDependsOnGenerated(IGeneratedContract generatedContract)
+    : INonGeneratedDependsOnGenerated
 {
     public IGeneratedContract GeneratedContract { get; } = generatedContract;
 }
@@ -76,8 +77,7 @@ public interface ILogger;
 public sealed class ConsoleLogger : ILogger;
 
 [Injectable<IGeneratedContract>(ServiceLifetime.Singleton)]
-public sealed class GeneratedService(IRepository<Order> orderRepository)
-    : IGeneratedContract
+public sealed class GeneratedService(IRepository<Order> orderRepository) : IGeneratedContract
 {
     public IRepository<Order> OrderRepository { get; } = orderRepository;
 

@@ -18,7 +18,5 @@ public interface IMyService
 [Injectable<IMyService>(ServiceLifetime.Singleton)]
 public sealed class MyService : IMyService
 {
-    public void Execute()
-    {
-    }
+    public void Execute() { }
 }
