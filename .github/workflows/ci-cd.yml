@@ -119,6 +119,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [package]
     if: github.ref == 'refs/heads/main'
+    env:
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     permissions:
       contents: read
       packages: write
@@ -137,12 +140,8 @@ jobs:
 
       - name: Publish to NuGet
         run: dotnet nuget push ./packages/*.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
-        if: ${{ secrets.NUGET_API_KEY != '' }}
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        if: ${{ env.NUGET_API_KEY != '' }}
 
       - name: Publish to GitHub Packages
-        run: dotnet nuget push ./packages/*.nupkg --api-key "$GITHUB_TOKEN" --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --skip-duplicate
-        if: ${{ secrets.GITHUB_TOKEN != '' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: dotnet nuget push ./packages/*.nupkg --api-key "$GITHUB_PACKAGES_TOKEN" --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --skip-duplicate
+        if: ${{ env.GITHUB_PACKAGES_TOKEN != '' }}
