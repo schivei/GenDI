@@ -7,7 +7,6 @@ on:
     paths:
       - 'src/**'
       - 'tests/**'
-      - 'website/**'
       - '.github/workflows/ci-cd.yml'
       - 'pack.props'
       - 'versions.props'
@@ -16,7 +15,6 @@ on:
     paths:
       - 'src/**'
       - 'tests/**'
-      - 'website/**'
       - '.github/workflows/ci-cd.yml'
       - 'pack.props'
       - 'versions.props'
@@ -45,13 +43,6 @@ jobs:
         with:
           dotnet-version: '10.x'
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
-          cache-dependency-path: ./website/package-lock.json
-
       - name: Cache NuGet packages
         uses: actions/cache@v4
         with:
@@ -78,14 +69,6 @@ jobs:
           name: benchmark-report
           path: BenchmarkDotNet.Artifacts/results/*
           retention-days: 14
-
-      - name: Install website dependencies
-        run: npm ci --ignore-scripts
-        working-directory: website
-
-      - name: Build website
-        run: npm run build
-        working-directory: website
 
       - name: SonarQube analysis
         uses: SonarSource/sonarqube-scan-action@v4
