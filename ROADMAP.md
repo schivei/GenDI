@@ -63,6 +63,4 @@ This document outlines the planned phases of development for GenDI.
 
 - [x] Set up NuGet package metadata baseline (versioning/pack props and workflow scaffolding)
 - [x] Configure GitHub Actions baseline for package publishing workflows (currently bypassed)
-- [ ] Publish pre-release (alpha/beta) for community feedback
-- [ ] Address feedback and publish stable `1.0.0` release
 - [ ] Announce on GitHub Discussions and social channels
