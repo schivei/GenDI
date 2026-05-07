@@ -19,10 +19,10 @@ public sealed class InjectableAttribute : Attribute
     public ServiceLifetime Lifetime { get; }
 
     /// <summary>
-    /// Optional explicit service contract. When provided, it is added to the generated registration list
-    /// in addition to contracts discovered with <see cref="ServiceInjectionAttribute"/>.
+    /// Explicit service contract for non-generic usage. Always <see langword="null"/>.
+    /// Use <see cref="InjectableAttribute{TService}"/> to define an explicit contract safely.
     /// </summary>
-    public Type? ServiceType { get; set; }
+    public Type? ServiceType => null;
 
     /// <summary>
     /// Optional order value inside a group. Defaults to <see cref="DefaultOrderingValue"/> (<see cref="int.MaxValue"/>).
@@ -33,4 +33,30 @@ public sealed class InjectableAttribute : Attribute
     /// Optional group value used as first ordering key. Defaults to <see cref="DefaultOrderingValue"/> (<see cref="int.MaxValue"/>).
     /// </summary>
     public int Group { get; set; } = DefaultOrderingValue;
+}
+
+[AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
+public sealed class InjectableAttribute<TService> : Attribute
+{
+    public InjectableAttribute(ServiceLifetime lifetime = ServiceLifetime.Transient)
+    {
+        Lifetime = lifetime;
+    }
+
+    public ServiceLifetime Lifetime { get; }
+
+    /// <summary>
+    /// Explicit service contract inferred from <typeparamref name="TService"/>.
+    /// </summary>
+    public Type ServiceType => typeof(TService);
+
+    /// <summary>
+    /// Optional order value inside a group. Defaults to <see cref="InjectableAttribute.DefaultOrderingValue"/> (<see cref="int.MaxValue"/>).
+    /// </summary>
+    public int Order { get; set; } = InjectableAttribute.DefaultOrderingValue;
+
+    /// <summary>
+    /// Optional group value used as first ordering key. Defaults to <see cref="InjectableAttribute.DefaultOrderingValue"/> (<see cref="int.MaxValue"/>).
+    /// </summary>
+    public int Group { get; set; } = InjectableAttribute.DefaultOrderingValue;
 }

@@ -4,7 +4,11 @@
     <Project Path="src/GenDI/GenDI.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/GenDI.Phase3.NativeAotValidation.App/GenDI.Phase3.NativeAotValidation.App.csproj" />
+    <Project Path="tests/GenDI.Phase3.TrimValidation.App/GenDI.Phase3.TrimValidation.App.csproj" />
+    <Project Path="tests/GenDI.Phase3.Validation.Tests/GenDI.Phase3.Validation.Tests.csproj" />
     <Project Path="tests/GenDI.SourceGenerator.CoverageDisabled.Tests/GenDI.SourceGenerator.CoverageDisabled.Tests.csproj" />
     <Project Path="tests/GenDI.SourceGenerator.CoverageEnabled.Tests/GenDI.SourceGenerator.CoverageEnabled.Tests.csproj" />
+    <Project Path="tests/GenDI.SourceGenerator.NoCoverageAttribute.Tests/GenDI.SourceGenerator.NoCoverageAttribute.Tests.csproj" />
   </Folder>
 </Solution>

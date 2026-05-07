@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
@@ -10,12 +11,16 @@ namespace GenDI.SourceGenerator.Tests;
 
 internal static class GeneratorTestHelper
 {
-    public static string GenerateSource(string userSource, bool includeGeneratedCodeInCoverage)
+    public static string GenerateSource(string userSource, bool? includeGeneratedCodeInCoverage)
     {
+        var assemblyCoverageAttribute = includeGeneratedCodeInCoverage.HasValue
+            ? $"[assembly: GenDI.GenDICoveration({includeGeneratedCodeInCoverage.Value.ToString().ToLowerInvariant()})]"
+            : string.Empty;
+
         var source = $$"""
             using GenDI;
             using Microsoft.Extensions.DependencyInjection;
-            [assembly: GenDI.GenDICoveration({{includeGeneratedCodeInCoverage.ToString().ToLowerInvariant()}})]
+            {{assemblyCoverageAttribute}}
 
             {{userSource}}
             """;
@@ -28,7 +33,7 @@ internal static class GeneratorTestHelper
             references: BuildReferences(),
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
-        IIncrementalGenerator generator = new GenDISourceGenerator();
+        IIncrementalGenerator generator = CreateGenerator();
         GeneratorDriver driver = CSharpGeneratorDriver.Create(generator.AsSourceGenerator());
         driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out var diagnostics);
 
@@ -41,6 +46,39 @@ internal static class GeneratorTestHelper
             .Single(static generatedSource => generatedSource.HintName == "GenDIServiceCollectionExtensions.g.cs");
 
         return generated.SourceText.ToString();
+    }
+
+    private static IIncrementalGenerator CreateGenerator()
+    {
+        var assemblyPath = ResolveGeneratorAssemblyPath();
+        var assembly = Assembly.LoadFrom(assemblyPath);
+        var type = assembly.GetType("GenDI.SourceGenerator.GenDISourceGenerator", throwOnError: true)!;
+        var instance = Activator.CreateInstance(type);
+        Assert.NotNull(instance);
+        return Assert.IsAssignableFrom<IIncrementalGenerator>(instance);
+    }
+
+    private static string ResolveGeneratorAssemblyPath()
+    {
+        var candidate = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "GenDI.SourceGenerator.dll"));
+        if (File.Exists(candidate))
+        {
+            return candidate;
+        }
+
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            var rootCandidate = Path.Combine(directory.FullName, "src", "GenDI.SourceGenerator", "bin", "Debug", "netstandard2.0", "GenDI.SourceGenerator.dll");
+            if (File.Exists(rootCandidate))
+            {
+                return rootCandidate;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new FileNotFoundException("GenDI.SourceGenerator.dll not found for source-generator tests.");
     }
 
     private static IEnumerable<MetadataReference> BuildReferences()

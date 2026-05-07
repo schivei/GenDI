@@ -37,7 +37,9 @@ public class MyService : IMyService
 - `Lifetime` (constructor argument, default `Transient`)
 - `Group` (optional, default `int.MaxValue`)
 - `Order` (optional, default `int.MaxValue`)
-- `ServiceType` (optional explicit service contract, additive with `[ServiceInjection]` contracts)
+- `ServiceType`:
+  - `[Injectable]` -> `null` (no explicit contract)
+  - `[Injectable<TService>]` -> `typeof(TService)` as explicit contract (additive with `[ServiceInjection]`)
 
 Service registration emission order is:
 1. `Group`
@@ -67,7 +69,7 @@ public class MyConsumer
 ### Service Contract Discovery
 
 - GenDI discovers services from `[ServiceInjection]` in implemented interfaces and base types.
-- `InjectableAttribute.ServiceType` is also added to the generated registration list when provided.
+- `Injectable<TService>` is also added to the generated registration list when provided.
 - If no `[ServiceInjection]` is found in the inheritance/implementation chain, the concrete class is registered as its own service.
 
 ### Generated Coverage Configuration
@@ -77,6 +79,32 @@ You can control this per assembly:
 
 ```csharp
 [assembly: GenDI.GenDICoveration(false)] // add [ExcludeFromCodeCoverage] to generated extension
+```
+
+## NativeAOT and Trimming (Phase 3)
+
+GenDI includes linker descriptors and validation projects for trimming and NativeAOT scenarios.
+
+### Publish with trimming
+
+```bash
+dotnet publish tests/GenDI.Phase3.TrimValidation.App/GenDI.Phase3.TrimValidation.App.csproj -c Release
+```
+
+### Publish with NativeAOT
+
+```bash
+dotnet publish tests/GenDI.Phase3.NativeAotValidation.App/GenDI.Phase3.NativeAotValidation.App.csproj -c Release -r linux-x64
+```
+
+### ILLink descriptor sample
+
+```xml
+<linker>
+  <assembly fullname="YourAssemblyName">
+    <type fullname="YourAssemblyName.DependencyInjection.GenDIServiceCollectionExtensions" preserve="all" />
+  </assembly>
+</linker>
 ```
 
 ---
@@ -98,8 +126,8 @@ You can control this per assembly:
 |-------|-----------------------------------------------------------|------------|
 | 1     | `InjectableAttribute` - attribute-based registration      | Planned    |
 | 2     | Attribute model + contract discovery + ordering           | Planned    |
-| 3     | Microsoft DI integration (source-generated extensions)    | Planned    |
-| 4     | Advanced NativeAOT support (ILLink.xml, type preservation)| Planned    |
+| 3     | Advanced NativeAOT support (ILLink.xml, trimming, AOT)   | Implemented |
+| 4     | Benchmarks and optimizations                              | Planned    |
 | 5     | Official NuGet publication                                | Planned    |
 
 See the full plan in [ROADMAP.md](ROADMAP.md).

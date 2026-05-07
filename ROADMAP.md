@@ -23,7 +23,7 @@ This document outlines the planned phases of development for GenDI.
 - [ ] Implement `ServiceInjectionAttribute`
 - [ ] Implement `GenDICoverationAttribute` for generated coverage control
 - [ ] Source generator support for inheritance/interface traversal with `ServiceInjectionAttribute`
-- [ ] Source generator support for additive `InjectableAttribute.ServiceType` registrations
+- [x] Source generator support for additive `Injectable<TService>` registrations
 - [ ] Registration ordering support (`Group`, `Order`, service name)
 - [ ] Support for `Singleton`, `Scoped`, and `Transient` lifetimes
 - [ ] Integration tests with a real `IServiceCollection`
@@ -34,10 +34,10 @@ This document outlines the planned phases of development for GenDI.
 
 **Goal**: Ensure full compatibility with NativeAOT publish and IL trimming.
 
-- [ ] Add `ILLink.xml` descriptors to preserve generated types
-- [ ] Validate trimming compatibility with `<PublishTrimmed>true</PublishTrimmed>`
-- [ ] Validate NativeAOT with `<PublishAot>true</PublishAot>`
-- [ ] Document NativeAOT usage in README
+- [x] Add `ILLink.xml` descriptors to preserve generated types
+- [x] Validate trimming compatibility with `<PublishTrimmed>true</PublishTrimmed>`
+- [x] Validate NativeAOT with `<PublishAot>true</PublishAot>`
+- [x] Document NativeAOT usage in README
 
 ---
 

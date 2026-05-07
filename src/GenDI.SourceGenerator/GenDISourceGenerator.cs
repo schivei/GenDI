@@ -84,7 +84,8 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
 
         foreach (var attributeData in symbol.GetAttributes())
         {
-            if (attributeData.AttributeClass?.ToDisplayString() != "GenDI.InjectableAttribute")
+            var attributeClass = attributeData.AttributeClass;
+            if (attributeClass is null || !IsInjectableAttribute(attributeClass))
             {
                 continue;
             }
@@ -103,13 +104,15 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
                 }
             }
 
+            if (attributeClass.Arity == 1 && attributeClass.TypeArguments[0] is ITypeSymbol serviceTypeSymbol)
+            {
+                explicitServiceType = serviceTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            }
+
             foreach (var namedArgument in attributeData.NamedArguments)
             {
                 switch (namedArgument.Key)
                 {
-                    case "ServiceType" when namedArgument.Value.Value is INamedTypeSymbol serviceTypeSymbol:
-                        explicitServiceType = serviceTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                        break;
                     case "Order" when namedArgument.Value.Value is int orderValue:
                         order = orderValue;
                         break;
@@ -187,7 +190,11 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
             foreach (var attribute in attributeList.Attributes)
             {
                 var attributeName = attribute.Name.ToString();
-                if (attributeName is "Injectable" or "InjectableAttribute" or "GenDI.Injectable" or "GenDI.InjectableAttribute")
+                if (attributeName is "Injectable" or "InjectableAttribute" or "GenDI.Injectable" or "GenDI.InjectableAttribute"
+                    || attributeName.StartsWith("Injectable<", StringComparison.Ordinal)
+                    || attributeName.StartsWith("InjectableAttribute<", StringComparison.Ordinal)
+                    || attributeName.StartsWith("GenDI.Injectable<", StringComparison.Ordinal)
+                    || attributeName.StartsWith("GenDI.InjectableAttribute<", StringComparison.Ordinal))
                 {
                     return true;
                 }
@@ -195,6 +202,12 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
         }
 
         return false;
+    }
+
+    private static bool IsInjectableAttribute(INamedTypeSymbol attributeClass)
+    {
+        var definitionDisplay = attributeClass.OriginalDefinition.ToDisplayString();
+        return definitionDisplay is "GenDI.InjectableAttribute" or "GenDI.InjectableAttribute<TService>";
     }
 
     private static string BuildFactoryBody(INamedTypeSymbol symbol, string implementationType, IMethodSymbol? constructor)

@@ -15,15 +15,15 @@ public class SharedGeneratorBehaviorTests
             {
             }
             """,
-            TestSettings.IncludeGeneratedCodeInCoverage);
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute);
 
-        if (TestSettings.IncludeGeneratedCodeInCoverage)
+        if (TestSettings.IncludeGeneratedCodeInCoverageAttribute is false)
         {
-            Assert.DoesNotContain("[ExcludeFromCodeCoverage]", generatedSource, StringComparison.Ordinal);
+            Assert.Contains("[ExcludeFromCodeCoverage]", generatedSource, StringComparison.Ordinal);
         }
         else
         {
-            Assert.Contains("[ExcludeFromCodeCoverage]", generatedSource, StringComparison.Ordinal);
+            Assert.DoesNotContain("[ExcludeFromCodeCoverage]", generatedSource, StringComparison.Ordinal);
         }
     }
 
@@ -56,7 +56,7 @@ public class SharedGeneratorBehaviorTests
             {
             }
 
-            [Injectable(ServiceLifetime.Scoped, ServiceType = typeof(IExplicitContract), Group = 1, Order = 2)]
+            [Injectable<IExplicitContract>(ServiceLifetime.Scoped, Group = 1, Order = 2)]
             public sealed class ComplexService : PipelineBase, IPipelineContract
             {
                 [Inject]
@@ -67,7 +67,7 @@ public class SharedGeneratorBehaviorTests
                 }
             }
             """,
-            TestSettings.IncludeGeneratedCodeInCoverage);
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute);
 
         Assert.Contains("typeof(global::Contracts.IExplicitContract)", generatedSource, StringComparison.Ordinal);
         Assert.Contains("typeof(global::Contracts.IPipelineContract)", generatedSource, StringComparison.Ordinal);
@@ -113,7 +113,7 @@ public class SharedGeneratorBehaviorTests
             {
             }
             """,
-            TestSettings.IncludeGeneratedCodeInCoverage);
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute);
 
         var indexC = generatedSource.IndexOf("typeof(global::Ordering.IC)", StringComparison.Ordinal);
         var indexA = generatedSource.IndexOf("typeof(global::Ordering.IA)", StringComparison.Ordinal);
