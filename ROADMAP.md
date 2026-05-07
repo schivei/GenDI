@@ -8,11 +8,11 @@ This document outlines the planned phases of development for GenDI.
 
 **Goal**: Establish the project foundation and implement attribute-based service registration.
 
-- [ ] Create project structure (solution, projects, CI)
-- [ ] Implement `InjectableAttribute`
-- [ ] Source generator that detects `[Injectable]` classes
-- [ ] Generate `AddGenDIServices()` extension method
-- [ ] Unit tests for the generator
+- [x] Create project structure (solution, projects, CI)
+- [x] Implement `InjectableAttribute`
+- [x] Source generator that detects `[Injectable]` classes
+- [x] Generate `AddGenDIServices()` extension method
+- [x] Unit tests for the generator
 
 ---
 
@@ -20,13 +20,13 @@ This document outlines the planned phases of development for GenDI.
 
 **Goal**: Expand attribute-based registration and fully integrate with `Microsoft.Extensions.DependencyInjection`.
 
-- [ ] Implement `ServiceInjectionAttribute`
-- [ ] Implement `GenDICoverationAttribute` for generated coverage control
-- [ ] Source generator support for inheritance/interface traversal with `ServiceInjectionAttribute`
+- [x] Implement `ServiceInjectionAttribute`
+- [x] Implement `GenDICoverationAttribute` for generated coverage control
+- [x] Source generator support for inheritance/interface traversal with `ServiceInjectionAttribute`
 - [x] Source generator support for additive `Injectable<TService>` registrations
-- [ ] Registration ordering support (`Group`, `Order`, service name)
-- [ ] Support for `Singleton`, `Scoped`, and `Transient` lifetimes
-- [ ] Integration tests with a real `IServiceCollection`
+- [x] Registration ordering support (`Group`, `Order`, service name)
+- [x] Support for `Singleton`, `Scoped`, and `Transient` lifetimes
+- [x] Integration tests with a real `IServiceCollection`
 
 ---
 

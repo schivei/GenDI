@@ -124,8 +124,8 @@ dotnet publish tests/GenDI.Phase3.NativeAotValidation.App/GenDI.Phase3.NativeAot
 
 | Phase | Description                                               | Status     |
 |-------|-----------------------------------------------------------|------------|
-| 1     | `InjectableAttribute` - attribute-based registration      | Planned    |
-| 2     | Attribute model + contract discovery + ordering           | Planned    |
+| 1     | `InjectableAttribute` - attribute-based registration      | Implemented |
+| 2     | Attribute model + contract discovery + ordering           | Implemented |
 | 3     | Advanced NativeAOT support (ILLink.xml, trimming, AOT)   | Implemented |
 | 4     | Benchmarks and optimizations                              | Planned    |
 | 5     | Official NuGet publication                                | Planned    |
