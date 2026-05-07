@@ -115,14 +115,28 @@ jobs:
         run: |
           PKG=$(find ./packages -maxdepth 1 -name 'GenDI.[0-9]*.nupkg' | sort -V | tail -1)
           if [[ -z "$PKG" ]]; then
-            echo "::error::No GenDI .nupkg found in ./packages — cannot determine release version."
+            echo "::error::No GenDI .nupkg found in ./packages — cannot determine package version."
             exit 1
           fi
+
           BASENAME=$(basename "$PKG")
-          VERSION="${BASENAME#GenDI.}"
-          VERSION="${VERSION%.nupkg}"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Detected package version: $VERSION"
+          PACKAGE_VERSION="${BASENAME#GenDI.}"
+          PACKAGE_VERSION="${PACKAGE_VERSION%.nupkg}"
+          echo "Detected package version: $PACKAGE_VERSION"
+
+          if [[ "${GITHUB_REF:-}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+            if [[ "$PACKAGE_VERSION" != "$VERSION" ]]; then
+              echo "::error::Package version '$PACKAGE_VERSION' does not match tag version '$VERSION'."
+              exit 1
+            fi
+
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+            echo "Using tag-derived release version: $VERSION"
+          else
+            echo "version=" >> "$GITHUB_OUTPUT"
+            echo "Not a version tag push; skipping release version derivation."
+          fi
 
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
