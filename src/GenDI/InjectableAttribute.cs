@@ -18,6 +18,10 @@ public sealed class InjectableAttribute : Attribute
 
     public ServiceLifetime Lifetime { get; }
 
+    /// <summary>
+    /// Optional explicit service contract. When provided, it is added to the generated registration list
+    /// in addition to contracts discovered with <see cref="ServiceInjectionAttribute"/>.
+    /// </summary>
     public Type? ServiceType { get; set; }
 
     /// <summary>

@@ -37,7 +37,7 @@ public class MyService : IMyService
 - `Lifetime` (constructor argument, default `Transient`)
 - `Group` (optional, default `int.MaxValue`)
 - `Order` (optional, default `int.MaxValue`)
-- `ServiceType` (optional explicit service contract)
+- `ServiceType` (optional explicit service contract, additive with `[ServiceInjection]` contracts)
 
 Service registration emission order is:
 1. `Group`
@@ -67,7 +67,17 @@ public class MyConsumer
 ### Service Contract Discovery
 
 - GenDI discovers services from `[ServiceInjection]` in implemented interfaces and base types.
+- `InjectableAttribute.ServiceType` is also added to the generated registration list when provided.
 - If no `[ServiceInjection]` is found in the inheritance/implementation chain, the concrete class is registered as its own service.
+
+### Generated Coverage Configuration
+
+By default, generated extensions are included in coverage (no `[ExcludeFromCodeCoverage]`).
+You can control this per assembly:
+
+```csharp
+[assembly: GenDI.GenDICoveration(false)] // add [ExcludeFromCodeCoverage] to generated extension
+```
 
 ---
 
@@ -87,7 +97,7 @@ public class MyConsumer
 | Phase | Description                                               | Status     |
 |-------|-----------------------------------------------------------|------------|
 | 1     | `InjectableAttribute` - attribute-based registration      | Planned    |
-| 2     | `I*Injectable` - interface-based registration             | Planned    |
+| 2     | Attribute model + contract discovery + ordering           | Planned    |
 | 3     | Microsoft DI integration (source-generated extensions)    | Planned    |
 | 4     | Advanced NativeAOT support (ILLink.xml, type preservation)| Planned    |
 | 5     | Official NuGet publication                                | Planned    |

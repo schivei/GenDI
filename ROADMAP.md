@@ -21,7 +21,9 @@ This document outlines the planned phases of development for GenDI.
 **Goal**: Expand attribute-based registration and fully integrate with `Microsoft.Extensions.DependencyInjection`.
 
 - [ ] Implement `ServiceInjectionAttribute`
+- [ ] Implement `GenDICoverationAttribute` for generated coverage control
 - [ ] Source generator support for inheritance/interface traversal with `ServiceInjectionAttribute`
+- [ ] Source generator support for additive `InjectableAttribute.ServiceType` registrations
 - [ ] Registration ordering support (`Group`, `Order`, service name)
 - [ ] Support for `Singleton`, `Scoped`, and `Transient` lifetimes
 - [ ] Integration tests with a real `IServiceCollection`

@@ -3,4 +3,8 @@
     <Project Path="src/GenDI.SourceGenerator/GenDI.SourceGenerator.csproj" />
     <Project Path="src/GenDI/GenDI.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/GenDI.SourceGenerator.CoverageDisabled.Tests/GenDI.SourceGenerator.CoverageDisabled.Tests.csproj" />
+    <Project Path="tests/GenDI.SourceGenerator.CoverageEnabled.Tests/GenDI.SourceGenerator.CoverageEnabled.Tests.csproj" />
+  </Folder>
 </Solution>
