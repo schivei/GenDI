@@ -113,7 +113,7 @@ jobs:
       - name: Get package version
         id: get_version
         run: |
-          PKG=$(find ./packages -maxdepth 1 -name 'GenDI.*.nupkg' | sort -V | tail -1)
+          PKG=$(find ./packages -maxdepth 1 -name 'GenDI.[0-9]*.nupkg' | sort -V | tail -1)
           if [[ -z "$PKG" ]]; then
             echo "::error::No GenDI .nupkg found in ./packages — cannot determine release version."
             exit 1
