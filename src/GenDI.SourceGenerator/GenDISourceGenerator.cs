@@ -135,8 +135,13 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
             serviceTypes.Add(explicitServiceTypeValue);
         }
 
-        foreach (var interfaceSymbol in symbol.AllInterfaces.Where(HasServiceInjectionAttribute))
+        foreach (var interfaceSymbol in symbol.AllInterfaces)
         {
+            if (!HasServiceInjectionAttribute(interfaceSymbol))
+            {
+                continue;
+            }
+
             attributedServiceFound = true;
             serviceTypes.Add(interfaceSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
         }

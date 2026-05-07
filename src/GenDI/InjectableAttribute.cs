@@ -7,7 +7,7 @@ public sealed class InjectableAttribute : Attribute
 {
     /// <summary>
     /// Default value for <see cref="Order"/> and <see cref="Group"/> when no explicit ordering is provided.
-    /// Registrations with this value are emitted after lower values.
+    /// Registrations with this value are emitted after lower values and use service type name (ordinal) as a tie-breaker.
     /// </summary>
     public const int DefaultOrderGroup = int.MaxValue;
 
