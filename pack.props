@@ -1,7 +1,7 @@
 <Project>
   <Import Project="versions.props" />
   <PropertyGroup>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <Authors>Elton Schivei Costa</Authors>
     <Product>GenDI</Product>
     <Title>GenDI</Title>
@@ -14,7 +14,7 @@
     <RepositoryType>git</RepositoryType>
     <DebugType>Full</DebugType>
     <IsPackable>true</IsPackable>
-    <PackOnBuild>true</PackOnBuild>
+    <PackOnBuild>false</PackOnBuild>
     <PackageVersion>$(Version)</PackageVersion>
     <ReleaseVersion>$(Version)</ReleaseVersion>
     <ImplicitUsings>enable</ImplicitUsings>

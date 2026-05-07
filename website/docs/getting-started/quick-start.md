@@ -52,7 +52,7 @@ builder.Services.AddGenDIServices();
 ## Step 4: Consume
 
 ```csharp
-var service = provider.GetRequiredService<IInvoiceService>();
+var service = provider.GetRequiredKeyedService<IInvoiceService>("invoices");
 await service.GenerateAsync(Guid.NewGuid());
 ```
 

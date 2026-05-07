@@ -64,16 +64,19 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
             foreach (var attribute in attributeList.Attributes)
             {
                 var attributeName = attribute.Name.ToString();
+                var normalizedName = attributeName.StartsWith("global::", StringComparison.Ordinal)
+                    ? attributeName.Substring("global::".Length)
+                    : attributeName;
                 if (
-                    attributeName
+                    normalizedName
                         is "Injectable"
                             or "InjectableAttribute"
                             or "GenDI.Injectable"
                             or "GenDI.InjectableAttribute"
-                    || attributeName.StartsWith("Injectable<", StringComparison.Ordinal)
-                    || attributeName.StartsWith("InjectableAttribute<", StringComparison.Ordinal)
-                    || attributeName.StartsWith("GenDI.Injectable<", StringComparison.Ordinal)
-                    || attributeName.StartsWith(
+                    || normalizedName.StartsWith("Injectable<", StringComparison.Ordinal)
+                    || normalizedName.StartsWith("InjectableAttribute<", StringComparison.Ordinal)
+                    || normalizedName.StartsWith("GenDI.Injectable<", StringComparison.Ordinal)
+                    || normalizedName.StartsWith(
                         "GenDI.InjectableAttribute<",
                         StringComparison.Ordinal
                     )

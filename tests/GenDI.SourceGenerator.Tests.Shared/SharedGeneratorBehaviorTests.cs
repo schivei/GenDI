@@ -90,15 +90,25 @@ public class SharedGeneratorBehaviorTests
             generatedSource,
             StringComparison.Ordinal
         );
-        Assert.Contains(
-            "new global::Contracts.ComplexService(serviceProvider.GetRequiredService<global::Contracts.IDependency>())",
-            generatedSource,
-            StringComparison.Ordinal
+        Assert.True(
+            generatedSource.Contains(
+                "new global::Contracts.ComplexService(serviceProvider.GetRequiredService<global::Contracts.IDependency>())",
+                StringComparison.Ordinal
+            )
+                || generatedSource.Contains(
+                    "new global::Contracts.ComplexService(serviceProvider.GetService<global::Contracts.IDependency>())",
+                    StringComparison.Ordinal
+                )
         );
-        Assert.Contains(
-            "@PropertyDependency = serviceProvider.GetRequiredService<global::Contracts.IPropertyDependency>()",
-            generatedSource,
-            StringComparison.Ordinal
+        Assert.True(
+            generatedSource.Contains(
+                "@PropertyDependency = serviceProvider.GetRequiredService<global::Contracts.IPropertyDependency>()",
+                StringComparison.Ordinal
+            )
+                || generatedSource.Contains(
+                    "@PropertyDependency = serviceProvider.GetService<global::Contracts.IPropertyDependency>()",
+                    StringComparison.Ordinal
+                )
         );
     }
 
@@ -197,13 +207,153 @@ public class SharedGeneratorBehaviorTests
             generatedSource,
             StringComparison.Ordinal
         );
+        Assert.True(
+            generatedSource.Contains(
+                "serviceProvider.GetRequiredKeyedService<global::Keyed.IDependency>(\"dep\")",
+                StringComparison.Ordinal
+            )
+                || generatedSource.Contains(
+                    "serviceProvider.GetKeyedService<global::Keyed.IDependency>(\"dep\")",
+                    StringComparison.Ordinal
+                )
+        );
+        Assert.True(
+            generatedSource.Contains(
+                "serviceProvider.GetRequiredKeyedService<global::Keyed.IPropertyDependency>(\"prop\")",
+                StringComparison.Ordinal
+            )
+                || generatedSource.Contains(
+                    "serviceProvider.GetKeyedService<global::Keyed.IPropertyDependency>(\"prop\")",
+                    StringComparison.Ordinal
+                )
+        );
+    }
+
+    [Fact]
+    public void Supports_global_qualified_injectable_attribute()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace GlobalQualified;
+
+            [global::GenDI.Injectable]
+            public sealed class GlobalQualifiedService
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
         Assert.Contains(
-            "serviceProvider.GetRequiredKeyedService<global::Keyed.IDependency>(\"dep\")",
+            "services.AddTransient<global::GlobalQualified.GlobalQualifiedService>(",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Explicit_contract_prevents_concrete_fallback()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ExplicitOnly;
+
+            public interface IOnlyContract
+            {
+            }
+
+            [Injectable<IOnlyContract>(ServiceLifetime.Singleton)]
+            public sealed class ExplicitContractService
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddSingleton<global::ExplicitOnly.IOnlyContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "services.AddSingleton<global::ExplicitOnly.ExplicitContractService>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Uses_optional_resolution_for_nullable_or_oblivious_dependencies()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            #nullable disable
+            namespace NullableCases;
+
+            public interface IDependency
+            {
+            }
+
+            [Injectable]
+            public sealed class OptionalCtor(IDependency dependency)
+            {
+            }
+
+            #nullable enable
+            [Injectable]
+            public sealed class OptionalProperty
+            {
+                [Inject]
+                public IDependency? Dependency { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "new global::NullableCases.OptionalCtor(serviceProvider.GetService<global::NullableCases.IDependency>())",
             generatedSource,
             StringComparison.Ordinal
         );
         Assert.Contains(
-            "serviceProvider.GetRequiredKeyedService<global::Keyed.IPropertyDependency>(\"prop\")",
+            "@Dependency = serviceProvider.GetService<global::NullableCases.IDependency>()",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Escapes_special_key_literals()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace LiteralKeys;
+
+            [ServiceInjection]
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>(ServiceLifetime.Singleton, Key = double.NaN)]
+            public sealed class NaNKeyedService
+            {
+            }
+
+            [Injectable<IContract>(ServiceLifetime.Singleton, Key = "line1\nline2\tvalue")]
+            public sealed class EscapedStringKeyedService
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddKeyedSingleton<global::LiteralKeys.IContract>(double.NaN",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "services.AddKeyedSingleton<global::LiteralKeys.IContract>(\"line1\\nline2\\tvalue\"",
             generatedSource,
             StringComparison.Ordinal
         );

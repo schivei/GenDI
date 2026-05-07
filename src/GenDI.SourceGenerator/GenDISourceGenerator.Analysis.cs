@@ -126,7 +126,7 @@ public sealed partial class GenDISourceGenerator
     )
     {
         var serviceTypes = new List<string>();
-        var attributedServiceFound = false;
+        var hasAnyContract = false;
 
         if (!string.IsNullOrWhiteSpace(explicitServiceType))
         {
@@ -134,6 +134,7 @@ public sealed partial class GenDISourceGenerator
             if (nonNullExplicitServiceType is not null)
             {
                 serviceTypes.Add(nonNullExplicitServiceType);
+                hasAnyContract = true;
             }
         }
 
@@ -144,7 +145,7 @@ public sealed partial class GenDISourceGenerator
                 continue;
             }
 
-            attributedServiceFound = true;
+            hasAnyContract = true;
             serviceTypes.Add(
                 interfaceSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
             );
@@ -155,7 +156,7 @@ public sealed partial class GenDISourceGenerator
         {
             if (HasServiceInjectionAttribute(baseType))
             {
-                attributedServiceFound = true;
+                hasAnyContract = true;
                 serviceTypes.Add(
                     baseType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
                 );
@@ -164,7 +165,7 @@ public sealed partial class GenDISourceGenerator
             baseType = baseType.BaseType;
         }
 
-        if (!attributedServiceFound)
+        if (!hasAnyContract)
         {
             serviceTypes.Add(implementationType);
         }
@@ -198,7 +199,7 @@ public sealed partial class GenDISourceGenerator
         var initializers = string.Join(
             "\n",
             injectableProperties.Select(property =>
-                $"                @{property.Name} = {BuildResolutionExpression(property.Type, property.KeyExpression)},"
+                $"                @{property.Name} = {BuildResolutionExpression(property.Type, property.KeyExpression, property.UseOptionalResolution)},"
             )
         );
 
@@ -220,7 +221,11 @@ public sealed partial class GenDISourceGenerator
                     SymbolDisplayFormat.FullyQualifiedFormat
                 );
                 var keyExpression = GetFromKeyedServicesKey(parameter);
-                return BuildResolutionExpression(parameterType, keyExpression);
+                return BuildResolutionExpression(
+                    parameterType,
+                    keyExpression,
+                    ShouldUseOptionalResolution(parameter.Type)
+                );
             })
         );
     }
@@ -241,7 +246,12 @@ public sealed partial class GenDISourceGenerator
                 );
                 var keyExpression =
                     GetInjectAttributeKey(property) ?? GetFromKeyedServicesKey(property);
-                return new InjectablePropertyInfo(property.Name, propertyType, keyExpression);
+                return new InjectablePropertyInfo(
+                    property.Name,
+                    propertyType,
+                    keyExpression,
+                    ShouldUseOptionalResolution(property.Type)
+                );
             })
             .ToImmutableArray();
     }
@@ -280,12 +290,26 @@ public sealed partial class GenDISourceGenerator
 
     private static string BuildResolutionExpression(
         string fullyQualifiedType,
-        string? keyExpression
+        string? keyExpression,
+        bool useOptionalResolution
     )
     {
-        return string.IsNullOrWhiteSpace(keyExpression)
-            ? $"serviceProvider.GetRequiredService<{fullyQualifiedType}>()"
+        if (string.IsNullOrWhiteSpace(keyExpression))
+        {
+            return useOptionalResolution
+                ? $"serviceProvider.GetService<{fullyQualifiedType}>()"
+                : $"serviceProvider.GetRequiredService<{fullyQualifiedType}>()";
+        }
+
+        return useOptionalResolution
+            ? $"serviceProvider.GetKeyedService<{fullyQualifiedType}>({keyExpression})"
             : $"serviceProvider.GetRequiredKeyedService<{fullyQualifiedType}>({keyExpression})";
+    }
+
+    private static bool ShouldUseOptionalResolution(ITypeSymbol typeSymbol)
+    {
+        return typeSymbol.NullableAnnotation is NullableAnnotation.Annotated
+            or NullableAnnotation.None;
     }
 
     private static string? GetInjectAttributeKey(IPropertySymbol property)
@@ -376,10 +400,32 @@ public sealed partial class GenDISourceGenerator
                 value,
                 CultureInfo.InvariantCulture
             ),
-            float f => f.ToString(CultureInfo.InvariantCulture) + "F",
-            double d => d.ToString(CultureInfo.InvariantCulture) + "D",
+            float f => BuildFloatConstantExpression(f),
+            double d => BuildDoubleConstantExpression(d),
             decimal m => m.ToString(CultureInfo.InvariantCulture) + "M",
             _ => BuildEnumConstantExpression(typedConstant),
+        };
+    }
+
+    private static string BuildFloatConstantExpression(float value)
+    {
+        return value switch
+        {
+            _ when float.IsNaN(value) => "float.NaN",
+            _ when float.IsPositiveInfinity(value) => "float.PositiveInfinity",
+            _ when float.IsNegativeInfinity(value) => "float.NegativeInfinity",
+            _ => value.ToString(CultureInfo.InvariantCulture) + "F",
+        };
+    }
+
+    private static string BuildDoubleConstantExpression(double value)
+    {
+        return value switch
+        {
+            _ when double.IsNaN(value) => "double.NaN",
+            _ when double.IsPositiveInfinity(value) => "double.PositiveInfinity",
+            _ when double.IsNegativeInfinity(value) => "double.NegativeInfinity",
+            _ => value.ToString(CultureInfo.InvariantCulture) + "D",
         };
     }
 
@@ -396,7 +442,27 @@ public sealed partial class GenDISourceGenerator
 
     private static string EscapeStringLiteral(string value)
     {
-        return value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+        var builder = new StringBuilder(value.Length);
+        foreach (var character in value)
+        {
+            builder.Append(character switch
+            {
+                '\"' => "\\\"",
+                '\\' => "\\\\",
+                '\0' => "\\0",
+                '\a' => "\\a",
+                '\b' => "\\b",
+                '\f' => "\\f",
+                '\n' => "\\n",
+                '\r' => "\\r",
+                '\t' => "\\t",
+                '\v' => "\\v",
+                _ when char.IsControl(character) => $"\\u{(int)character:X4}",
+                _ => character.ToString(),
+            });
+        }
+
+        return builder.ToString();
     }
 
     private static string EscapeCharLiteral(char value)
@@ -414,11 +480,17 @@ public sealed partial class GenDISourceGenerator
 
     private sealed class InjectablePropertyInfo
     {
-        public InjectablePropertyInfo(string name, string type, string? keyExpression)
+        public InjectablePropertyInfo(
+            string name,
+            string type,
+            string? keyExpression,
+            bool useOptionalResolution
+        )
         {
             Name = name;
             Type = type;
             KeyExpression = keyExpression;
+            UseOptionalResolution = useOptionalResolution;
         }
 
         public string Name { get; }
@@ -426,5 +498,7 @@ public sealed partial class GenDISourceGenerator
         public string Type { get; }
 
         public string? KeyExpression { get; }
+
+        public bool UseOptionalResolution { get; }
     }
 }
