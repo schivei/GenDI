@@ -47,6 +47,12 @@ public sealed class InjectableAttribute : Attribute
     /// Optional group value used as first ordering key. Defaults to <see cref="DefaultOrderingValue"/> (<see cref="int.MaxValue"/>).
     /// </summary>
     public int Group { get; set; } = DefaultOrderingValue;
+
+    /// <summary>
+    /// Optional keyed-service identifier used for generated keyed registrations.
+    /// Defaults to <see langword="null"/> (non-keyed registration).
+    /// </summary>
+    public object? Key { get; set; }
 }
 
 /// <summary>
@@ -84,4 +90,10 @@ public sealed class InjectableAttribute<TService> : Attribute
     /// Optional group value used as first ordering key. Defaults to <see cref="InjectableAttribute.DefaultOrderingValue"/> (<see cref="int.MaxValue"/>).
     /// </summary>
     public int Group { get; set; } = InjectableAttribute.DefaultOrderingValue;
+
+    /// <summary>
+    /// Optional keyed-service identifier used for generated keyed registrations.
+    /// Defaults to <see langword="null"/> (non-keyed registration).
+    /// </summary>
+    public object? Key { get; set; }
 }

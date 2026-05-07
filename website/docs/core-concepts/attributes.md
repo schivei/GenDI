@@ -14,6 +14,7 @@ public sealed class ConcreteService { }
 - `Lifetime`: DI lifetime (`Singleton`, `Scoped`, `Transient`)
 - `Group`: primary ordering key (default `int.MaxValue`)
 - `Order`: secondary ordering key inside group (default `int.MaxValue`)
+- `Key`: optional keyed-service identifier (default `null`)
 
 `ServiceType` in non-generic form is always `null`.
 
@@ -44,6 +45,19 @@ Enables generated init-only property injection.
 ```csharp
 [Inject]
 public required IOtherService OtherService { get; init; }
+```
+
+Keyed property injection can be requested with:
+
+```csharp
+[Inject(Key = "primary")]
+public required IOtherService OtherService { get; init; }
+```
+
+Constructor parameters can use native DI keyed resolution:
+
+```csharp
+public Consumer([FromKeyedServices("primary")] IOtherService otherService) { }
 ```
 
 Requirements:

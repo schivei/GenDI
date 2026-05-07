@@ -27,10 +27,10 @@ public sealed class SystemClock : IClock
     public DateTimeOffset UtcNow => DateTimeOffset.UtcNow;
 }
 
-[Injectable<IInvoiceService>(ServiceLifetime.Scoped, Group = 10, Order = 1)]
+[Injectable<IInvoiceService>(ServiceLifetime.Scoped, Group = 10, Order = 1, Key = "invoices")]
 public sealed class InvoiceService(IClock clock) : IInvoiceService
 {
-    [Inject]
+    [Inject(Key = "invoices")]
     public required ILogger<InvoiceService> Logger { get; init; }
 
     public Task GenerateAsync(Guid invoiceId, CancellationToken ct = default)
@@ -60,3 +60,4 @@ await service.GenerateAsync(Guid.NewGuid());
 
 - If no `[ServiceInjection]` contract is found, GenDI falls back to registering the concrete type as its own service.
 - Property injection requires `[Inject]` + `get; init;` and public/internal visibility.
+- Keyed dependencies can be resolved by `[Inject(Key = ...)]` or constructor `[FromKeyedServices(...)]`.

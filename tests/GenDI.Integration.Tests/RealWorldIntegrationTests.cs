@@ -39,6 +39,23 @@ public class RealWorldIntegrationTests
 
         Assert.Null(provider.GetService<NotGeneratedService>());
     }
+
+    [Fact]
+    public void Generated_keyed_services_resolve_with_keyed_dependencies()
+    {
+        var services = new ServiceCollection();
+        services.AddKeyedSingleton<IRepository<Order>>("repo", new Repository<Order>());
+        services.AddKeyedSingleton<ILogger>("logger", new ConsoleLogger());
+
+        services.AddGenDIServices();
+
+        using var provider = services.BuildServiceProvider();
+        var service = provider.GetRequiredKeyedService<IKeyedGeneratedContract>("generated");
+
+        Assert.NotNull(service);
+        Assert.IsType<Repository<Order>>(service.OrderRepository);
+        Assert.IsType<ConsoleLogger>(service.Logger);
+    }
 }
 
 public sealed class Order;
@@ -76,6 +93,14 @@ public interface ILogger;
 
 public sealed class ConsoleLogger : ILogger;
 
+[ServiceInjection]
+public interface IKeyedGeneratedContract
+{
+    IRepository<Order> OrderRepository { get; }
+
+    ILogger Logger { get; }
+}
+
 [Injectable<IGeneratedContract>(ServiceLifetime.Singleton)]
 public sealed class GeneratedService(IRepository<Order> orderRepository) : IGeneratedContract
 {
@@ -86,6 +111,17 @@ public sealed class GeneratedService(IRepository<Order> orderRepository) : IGene
 
     [Inject]
     public required INonGeneratedContract NonGeneratedContract { get; init; }
+}
+
+[Injectable<IKeyedGeneratedContract>(ServiceLifetime.Singleton, Key = "generated")]
+public sealed class KeyedGeneratedService(
+    [FromKeyedServices("repo")] IRepository<Order> orderRepository
+) : IKeyedGeneratedContract
+{
+    public IRepository<Order> OrderRepository { get; } = orderRepository;
+
+    [Inject(Key = "logger")]
+    public required ILogger Logger { get; init; }
 }
 
 public sealed class NotGeneratedService;

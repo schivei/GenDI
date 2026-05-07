@@ -40,6 +40,7 @@ public class MyService : IMyService
 - `ServiceType`:
   - `[Injectable]` -> `null` (no explicit contract)
   - `[Injectable<TService>]` -> `typeof(TService)` as explicit contract (additive with `[ServiceInjection]`)
+- `Key` (optional, default `null`) for keyed service registration generation
 
 Service registration emission order is:
 1. `Group`
@@ -64,6 +65,19 @@ public class MyConsumer
     [Inject]
     internal required IMyService Service { get; init; }
 }
+```
+
+`[Inject]` also supports optional `Key` for keyed dependency resolution:
+
+```csharp
+[Inject(Key = "primary")]
+public required IMyService Service { get; init; }
+```
+
+Constructor injection can use the native DI attribute:
+
+```csharp
+public MyConsumer([FromKeyedServices("primary")] IMyService service) { }
 ```
 
 ### Service Contract Discovery
@@ -151,7 +165,16 @@ The repository includes:
 - `pack.props` for package metadata and packing defaults
 - `.github/workflows/ci-cd.yml` and `.github/workflows/auto-publish.yml` prepared for Sonar/NuGet flows
 
-NuGet and Sonar steps are currently configured with bypass behavior (`continue-on-error`) so pipeline structure is ready without blocking the current stage.
+## Local Tooling and Git Hooks
+
+The repository uses local tools and Husky hooks:
+
+- `dotnet-tools.json` includes `csharpier` and `husky`
+- pre-commit runs:
+  - `dotnet csharpier format .`
+  - `dotnet test`
+
+For fresh clones, `src/GenDI/GenDI.csproj` runs a pre-restore target that executes `dotnet tool restore` and `dotnet husky install`.
 
 ---
 

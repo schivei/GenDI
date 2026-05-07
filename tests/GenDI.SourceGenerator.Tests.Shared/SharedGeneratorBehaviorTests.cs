@@ -159,4 +159,53 @@ public class SharedGeneratorBehaviorTests
         Assert.True(indexC < indexA);
         Assert.True(indexA < indexB);
     }
+
+    [Fact]
+    public void Supports_keyed_registration_and_resolution()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            using Microsoft.Extensions.DependencyInjection;
+
+            namespace Keyed;
+
+            [ServiceInjection]
+            public interface IContract
+            {
+            }
+
+            public interface IDependency
+            {
+            }
+
+            public interface IPropertyDependency
+            {
+            }
+
+            [Injectable<IContract>(ServiceLifetime.Scoped, Key = "main")]
+            public sealed class KeyedService([FromKeyedServices("dep")] IDependency dependency) : IContract
+            {
+                [Inject(Key = "prop")]
+                public required IPropertyDependency PropertyDependency { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddKeyedScoped<global::Keyed.IContract>(\"main\"",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "serviceProvider.GetRequiredKeyedService<global::Keyed.IDependency>(\"dep\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "serviceProvider.GetRequiredKeyedService<global::Keyed.IPropertyDependency>(\"prop\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
 }

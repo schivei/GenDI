@@ -1,0 +1,78 @@
+using System.Collections.Immutable;
+using Microsoft.CodeAnalysis;
+
+namespace GenDI.SourceGenerator;
+
+public sealed partial class GenDISourceGenerator
+{
+    private static string BuildGeneratedSource(
+        ImmutableArray<ServiceRegistration> registrations,
+        string projectNamespace,
+        bool includeExcludeFromCodeCoverage
+    )
+    {
+        var usings = includeExcludeFromCodeCoverage
+            ? GenDISourceTemplates.UsingsWithCoverage
+            : GenDISourceTemplates.UsingsWithoutCoverage;
+
+        var excludeAttribute = includeExcludeFromCodeCoverage
+            ? GenDISourceTemplates.ExcludeFromCodeCoverageAttribute + "\n"
+            : string.Empty;
+
+        var registrationLines = string.Join("\n", registrations.Select(BuildRegistrationLine));
+
+        return GenDISourceTemplates
+            .FileTemplate.Replace("{{USINGS}}", usings)
+            .Replace("{{NAMESPACE}}", projectNamespace)
+            .Replace("{{EXCLUDE_FROM_COVERAGE}}", excludeAttribute)
+            .Replace("{{REGISTRATIONS}}", registrationLines);
+    }
+
+    private static string BuildRegistrationLine(ServiceRegistration registration)
+    {
+        var registrationMethod = registration.Lifetime switch
+        {
+            "ServiceLifetime.Singleton" => "Singleton",
+            "ServiceLifetime.Scoped" => "Scoped",
+            _ => "Transient",
+        };
+
+        if (string.IsNullOrWhiteSpace(registration.KeyExpression))
+        {
+            return string.Format(
+                GenDISourceTemplates.UnkeyedRegistrationTemplate,
+                registrationMethod,
+                registration.ServiceType,
+                registration.FactoryBody
+            );
+        }
+
+        return string.Format(
+            GenDISourceTemplates.KeyedRegistrationTemplate,
+            registrationMethod,
+            registration.ServiceType,
+            registration.KeyExpression,
+            registration.FactoryBody
+        );
+    }
+
+    private static string GetProjectNamespace(Compilation compilation)
+    {
+        var assemblyName = compilation.AssemblyName;
+        if (string.IsNullOrWhiteSpace(assemblyName))
+        {
+            return "Generated";
+        }
+
+        var parts = assemblyName!
+            .Split('.')
+            .Select(static part => new string(
+                part.Select(ch => char.IsLetterOrDigit(ch) || ch == '_' ? ch : '_').ToArray()
+            ))
+            .Where(static part => !string.IsNullOrWhiteSpace(part))
+            .Select(static part => part.Length > 0 && char.IsDigit(part[0]) ? $"_{part}" : part)
+            .ToImmutableArray();
+
+        return parts.Length == 0 ? "Generated" : string.Join(".", parts);
+    }
+}

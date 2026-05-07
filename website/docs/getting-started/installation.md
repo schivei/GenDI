@@ -50,3 +50,12 @@ services.AddGenDIServices();
 
 - `true` (default): generated extension remains included in coverage.
 - `false`: generated extension receives `[ExcludeFromCodeCoverage]`.
+
+## 6) Local tooling and hooks
+
+The repository ships local tools (`csharpier`, `husky`) in `dotnet-tools.json`.
+
+- pre-commit formats and validates:
+  - `dotnet csharpier format .`
+  - `dotnet test`
+- on fresh clone, the main project runs a pre-restore target that restores local tools and installs husky hooks.
