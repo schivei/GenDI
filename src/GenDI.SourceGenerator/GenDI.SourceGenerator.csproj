@@ -30,5 +30,6 @@
     />
     <None Include="../../README.md" Pack="true" PackagePath="\" Visible="false" />
     <None Include="../../LICENSE" Pack="true" PackagePath="\" Visible="false" />
+    <None Include="../../assets/icon.png" Pack="true" PackagePath="icon.png" Visible="false" />
   </ItemGroup>
 </Project>

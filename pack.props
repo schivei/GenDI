@@ -7,6 +7,7 @@
     <Title>GenDI</Title>
     <Description>Attribute-first dependency injection source generator focused on NativeAOT and trimming.</Description>
     <PackageTags>DependencyInjection;SourceGenerator;NativeAOT;Trimming;GenDI</PackageTags>
+    <PackageIcon>icon.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageProjectUrl>https://github.com/schivei/GenDI</PackageProjectUrl>
