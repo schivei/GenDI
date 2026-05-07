@@ -308,6 +308,9 @@ public sealed partial class GenDISourceGenerator
 
     private static bool ShouldUseOptionalResolution(ITypeSymbol typeSymbol)
     {
+        // NullableAnnotation.None means the symbol comes from an oblivious context
+        // (for example, nullable disabled in the consumer assembly).
+        // In this mode we prefer optional resolution to avoid assuming non-null.
         return typeSymbol.NullableAnnotation is NullableAnnotation.Annotated
             or NullableAnnotation.None;
     }
