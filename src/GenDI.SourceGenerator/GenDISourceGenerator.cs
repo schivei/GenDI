@@ -8,6 +8,8 @@ namespace GenDI.SourceGenerator;
 [Generator]
 public sealed class GenDISourceGenerator : IIncrementalGenerator
 {
+    private const int DefaultOrderGroup = int.MaxValue;
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var candidates = context.SyntaxProvider
@@ -77,8 +79,8 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
     {
         lifetime = "ServiceLifetime.Transient";
         explicitServiceType = null;
-        order = int.MaxValue;
-        group = int.MaxValue;
+        order = DefaultOrderGroup;
+        group = DefaultOrderGroup;
 
         foreach (var attributeData in symbol.GetAttributes())
         {
@@ -128,9 +130,9 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
         var serviceTypes = new List<string>();
         var attributedServiceFound = false;
 
-        if (!string.IsNullOrWhiteSpace(explicitServiceType))
+        if (explicitServiceType is string explicitServiceTypeValue && !string.IsNullOrWhiteSpace(explicitServiceTypeValue))
         {
-            serviceTypes.Add(explicitServiceType!);
+            serviceTypes.Add(explicitServiceTypeValue);
         }
 
         foreach (var interfaceSymbol in symbol.AllInterfaces.Where(HasServiceInjectionAttribute))

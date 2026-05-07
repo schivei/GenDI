@@ -5,11 +5,17 @@ namespace GenDI;
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
 public sealed class InjectableAttribute : Attribute
 {
+    /// <summary>
+    /// Default value for <see cref="Order"/> and <see cref="Group"/> when no explicit ordering is provided.
+    /// Registrations with this value are emitted after lower values.
+    /// </summary>
+    public const int DefaultOrderGroup = int.MaxValue;
+
     public InjectableAttribute(ServiceLifetime lifetime = ServiceLifetime.Transient)
     {
         Lifetime = lifetime;
-        Order = int.MaxValue;
-        Group = int.MaxValue;
+        Order = DefaultOrderGroup;
+        Group = DefaultOrderGroup;
     }
 
     public ServiceLifetime Lifetime { get; }
