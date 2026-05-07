@@ -131,12 +131,12 @@ jobs:
               exit 1
             fi
 
-            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-            echo "Using tag-derived release version: $VERSION"
+            echo "Validated package version against tag version: $VERSION"
           else
-            echo "version=" >> "$GITHUB_OUTPUT"
-            echo "Not a version tag push; skipping release version derivation."
+            echo "Not a version tag push; using detected package version for downstream jobs."
           fi
+
+          echo "version=$PACKAGE_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
