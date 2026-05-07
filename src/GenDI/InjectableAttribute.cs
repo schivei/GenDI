@@ -14,8 +14,6 @@ public sealed class InjectableAttribute : Attribute
     public InjectableAttribute(ServiceLifetime lifetime = ServiceLifetime.Transient)
     {
         Lifetime = lifetime;
-        Order = DefaultOrderingValue;
-        Group = DefaultOrderingValue;
     }
 
     public ServiceLifetime Lifetime { get; }
@@ -25,10 +23,10 @@ public sealed class InjectableAttribute : Attribute
     /// <summary>
     /// Optional order value inside a group. Defaults to <see cref="DefaultOrderingValue"/> (<see cref="int.MaxValue"/>).
     /// </summary>
-    public int Order { get; set; }
+    public int Order { get; set; } = DefaultOrderingValue;
 
     /// <summary>
     /// Optional group value used as first ordering key. Defaults to <see cref="DefaultOrderingValue"/> (<see cref="int.MaxValue"/>).
     /// </summary>
-    public int Group { get; set; }
+    public int Group { get; set; } = DefaultOrderingValue;
 }

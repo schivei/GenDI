@@ -132,7 +132,11 @@ public sealed class GenDISourceGenerator : IIncrementalGenerator
 
         if (!string.IsNullOrWhiteSpace(explicitServiceType))
         {
-            serviceTypes.Add(explicitServiceType!);
+            var nonNullExplicitServiceType = explicitServiceType;
+            if (nonNullExplicitServiceType is not null)
+            {
+                serviceTypes.Add(nonNullExplicitServiceType);
+            }
         }
 
         foreach (var interfaceSymbol in symbol.AllInterfaces)
