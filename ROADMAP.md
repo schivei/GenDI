@@ -8,22 +8,25 @@ This document outlines the planned phases of development for GenDI.
 
 **Goal**: Establish the project foundation and implement attribute-based service registration.
 
-- [ ] Create project structure (solution, projects, CI)
-- [ ] Implement `InjectableAttribute`
-- [ ] Source generator that detects `[Injectable]` classes
-- [ ] Generate `AddGenDIServices()` extension method
-- [ ] Unit tests for the generator
+- [x] Create project structure (solution, projects, CI)
+- [x] Implement `InjectableAttribute`
+- [x] Source generator that detects `[Injectable]` classes
+- [x] Generate `AddGenDIServices()` extension method
+- [x] Unit tests for the generator
 
 ---
 
-## Phase 2 - IInjectable Interface and Microsoft DI Integration
+## Phase 2 - Attribute Model and Microsoft DI Integration
 
-**Goal**: Support interface-based registration and fully integrate with `Microsoft.Extensions.DependencyInjection`.
+**Goal**: Expand attribute-based registration and fully integrate with `Microsoft.Extensions.DependencyInjection`.
 
-- [ ] Implement `IInjectable` marker interface
-- [ ] Source generator support for `IInjectable` types
-- [ ] Support for `Singleton`, `Scoped`, and `Transient` lifetimes
-- [ ] Integration tests with a real `IServiceCollection`
+- [x] Implement `ServiceInjectionAttribute`
+- [x] Implement `GenDICoverationAttribute` for generated coverage control
+- [x] Source generator support for inheritance/interface traversal with `ServiceInjectionAttribute`
+- [x] Source generator support for additive `Injectable<TService>` registrations
+- [x] Registration ordering support (`Group`, `Order`, service name)
+- [x] Support for `Singleton`, `Scoped`, and `Transient` lifetimes
+- [x] Integration tests with a real `IServiceCollection`
 
 ---
 
@@ -31,21 +34,26 @@ This document outlines the planned phases of development for GenDI.
 
 **Goal**: Ensure full compatibility with NativeAOT publish and IL trimming.
 
-- [ ] Add `ILLink.xml` descriptors to preserve generated types
-- [ ] Validate trimming compatibility with `<PublishTrimmed>true</PublishTrimmed>`
-- [ ] Validate NativeAOT with `<PublishAot>true</PublishAot>`
-- [ ] Document NativeAOT usage in README
+- [x] Add `ILLink.xml` descriptors to preserve generated types
+- [x] Validate trimming compatibility with `<PublishTrimmed>true</PublishTrimmed>`
+- [x] Validate NativeAOT with `<PublishAot>true</PublishAot>`
+- [x] Document NativeAOT usage in README
 
 ---
 
-## Phase 4 - Benchmarks and Optimizations
+## Phase 4 - Benchmarks, Documentation Website, and CI Hardening
 
-**Goal**: Measure and improve performance of registration and resolution.
+**Goal**: Improve developer experience and release readiness while preparing optimization baselines.
 
-- [ ] Add BenchmarkDotNet project
-- [ ] Benchmark startup registration time vs. reflection-based DI
-- [ ] Profile and optimize generated code
-- [ ] Publish benchmark results in repository
+- [x] Create Docusaurus website with English-first detailed documentation
+- [x] Align website visual theme and layout with the `net-mediate` documentation style
+- [x] Add GitHub Pages deployment pipeline for the website
+- [x] Add CI/CD and scheduled publish workflows prepared for Sonar/NuGet with bypass (`continue-on-error`)
+- [x] Add `versions.props` and `pack.props` package/build metadata following the `net-mediate` pattern
+- [x] Add BenchmarkDotNet project
+- [x] Benchmark startup registration time vs. reflection-based DI
+- [x] Profile and optimize generated code
+- [x] Publish benchmark results in repository
 
 ---
 
@@ -53,8 +61,6 @@ This document outlines the planned phases of development for GenDI.
 
 **Goal**: Release GenDI publicly on NuGet.org.
 
-- [ ] Set up NuGet package metadata (icon, description, tags, license)
-- [ ] Configure GitHub Actions for automated publish on tag
-- [ ] Publish pre-release (alpha/beta) for community feedback
-- [ ] Address feedback and publish stable `1.0.0` release
+- [x] Set up NuGet package metadata baseline (versioning/pack props and workflow scaffolding)
+- [x] Configure GitHub Actions baseline for package publishing workflows (currently bypassed)
 - [ ] Announce on GitHub Discussions and social channels

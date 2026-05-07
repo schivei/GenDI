@@ -1,0 +1,5 @@
+<linker>
+  <assembly fullname="*">
+    <type fullname="*.DependencyInjection.GenDIServiceCollectionExtensions" preserve="all" />
+  </assembly>
+</linker>
