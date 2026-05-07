@@ -1,0 +1,8 @@
+# Dependabot checks .NET/NuGet dependencies for this repository monthly.
+
+version: 2
+updates:
+  - package-ecosystem: "nuget"
+    directory: "/" # Location of package manifests
+    schedule:
+      interval: "monthly"
