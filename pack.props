@@ -1,0 +1,24 @@
+<Project>
+  <Import Project="versions.props" />
+  <PropertyGroup>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>Elton Schivei Costa</Authors>
+    <Product>GenDI</Product>
+    <Title>GenDI</Title>
+    <Description>Attribute-first dependency injection source generator focused on NativeAOT and trimming.</Description>
+    <PackageTags>DependencyInjection;SourceGenerator;NativeAOT;Trimming;GenDI</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageProjectUrl>https://github.com/schivei/GenDI</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/schivei/GenDI</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <DebugType>Full</DebugType>
+    <IsPackable>true</IsPackable>
+    <PackOnBuild>true</PackOnBuild>
+    <PackageVersion>$(Version)</PackageVersion>
+    <ReleaseVersion>$(Version)</ReleaseVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <NoWarn>$(NoWarn);nullable</NoWarn>
+  </PropertyGroup>
+</Project>

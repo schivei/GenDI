@@ -41,10 +41,15 @@ This document outlines the planned phases of development for GenDI.
 
 ---
 
-## Phase 4 - Benchmarks and Optimizations
+## Phase 4 - Benchmarks, Documentation Website, and CI Hardening
 
-**Goal**: Measure and improve performance of registration and resolution.
+**Goal**: Improve developer experience and release readiness while preparing optimization baselines.
 
+- [x] Create Docusaurus website with English-first detailed documentation
+- [x] Align website visual theme and layout with the `net-mediate` documentation style
+- [x] Add GitHub Pages deployment pipeline for the website
+- [x] Add CI/CD and scheduled publish workflows prepared for Sonar/NuGet with bypass (`continue-on-error`)
+- [x] Add `versions.props` and `pack.props` package/build metadata following the `net-mediate` pattern
 - [ ] Add BenchmarkDotNet project
 - [ ] Benchmark startup registration time vs. reflection-based DI
 - [ ] Profile and optimize generated code
@@ -56,8 +61,8 @@ This document outlines the planned phases of development for GenDI.
 
 **Goal**: Release GenDI publicly on NuGet.org.
 
-- [ ] Set up NuGet package metadata (icon, description, tags, license)
-- [ ] Configure GitHub Actions for automated publish on tag
+- [x] Set up NuGet package metadata baseline (versioning/pack props and workflow scaffolding)
+- [x] Configure GitHub Actions baseline for package publishing workflows (currently bypassed)
 - [ ] Publish pre-release (alpha/beta) for community feedback
 - [ ] Address feedback and publish stable `1.0.0` release
 - [ ] Announce on GitHub Discussions and social channels

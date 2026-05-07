@@ -2,6 +2,13 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace GenDI;
 
+/// <summary>
+/// Marks a concrete class for source-generated dependency injection registration.
+/// </summary>
+/// <remarks>
+/// Use this non-generic variant when no explicit service contract is required.
+/// In this case, <see cref="ServiceType"/> always returns <see langword="null"/>.
+/// </remarks>
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
 public sealed class InjectableAttribute : Attribute
 {
@@ -11,11 +18,18 @@ public sealed class InjectableAttribute : Attribute
     /// </summary>
     public const int DefaultOrderingValue = int.MaxValue;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="InjectableAttribute"/> class.
+    /// </summary>
+    /// <param name="lifetime">The service lifetime for the generated registration.</param>
     public InjectableAttribute(ServiceLifetime lifetime = ServiceLifetime.Transient)
     {
         Lifetime = lifetime;
     }
 
+    /// <summary>
+    /// Gets the lifetime used by the generated registration.
+    /// </summary>
     public ServiceLifetime Lifetime { get; }
 
     /// <summary>
@@ -35,14 +49,25 @@ public sealed class InjectableAttribute : Attribute
     public int Group { get; set; } = DefaultOrderingValue;
 }
 
+/// <summary>
+/// Marks a concrete class for source-generated registration with an explicit service contract.
+/// </summary>
+/// <typeparam name="TService">The service contract type to register.</typeparam>
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
 public sealed class InjectableAttribute<TService> : Attribute
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="InjectableAttribute{TService}"/> class.
+    /// </summary>
+    /// <param name="lifetime">The service lifetime for the generated registration.</param>
     public InjectableAttribute(ServiceLifetime lifetime = ServiceLifetime.Transient)
     {
         Lifetime = lifetime;
     }
 
+    /// <summary>
+    /// Gets the lifetime used by the generated registration.
+    /// </summary>
     public ServiceLifetime Lifetime { get; }
 
     /// <summary>

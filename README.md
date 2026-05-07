@@ -107,6 +107,37 @@ dotnet publish tests/GenDI.Phase3.NativeAotValidation.App/GenDI.Phase3.NativeAot
 </linker>
 ```
 
+## Documentation Website (Phase 4)
+
+GenDI now ships an English-first Docusaurus documentation website under `website/`, with a theme aligned to `net-mediate`.
+
+### Local docs development
+
+```bash
+cd website
+npm ci
+npm run start
+```
+
+### Production docs build
+
+```bash
+cd website
+npm run build
+```
+
+GitHub Pages deployment is handled by `.github/workflows/deploy-docs.yml`.
+
+## Packaging and CI/CD Baseline (Phase 4 / early Phase 5)
+
+The repository includes:
+
+- `versions.props` for centralized dynamic versioning
+- `pack.props` for package metadata and packing defaults
+- `.github/workflows/ci-cd.yml` and `.github/workflows/auto-publish.yml` prepared for Sonar/NuGet flows
+
+NuGet and Sonar steps are currently configured with bypass behavior (`continue-on-error`) so pipeline structure is ready without blocking the current stage.
+
 ---
 
 ## Compatibility
@@ -127,8 +158,8 @@ dotnet publish tests/GenDI.Phase3.NativeAotValidation.App/GenDI.Phase3.NativeAot
 | 1     | `InjectableAttribute` - attribute-based registration      | Implemented |
 | 2     | Attribute model + contract discovery + ordering           | Implemented |
 | 3     | Advanced NativeAOT support (ILLink.xml, trimming, AOT)   | Implemented |
-| 4     | Benchmarks and optimizations                              | Planned    |
-| 5     | Official NuGet publication                                | Planned    |
+| 4     | Benchmarks, website/docs, and CI hardening               | In Progress |
+| 5     | Official NuGet publication                                | In Progress |
 
 See the full plan in [ROADMAP.md](ROADMAP.md).
 

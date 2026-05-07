@@ -1,15 +1,27 @@
-# GenDI Website
+# GenDI Documentation Website
 
-This folder hosts the documentation website content for GenDI.
+This folder contains the Docusaurus website for GenDI documentation.
 
-## Planned sections
+## Local development
 
-- Getting started
-- Dependency registration patterns
-- `InjectableAttribute` / `Injectable<TService>` (`Lifetime`, `Group`, `Order`, explicit service type via generic variant)
-- `ServiceInjectionAttribute` contract discovery
-- `GenDICoverationAttribute` generated coverage control
-- `InjectAttribute` for init-only property injection
-- Source generator behavior
-- NativeAOT and trimming guidance
-- ILLink descriptor guidance and publish validation examples
+```bash
+cd website
+npm ci
+npm run start
+```
+
+## Production build
+
+```bash
+npm run build
+npm run serve
+```
+
+## Content structure
+
+- `docs/` - detailed product documentation in English
+- `src/pages/` - homepage
+- `src/css/` - global theme overrides
+- `static/img/` - icons and visual assets
+
+The visual theme is intentionally aligned with the `net-mediate` documentation style.
