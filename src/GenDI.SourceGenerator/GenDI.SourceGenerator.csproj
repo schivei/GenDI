@@ -8,7 +8,7 @@
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <OutputItemType>Analyzer</OutputItemType>
     <IncludeBuildOutput>false</IncludeBuildOutput>
-    <NoWarn>$(NoWarn);RS2008;NU5128</NoWarn>
+    <NoWarn>$(NoWarn);RS1035;RS1042;RS2008;NU5128</NoWarn>
     <DevelopmentDependency>true</DevelopmentDependency>
     <IsPackable>true</IsPackable>
   </PropertyGroup>

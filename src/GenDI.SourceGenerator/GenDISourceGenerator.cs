@@ -5,55 +5,48 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace GenDI.SourceGenerator;
 
 [Generator]
-public sealed partial class GenDISourceGenerator : IIncrementalGenerator
+public sealed partial class GenDISourceGenerator : ISourceGenerator
 {
     private const int DefaultOrderingValue = int.MaxValue;
 
-    public void Initialize(IncrementalGeneratorInitializationContext context)
+    public void Initialize(GeneratorInitializationContext context)
     {
-        var candidates = context
-            .SyntaxProvider.CreateSyntaxProvider(
-                static (node, _) =>
-                    node is ClassDeclarationSyntax classDeclaration
-                    && HasInjectableAttributeSyntax(classDeclaration),
-                static (generatorContext, _) =>
-                    generatorContext.SemanticModel.GetDeclaredSymbol(
-                        (ClassDeclarationSyntax)generatorContext.Node
-                    ) as INamedTypeSymbol
+    }
+
+    public void Execute(GeneratorExecutionContext context)
+    {
+        var symbols = context
+            .Compilation.SyntaxTrees.SelectMany(static syntaxTree => syntaxTree.GetRoot().DescendantNodes())
+            .OfType<ClassDeclarationSyntax>()
+            .Where(HasInjectableAttributeSyntax)
+            .Select(classDeclaration =>
+                context.Compilation.GetSemanticModel(classDeclaration.SyntaxTree).GetDeclaredSymbol(classDeclaration)
+                    as INamedTypeSymbol
             )
             .Where(static symbol => symbol is not null)
-            .Select(static (symbol, _) => symbol!)
-            .Collect();
+            .Select(static symbol => symbol!)
+            .ToImmutableArray();
 
-        var generationInput = context.CompilationProvider.Combine(candidates);
+        var registrations = symbols
+            .SelectMany(BuildRegistrations)
+            .Distinct(ServiceRegistrationComparer.Instance)
+            .OrderBy(static registration => registration.Group)
+            .ThenBy(static registration => registration.Order)
+            .ThenBy(static registration => registration.ServiceType, StringComparer.Ordinal)
+            .ToImmutableArray();
 
-        context.RegisterSourceOutput(
-            generationInput,
-            static (sourceProductionContext, source) =>
-            {
-                var (compilation, symbols) = source;
-                var registrations = symbols
-                    .SelectMany(BuildRegistrations)
-                    .Distinct(ServiceRegistrationComparer.Instance)
-                    .OrderBy(static registration => registration.Group)
-                    .ThenBy(static registration => registration.Order)
-                    .ThenBy(static registration => registration.ServiceType, StringComparer.Ordinal)
-                    .ToImmutableArray();
+        if (registrations.Length == 0)
+        {
+            return;
+        }
 
-                if (registrations.Length == 0)
-                {
-                    return;
-                }
-
-                sourceProductionContext.AddSource(
-                    "GenDIServiceCollectionExtensions.g.cs",
-                    BuildGeneratedSource(
-                        registrations,
-                        GetProjectNamespace(compilation),
-                        includeExcludeFromCodeCoverage: !IsGeneratedCodeCoverageEnabled(compilation)
-                    )
-                );
-            }
+        context.AddSource(
+            "GenDIServiceCollectionExtensions.g.cs",
+            BuildGeneratedSource(
+                registrations,
+                GetProjectNamespace(context.Compilation),
+                includeExcludeFromCodeCoverage: !IsGeneratedCodeCoverageEnabled(context.Compilation)
+            )
         );
     }
 
