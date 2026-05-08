@@ -94,11 +94,19 @@ jobs:
             -reporttypes:TextSummary \
             -assemblyfilters:"+GenDI;+GenDI.SourceGenerator"
           cat coverage-report/Summary.txt
-          LINE_COV=$(grep -oP '(?<=Line coverage: )\d+\.?\d*' coverage-report/Summary.txt)
+          LINE_COV=$(grep 'Line coverage:' coverage-report/Summary.txt | sed 's/.*Line coverage: \([0-9.]*\).*/\1/')
+          if [ -z "${LINE_COV}" ]; then
+            echo "Failed to parse line coverage from summary."
+            exit 1
+          fi
           echo "Line coverage: ${LINE_COV}%"
           python3 -c "
           import sys
-          cov = float('${LINE_COV}')
+          try:
+              cov = float('${LINE_COV}')
+          except ValueError:
+              print('Could not parse line coverage value: ${LINE_COV}')
+              sys.exit(1)
           threshold = 95.0
           if cov < threshold:
               print(f'Coverage {cov:.1f}% is below the 95% minimum threshold.')
