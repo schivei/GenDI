@@ -1,6 +1,6 @@
 # GenDI
 
-> **Generator-based Dependency Injection for NativeAOT**
+> **Generator-based Dependency Injection for .NET — elegant, fast, AOT-ready**
 
 [![CI/CD Pipeline](https://github.com/schivei/GenDI/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/schivei/GenDI/actions/workflows/ci-cd.yml)
 [![Deploy Documentation](https://github.com/schivei/GenDI/actions/workflows/deploy-docs.yml/badge.svg)](https://github.com/schivei/GenDI/actions/workflows/deploy-docs.yml)
@@ -11,14 +11,63 @@
 
 GenDI is a dependency injection library built on top of C# *source generators*, providing full compatibility with NativeAOT and trimming. It works as an additional module to `Microsoft.Extensions.DependencyInjection`, allowing you to register services automatically at compile time — no reflection required.
 
+## Say goodbye to constructor bloat
+
+Real-world services accumulate dependencies. With traditional constructor injection this tends to look like this:
+
+```csharp
+// ❌ The "constructor tax" — grows every time a new dependency is added
+public class OrderProcessor
+{
+    private readonly IOrderRepository _orderRepository;
+    private readonly IPaymentGateway _paymentGateway;
+    private readonly IEmailService _emailService;
+    private readonly IInventoryService _inventoryService;
+    private readonly ILogger<OrderProcessor> _logger;
+
+    public OrderProcessor(
+        IOrderRepository orderRepository,
+        IPaymentGateway paymentGateway,
+        IEmailService emailService,
+        IInventoryService inventoryService,
+        ILogger<OrderProcessor> logger)
+    {
+        _orderRepository = orderRepository;
+        _paymentGateway = paymentGateway;
+        _emailService = emailService;
+        _inventoryService = inventoryService;
+        _logger = logger;
+    }
+}
+```
+
+With GenDI's **property injection**, the same class becomes clean and self-documenting:
+
+```csharp
+// ✅ Declare what you need — GenDI wires everything at compile time
+[Injectable<IOrderProcessor>(ServiceLifetime.Scoped)]
+public class OrderProcessor : IOrderProcessor
+{
+    [Inject] public required IOrderRepository OrderRepository { get; init; }
+    [Inject] public required IPaymentGateway PaymentGateway { get; init; }
+    [Inject] public required IEmailService EmailService { get; init; }
+    [Inject] public required IInventoryService InventoryService { get; init; }
+    [Inject] public required ILogger<OrderProcessor> Logger { get; init; }
+}
+```
+
+No private fields. No constructor ceremony. No manual wiring. Just declare your dependencies and move on.
+
 ## Key features and developer benefits
 
-- **Less boilerplate, faster delivery**: use attributes instead of manual registration blocks.
-- **Readable generated flow**: activation is emitted as explicit `new` + `GetRequiredService<T>()`, making behavior easier to review and debug.
-- **Deterministic registration order**: supports `Group` + `Order` for predictable pipeline composition.
+- **Property injection as first-class citizen**: use `[Inject]` on `required` init-only properties — dependencies read like documentation, not plumbing.
+- **Zero boilerplate registration**: a single `[Injectable]` attribute replaces `AddScoped<TImpl>()` calls scattered across startup files.
+- **Readable generated flow**: activation is emitted as explicit `new` + `GetRequiredService<T>()`, making the wiring transparent and debuggable.
+- **Compile-time safety**: missing or misconfigured dependencies become build errors, not runtime surprises.
+- **Deterministic registration order**: `Group` + `Order` give you predictable, testable pipeline composition.
 - **Attribute-first contract mapping**: combine `[Injectable]`, `[Injectable<TService>]`, and `[ServiceInjection]` with clear intent.
 - **Keyed services support**: works with both native `[FromKeyedServices]` and GenDI `[Inject(Key = ...)]`.
-- **No runtime scanning cost**: compile-time generation improves startup consistency.
+- **No runtime scanning cost**: compile-time generation eliminates startup overhead from reflection-based scanning.
 - **AOT/trimming friendly by design**: safe path for teams that need NativeAOT, without forcing this concern for every project.
 
 ---
@@ -75,13 +124,24 @@ var app = builder.Build();
 app.Run();
 ```
 
-### Init Property Injection
+### Property Injection with `[Inject]`
+
+Declare dependencies as `required` init-only properties and mark them with `[Inject]`. GenDI generates the activation code — no constructor needed:
 
 ```csharp
-public class MyConsumer
+[Injectable<IOrderProcessor>(ServiceLifetime.Scoped)]
+public class OrderProcessor : IOrderProcessor
 {
-    [Inject]
-    internal required IMyService Service { get; init; }
+    [Inject] public required IOrderRepository Repository { get; init; }
+    [Inject] public required IPaymentGateway Payment { get; init; }
+    [Inject] public required ILogger<OrderProcessor> Logger { get; init; }
+
+    public async Task ProcessAsync(Order order)
+    {
+        Logger.LogInformation("Processing order {Id}", order.Id);
+        await Repository.SaveAsync(order);
+        await Payment.ChargeAsync(order);
+    }
 }
 ```
 
@@ -92,7 +152,7 @@ public class MyConsumer
 public required IMyService Service { get; init; }
 ```
 
-Constructor injection can use the native DI attribute:
+Constructor injection is also supported and can use the native DI attribute:
 
 ```csharp
 public MyConsumer([FromKeyedServices("primary")] IMyService service) { }
