@@ -74,26 +74,35 @@ singleton services and one transient service.
 
 ### Results
 
-| Configuration | Manual (no GenDI) | GenDI | Difference |
-|---|---:|---:|---|
-| Framework-dependent (folder) | 264 KB | 292 KB | +28 KB — the `GenDI.dll` library |
-| Framework-dependent (app DLL) | 8 KB | 8 KB | None |
-| Self-contained (folder) | ~80 MB | ~80 MB | None — .NET runtime dominates |
-| Trimmed self-contained (folder) | ~23 MB | ~23 MB | None — trimmer removes unused GenDI code |
-| NativeAOT (native binary) | 2.2 MB | 2.2 MB | **None** |
+| Configuration | Manual (no GenDI) | GenDI (ctor or property injection) | Reflection scanner |
+|---|---:|---:|---:|
+| Framework-dependent (folder) | 264 KB | 292 KB | 264 KB |
+| Framework-dependent (app DLL) | 8 KB | 8 KB | 8 KB |
+| Self-contained (folder) | ~80 MB | ~80 MB | ~80 MB |
+| Trimmed self-contained (folder) | ~23 MB | ~23 MB | ~23 MB ⚠️ |
+| NativeAOT (native binary) | 2.2 MB | 2.2 MB | 2.2 MB ⚠️ |
+
+⚠️ = binary is produced but **crashes at runtime**.
 
 ### What this means
 
 - **Framework-dependent**: GenDI adds 28 KB (the library DLL + PDB + XML docs). Irrelevant for
-  any real deployment.
-- **Self-contained**: The .NET runtime bundle (~80 MB) eclipses the library completely.
+  any real deployment. Reflection scanner has no overhead here.
+- **Self-contained**: The .NET runtime bundle (~80 MB) eclipses everything. All three strategies
+  produce identical output sizes.
 - **Trimmed**: The IL linker statically analyses the generated factories (no reflection → full
-  visibility) and removes all unused GenDI internals. Final size is identical to manual.
+  visibility) and removes all unused GenDI internals. Final size is identical to manual.  
+  The reflection scanner triggers IL2026 / IL2072 trimmer warnings — the implementation types
+  get stripped and the binary crashes at startup.
 - **NativeAOT**: GenDI generates zero-reflection factory code. The AOT compiler produces an
-  **identical 2.2 MB native binary** to hand-written registration.
+  **identical 2.2 MB native binary** to hand-written registration.  
+  The reflection scanner generates the same compiler warnings and the native binary crashes at
+  startup for the same reason — `Assembly.GetTypes()` is incompatible with AOT.
 
 > GenDI adds 28 KB in framework-dependent mode only. Under trimming or NativeAOT the
-> final binary is equivalent to writing every `Add*<>()` call by hand.
+> final binary is equivalent to writing every `Add*<>()` call by hand — **and actually works**.
+> The reflection scanner produces equally-sized binaries but they **crash at runtime** in both
+> trimming and AOT scenarios.
 
 To reproduce locally:
 

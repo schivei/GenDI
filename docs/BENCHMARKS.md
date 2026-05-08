@@ -106,13 +106,15 @@ singleton services and one transient service — a realistic slice of a real-wor
 
 ### Results
 
-| Configuration | Manual (no GenDI) | GenDI (property or ctor injection) | Difference |
-|---|---:|---:|---|
-| Framework-dependent (folder) | 264 KB | 292 KB | +28 KB — the `GenDI.dll` library |
-| Framework-dependent (app DLL only) | 8 KB | 8 KB | None — same app logic |
-| Self-contained (folder) | ~80 MB | ~80 MB | None — .NET runtime dominates |
-| Trimmed self-contained (folder) | ~23 MB | ~23 MB | None — trimmer removes unused GenDI code |
-| NativeAOT (native binary) | 2.2 MB | 2.2 MB | None — only reachable code compiled |
+| Configuration | Manual (no GenDI) | GenDI (ctor or property injection) | Reflection scanner |
+|---|---:|---:|---:|
+| Framework-dependent (folder) | 264 KB | 292 KB | 264 KB |
+| Framework-dependent (app DLL only) | 8 KB | 8 KB | 8 KB |
+| Self-contained (folder) | ~80 MB | ~80 MB | ~80 MB |
+| Trimmed self-contained (folder) | ~23 MB | ~23 MB | ~23 MB ⚠️ |
+| NativeAOT (native binary) | 2.2 MB | 2.2 MB | 2.2 MB ⚠️ |
+
+⚠️ = binary is produced but **crashes at runtime** (see analysis below).
 
 ### Analysis
 
@@ -121,20 +123,33 @@ singleton services and one transient service — a realistic slice of a real-wor
 28 KB total. For most applications this is irrelevant.
 
 **Self-contained**: The .NET runtime bundle (~80 MB) completely eclipses the 28 KB library
-overhead. The output size is identical.
+overhead. The output size is identical across all three strategies.
 
-**Trimmed self-contained**: The IL linker performs dead-code elimination across all assemblies.
-Since GenDI generates explicit factory lambdas (no reflection), the trimmer can statically
-analyse every code path and remove all unreferenced GenDI internals. The result is identical to
-manual registration.
+**Trimmed self-contained**:
 
-**NativeAOT**: GenDI is purpose-built for AOT. The generated factories contain zero reflection,
-zero dynamic dispatch, and zero runtime attribute inspection. The AOT compiler compiles exactly
-the same native code for both approaches — resulting in an **identical 2.2 MB native binary**.
+- *Manual and GenDI*: The IL linker performs static dead-code elimination. GenDI's generated
+  factories use no reflection, so the trimmer can fully analyse every code path and remove all
+  unreferenced GenDI internals. Output size is identical to manual.
+- *Reflection scanner*: `Assembly.GetTypes()` is decorated with
+  `[RequiresUnreferencedCode]`. The trimmer emits two IL2026/IL2072 warnings and strips the
+  implementation types it cannot see through the reflection call. The binary builds (~23 MB) but
+  crashes with an abort at startup because the scanned types no longer exist at runtime.
 
-> **Takeaway**: GenDI adds 28 KB in framework-dependent deployments only.
-> In all trimming and AOT scenarios the final binary is **byte-for-byte equivalent** to
-> hand-written registration.
+**NativeAOT**:
+
+- *Manual and GenDI*: GenDI is purpose-built for AOT. The generated factories contain zero
+  reflection, zero dynamic dispatch, and zero runtime attribute inspection. The AOT compiler
+  produces an **identical 2.2 MB native binary** for both.
+- *Reflection scanner*: The AOT compiler emits the same IL2026/IL2072 warnings as the trimmer.
+  The assembly type list is built at compile time and the dynamic `GetTypes()` enumeration has no
+  types to find. The binary builds (2.2 MB) but crashes at startup — identical failure mode to
+  trimming.
+
+> **Takeaway**: GenDI adds 28 KB in framework-dependent deployments only. In all trimming
+> and NativeAOT scenarios the final binary is **equivalent to hand-written registration and
+> fully functional**. The reflection scanner produces binaries of identical size in those same
+> scenarios but they **do not work** — any trimming-safe deployment requires either manual
+> registration or GenDI.
 
 ---
 
