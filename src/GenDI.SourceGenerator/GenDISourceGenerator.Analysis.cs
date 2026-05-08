@@ -405,11 +405,9 @@ public sealed partial class GenDISourceGenerator
             ),
             float f => BuildFloatConstantExpression(f),
             double d => BuildDoubleConstantExpression(d),
-            decimal m => m.ToString(CultureInfo.InvariantCulture) + "M",
-            _ => BuildEnumConstantExpression(typedConstant),
+            _ => null,
         };
     }
-
     private static string BuildFloatConstantExpression(float value)
     {
         return value switch
@@ -430,17 +428,6 @@ public sealed partial class GenDISourceGenerator
             _ when double.IsNegativeInfinity(value) => "double.NegativeInfinity",
             _ => value.ToString(CultureInfo.InvariantCulture) + "D",
         };
-    }
-
-    private static string? BuildEnumConstantExpression(TypedConstant typedConstant)
-    {
-        if (typedConstant.Type?.TypeKind != TypeKind.Enum || typedConstant.Value is null)
-        {
-            return null;
-        }
-
-        var enumType = typedConstant.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        return $"({enumType}){Convert.ToInt64(typedConstant.Value, CultureInfo.InvariantCulture)}";
     }
 
     private static string EscapeStringLiteral(string value)

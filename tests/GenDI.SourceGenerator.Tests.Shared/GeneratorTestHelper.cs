@@ -13,6 +13,15 @@ internal static class GeneratorTestHelper
 {
     public static string GenerateSource(string userSource, bool? includeGeneratedCodeInCoverage)
     {
+        return GenerateSourceWithAssemblyName("Consumer.Tests", userSource, includeGeneratedCodeInCoverage);
+    }
+
+    public static string GenerateSourceWithAssemblyName(
+        string? assemblyName,
+        string userSource,
+        bool? includeGeneratedCodeInCoverage
+    )
+    {
         var assemblyCoverageAttribute = includeGeneratedCodeInCoverage.HasValue
             ? $"[assembly: GenDI.GenDICoveration({includeGeneratedCodeInCoverage.Value.ToString().ToLowerInvariant()})]"
             : string.Empty;
@@ -28,7 +37,7 @@ internal static class GeneratorTestHelper
         var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
         var syntaxTree = CSharpSyntaxTree.ParseText(source, parseOptions);
         var compilation = CSharpCompilation.Create(
-            assemblyName: "Consumer.Tests",
+            assemblyName: assemblyName,
             syntaxTrees: new[] { syntaxTree },
             references: BuildReferences(),
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
