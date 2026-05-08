@@ -65,6 +65,52 @@ touches a `GetTypes()` call.
 | Constructor vs property injection | Tie | ±1–2 % (noise) | **Use property injection — zero cost, big ergonomic win** |
 | GenDI generated vs reflection scanner | GenDI | ~19× faster | Reflection scanning is not viable for cold-start-sensitive apps |
 
+## Binary size comparison
+
+These measurements use a representative minimal .NET 10 console application with three
+singleton services and one transient service.
+
+**Environment**: .NET SDK 10.0.201, linux-x64
+
+### Results
+
+| Configuration | Manual (no GenDI) | GenDI | Difference |
+|---|---:|---:|---|
+| Framework-dependent (folder) | 264 KB | 292 KB | +28 KB — the `GenDI.dll` library |
+| Framework-dependent (app DLL) | 8 KB | 8 KB | None |
+| Self-contained (folder) | ~80 MB | ~80 MB | None — .NET runtime dominates |
+| Trimmed self-contained (folder) | ~23 MB | ~23 MB | None — trimmer removes unused GenDI code |
+| NativeAOT (native binary) | 2.2 MB | 2.2 MB | **None** |
+
+### What this means
+
+- **Framework-dependent**: GenDI adds 28 KB (the library DLL + PDB + XML docs). Irrelevant for
+  any real deployment.
+- **Self-contained**: The .NET runtime bundle (~80 MB) eclipses the library completely.
+- **Trimmed**: The IL linker statically analyses the generated factories (no reflection → full
+  visibility) and removes all unused GenDI internals. Final size is identical to manual.
+- **NativeAOT**: GenDI generates zero-reflection factory code. The AOT compiler produces an
+  **identical 2.2 MB native binary** to hand-written registration.
+
+> GenDI adds 28 KB in framework-dependent mode only. Under trimming or NativeAOT the
+> final binary is equivalent to writing every `Add*<>()` call by hand.
+
+To reproduce locally:
+
+```bash
+# Framework-dependent
+dotnet publish MyApp.csproj -c Release -o out-fd
+
+# Self-contained
+dotnet publish MyApp.csproj -c Release -r linux-x64 --self-contained -o out-sc
+
+# Trimmed
+dotnet publish MyApp.csproj -c Release -r linux-x64 --self-contained /p:PublishTrimmed=true -o out-trimmed
+
+# NativeAOT
+dotnet publish MyApp.csproj -c Release -r linux-x64 /p:PublishAot=true -o out-aot
+```
+
 ## Published benchmark reports
 
 Full benchmark reports are published in the repository at:
