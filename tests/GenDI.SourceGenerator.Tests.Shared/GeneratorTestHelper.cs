@@ -47,13 +47,13 @@ internal static class GeneratorTestHelper
         var syntaxTree = CSharpSyntaxTree.ParseText(source, parseOptions);
         var compilation = CSharpCompilation.Create(
             assemblyName: assemblyName,
-            syntaxTrees: [syntaxTree],
+            syntaxTrees: new[] { syntaxTree },
             references: BuildReferences(),
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
 
-        ISourceGenerator generator = CreateGenerator();
-        GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
+        IIncrementalGenerator generator = CreateGenerator();
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(generator.AsSourceGenerator());
         driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out var diagnostics);
 
         var generationErrors = diagnostics
@@ -94,13 +94,13 @@ internal static class GeneratorTestHelper
         var syntaxTree = CSharpSyntaxTree.ParseText(source, parseOptions);
         var compilation = CSharpCompilation.Create(
             assemblyName: assemblyName,
-            syntaxTrees: [syntaxTree],
+            syntaxTrees: new[] { syntaxTree },
             references: BuildReferences(),
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
 
-        ISourceGenerator generator = CreateGenerator();
-        GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
+        IIncrementalGenerator generator = CreateGenerator();
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(generator.AsSourceGenerator());
         driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out var diagnostics);
 
         var generationErrors = diagnostics
@@ -118,18 +118,17 @@ internal static class GeneratorTestHelper
         return generated.SourceText.ToString();
     }
 
-    private static ISourceGenerator CreateGenerator()
+    private static IIncrementalGenerator CreateGenerator()
     {
         var assemblyPath = ResolveGeneratorAssemblyPath();
-        var assemblyBytes = File.ReadAllBytes(assemblyPath);
-        var assembly = Assembly.Load(assemblyBytes);
+        var assembly = Assembly.LoadFrom(assemblyPath);
         var type = assembly.GetType(
             "GenDI.SourceGenerator.GenDISourceGenerator",
             throwOnError: true
         )!;
         var instance = Activator.CreateInstance(type);
         Assert.NotNull(instance);
-        return Assert.IsType<ISourceGenerator>(instance, exactMatch: false);
+        return Assert.IsAssignableFrom<IIncrementalGenerator>(instance);
     }
 
     private static string ResolveGeneratorAssemblyPath()
