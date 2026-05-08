@@ -65,7 +65,7 @@ public class SharedGeneratorBehaviorTests
             public sealed class ComplexService : PipelineBase, IPipelineContract
             {
                 [Inject]
-                internal required IPropertyDependency PropertyDependency { get; init; }
+                internal IPropertyDependency PropertyDependency { get; init; }
 
                 public ComplexService(IDependency dependency)
                 {

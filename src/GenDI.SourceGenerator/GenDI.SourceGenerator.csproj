@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="../../pack.props" />
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -16,7 +16,7 @@
   <ItemGroup>
     <PackageReference
       Include="Microsoft.CodeAnalysis.CSharp"
-      Version="4.*"
+      Version="5.*"
       PrivateAssets="all"
     />
   </ItemGroup>
