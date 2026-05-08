@@ -18,6 +18,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.*" PrivateAssets="all" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.*" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.*" />
     <PackageReference Include="xunit.v3" Version="3.*" PrivateAssets="all" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.*" PrivateAssets="all" />
   </ItemGroup>
