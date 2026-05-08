@@ -49,9 +49,10 @@ Environment captured by BenchmarkDotNet:
 
 ### Manual vs GenDI generated
 
-Manual hand-written registration is marginally faster (~8 %) than the generated path because
-it calls the Microsoft DI registration API directly without going through a generated extension
-method. This small overhead is a constant, one-time startup cost and has **no effect** on
+The manual baseline registers **the same full service set** as `AddGenDIServices()` to ensure an
+apples-to-apples comparison. Manual registration is marginally faster (~8 %) because it inlines
+the registration calls directly, while the generated path bundles them inside a single extension
+method call. This overhead is a **constant, one-time startup cost** with no effect on
 per-request service resolution speed.
 
 **Trade-off**: manual registration requires writing, maintaining, and reviewing every `Add*<>()`

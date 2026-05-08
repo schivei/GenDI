@@ -55,7 +55,7 @@ public MyService(IOrderRepository repo) { _repo = repo; }
 [Inject] public required IOrderRepository Repo { get; init; }
 ```
 
-The `required` modifier is enforced by the C# compiler: GenDI cannot generate an instance without providing every `[Inject]` property. This gives you the same compile-time safety as constructor injection, with far less noise.
+The `required` modifier is enforced by the C# compiler: GenDI cannot generate an instance without providing every `[Inject]` property. This gives you the same compile-time guarantee as constructor injection — you cannot accidentally skip a dependency in the generated initializer. Note: if a service is not registered in the DI container, `GetRequiredService<T>()` will still throw at runtime, just like standard DI.
 
 ### 🔧 Basic usage
 

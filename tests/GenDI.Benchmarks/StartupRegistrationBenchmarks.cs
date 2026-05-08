@@ -11,16 +11,25 @@ namespace GenDI.Benchmarks;
 public class StartupRegistrationBenchmarks
 {
     // ------------------------------------------------------------------
-    // 1. No GenDI — manual registration, container-driven activation
+    // 1. No GenDI — manual registration of the same service set, container-driven activation
     // ------------------------------------------------------------------
 
     [Benchmark(Description = "Manual registration (no GenDI)")]
     public string ManualRegistrationStartup()
     {
         var services = new ServiceCollection();
+        // Register the identical service set that AddGenDIServices() produces
+        // so this baseline measures registration overhead, not workload difference.
         services.AddSingleton<IBenchmarkClock, BenchmarkClock>();
         services.AddSingleton<IBenchmarkRepository, BenchmarkRepository>();
         services.AddTransient<IBenchmarkService, BenchmarkService>();
+        services.AddTransient<IBenchmarkServiceViaProperties>(sp =>
+            new BenchmarkServiceViaProperties
+            {
+                Clock = sp.GetRequiredService<IBenchmarkClock>(),
+                Repository = sp.GetRequiredService<IBenchmarkRepository>(),
+            }
+        );
 
         using var provider = services.BuildServiceProvider();
         var service = provider.GetRequiredService<IBenchmarkService>();

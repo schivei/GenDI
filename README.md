@@ -63,7 +63,7 @@ No private fields. No constructor ceremony. No manual wiring. Just declare your 
 - **Property injection as first-class citizen**: use `[Inject]` on `required` init-only properties — dependencies read like documentation, not plumbing.
 - **Zero boilerplate registration**: a single `[Injectable]` attribute replaces `AddScoped<TImpl>()` calls scattered across startup files.
 - **Readable generated flow**: activation is emitted as explicit `new` + `GetRequiredService<T>()`, making the wiring transparent and debuggable.
-- **Compile-time safety**: missing or misconfigured dependencies become build errors, not runtime surprises.
+- **Compile-time safety**: the C# compiler enforces every `required` `[Inject]` property is assigned — you cannot accidentally skip a dependency. Container registration errors (unregistered services) remain runtime exceptions, just like standard DI.
 - **Deterministic registration order**: `Group` + `Order` give you predictable, testable pipeline composition.
 - **Attribute-first contract mapping**: combine `[Injectable]`, `[Injectable<TService>]`, and `[ServiceInjection]` with clear intent.
 - **Keyed services support**: works with both native `[FromKeyedServices]` and GenDI `[Inject(Key = ...)]`.

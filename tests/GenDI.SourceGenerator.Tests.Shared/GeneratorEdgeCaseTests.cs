@@ -16,14 +16,12 @@ public class GeneratorEdgeCaseTests
     public void Abstract_class_with_Injectable_produces_no_source()
     {
         // symbol.IsAbstract == true path in BuildRegistrations
-        Assert.Throws<InvalidOperationException>(() =>
-            GeneratorTestHelper.GenerateSource(
-                """
-                [Injectable]
-                public abstract class AbstractService { }
-                """,
-                TestSettings.IncludeGeneratedCodeInCoverageAttribute
-            )
+        GeneratorTestHelper.AssertNoSourceGenerated(
+            """
+            [Injectable]
+            public abstract class AbstractService { }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
         );
     }
 
@@ -31,19 +29,17 @@ public class GeneratorEdgeCaseTests
     public void Injectable_from_wrong_namespace_produces_no_source()
     {
         // IsInjectableAttribute returns false when the attribute is not GenDI.InjectableAttribute
-        Assert.Throws<InvalidOperationException>(() =>
-            GeneratorTestHelper.GenerateSource(
-                """
-                namespace OtherNamespace
-                {
-                    public sealed class InjectableAttribute : System.Attribute { }
-                }
+        GeneratorTestHelper.AssertNoSourceGenerated(
+            """
+            namespace OtherNamespace
+            {
+                public sealed class InjectableAttribute : System.Attribute { }
+            }
 
-                [OtherNamespace.Injectable]
-                public sealed class NotReallyInjectable { }
-                """,
-                TestSettings.IncludeGeneratedCodeInCoverageAttribute
-            )
+            [OtherNamespace.Injectable]
+            public sealed class NotReallyInjectable { }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
         );
     }
 
@@ -271,7 +267,7 @@ public class GeneratorEdgeCaseTests
             TestSettings.IncludeGeneratedCodeInCoverageAttribute
         );
 
-        Assert.Contains("F", source, StringComparison.Ordinal); // e.g. "3.14F"
+        Assert.Contains("3.14F", source, StringComparison.Ordinal); // e.g. AddKeyedSingleton(..., 3.14F)
     }
 
     [Fact]
@@ -328,7 +324,7 @@ public class GeneratorEdgeCaseTests
             TestSettings.IncludeGeneratedCodeInCoverageAttribute
         );
 
-        Assert.Contains("D", source, StringComparison.Ordinal); // e.g. "2.71D"
+        Assert.Contains("2.71D", source, StringComparison.Ordinal); // e.g. AddKeyedSingleton(..., 2.71D)
     }
 
     [Fact]

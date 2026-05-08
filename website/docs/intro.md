@@ -69,7 +69,7 @@ The `required` keyword guarantees that every dependency is provided — the comp
 
 - 🎯 **Property injection as first-class citizen**: `[Inject]` on `required` init-only properties — dependencies read like documentation, not plumbing.
 - 🚫 **Zero boilerplate registration**: one `[Injectable]` attribute replaces manual `AddScoped<>()` calls in startup files.
-- 🔒 **Compile-time safety**: misconfigured dependencies become build errors, not `InvalidOperationException` at runtime.
+- 🔒 **Compile-time safety**: the C# compiler enforces that every `required` `[Inject]` property is assigned in the generated initializer — you cannot accidentally omit a dependency. Note: unregistered services still surface as runtime container exceptions, just like standard DI.
 - 📖 **Readable generated flow**: activation uses explicit `new` + `GetRequiredService<T>()`, easy to inspect and debug.
 - 📐 **Predictable behavior**: deterministic ordering with `Group` and `Order` avoids ambiguous pipeline composition.
 - 🔑 **Modern DI scenarios**: keyed registrations and keyed resolution through both Microsoft DI and GenDI attributes.

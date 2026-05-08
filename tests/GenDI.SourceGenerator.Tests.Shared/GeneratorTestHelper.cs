@@ -16,6 +16,62 @@ internal static class GeneratorTestHelper
         return GenerateSourceWithAssemblyName("Consumer.Tests", userSource, includeGeneratedCodeInCoverage);
     }
 
+    /// <summary>
+    /// Asserts that the generator produces no output for the given source.
+    /// Fails the test with an explicit message if any source is generated.
+    /// </summary>
+    public static void AssertNoSourceGenerated(string userSource, bool? includeGeneratedCodeInCoverage)
+    {
+        AssertNoSourceGeneratedWithAssemblyName("Consumer.Tests", userSource, includeGeneratedCodeInCoverage);
+    }
+
+    public static void AssertNoSourceGeneratedWithAssemblyName(
+        string? assemblyName,
+        string userSource,
+        bool? includeGeneratedCodeInCoverage
+    )
+    {
+        var assemblyCoverageAttribute = includeGeneratedCodeInCoverage.HasValue
+            ? $"[assembly: GenDI.GenDICoveration({includeGeneratedCodeInCoverage.Value.ToString().ToLowerInvariant()})]"
+            : string.Empty;
+
+        var source = $$"""
+            using GenDI;
+            using Microsoft.Extensions.DependencyInjection;
+            {{assemblyCoverageAttribute}}
+
+            {{userSource}}
+            """;
+
+        var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
+        var syntaxTree = CSharpSyntaxTree.ParseText(source, parseOptions);
+        var compilation = CSharpCompilation.Create(
+            assemblyName: assemblyName,
+            syntaxTrees: new[] { syntaxTree },
+            references: BuildReferences(),
+            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
+
+        IIncrementalGenerator generator = CreateGenerator();
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(generator.AsSourceGenerator());
+        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out var diagnostics);
+
+        var generationErrors = diagnostics
+            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+            .ToArray();
+        Assert.Empty(generationErrors);
+
+        var result = driver.GetRunResult();
+        var generatedSources = result
+            .Results.SelectMany(static runResult => runResult.GeneratedSources)
+            .Where(static generatedSource =>
+                generatedSource.HintName == "GenDIServiceCollectionExtensions.g.cs"
+            )
+            .ToArray();
+
+        Assert.Empty(generatedSources);
+    }
+
     public static string GenerateSourceWithAssemblyName(
         string? assemblyName,
         string userSource,

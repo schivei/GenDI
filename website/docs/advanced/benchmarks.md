@@ -36,9 +36,10 @@ dotnet run -c Release --project tests/GenDI.Benchmarks/GenDI.Benchmarks.csproj -
 
 ### ✍️ Manual vs ⚡ GenDI generated
 
-Manual registration is marginally faster (~8 %) than the generated path because it skips the
-generated extension method and calls the Microsoft DI API directly. This is a **constant,
-one-time startup cost** — it has no effect on per-request resolution speed.
+The manual baseline registers **the same full service set** as `AddGenDIServices()` for an
+apples-to-apples comparison. Manual registration is marginally faster (~8 %) because it inlines
+the registration calls directly, while GenDI bundles them inside a generated extension method.
+This is a **constant, one-time startup cost** — it has no effect on per-request resolution speed.
 
 The ergonomic price of "manual" is every new service needing its own `AddScoped<>()` call in a
 startup file. GenDI eliminates that maintenance entirely.
