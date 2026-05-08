@@ -10,8 +10,29 @@ namespace GenDI.Benchmarks;
 [SimpleJob(RunStrategy.ColdStart, launchCount: 1, warmupCount: 3, iterationCount: 10)]
 public class StartupRegistrationBenchmarks
 {
-    [Benchmark(Description = "Generated registration startup")]
-    public string GeneratedRegistrationStartup()
+    // ------------------------------------------------------------------
+    // 1. No GenDI — manual registration, container-driven activation
+    // ------------------------------------------------------------------
+
+    [Benchmark(Description = "Manual registration (no GenDI)")]
+    public string ManualRegistrationStartup()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IBenchmarkClock, BenchmarkClock>();
+        services.AddSingleton<IBenchmarkRepository, BenchmarkRepository>();
+        services.AddTransient<IBenchmarkService, BenchmarkService>();
+
+        using var provider = services.BuildServiceProvider();
+        var service = provider.GetRequiredService<IBenchmarkService>();
+        return service.Execute();
+    }
+
+    // ------------------------------------------------------------------
+    // 2. GenDI — generated factory, constructor injection style
+    // ------------------------------------------------------------------
+
+    [Benchmark(Description = "GenDI: constructor injection (generated)")]
+    public string GeneratedConstructorInjectionStartup()
     {
         var services = new ServiceCollection();
         services.AddGenDIServices();
@@ -21,7 +42,26 @@ public class StartupRegistrationBenchmarks
         return service.Execute();
     }
 
-    [Benchmark(Description = "Reflection registration startup")]
+    // ------------------------------------------------------------------
+    // 3. GenDI — generated factory, property injection style
+    // ------------------------------------------------------------------
+
+    [Benchmark(Description = "GenDI: property injection (generated)")]
+    public string GeneratedPropertyInjectionStartup()
+    {
+        var services = new ServiceCollection();
+        services.AddGenDIServices();
+
+        using var provider = services.BuildServiceProvider();
+        var service = provider.GetRequiredService<IBenchmarkServiceViaProperties>();
+        return service.Execute();
+    }
+
+    // ------------------------------------------------------------------
+    // 4. Reflection scanner — kept as the "worst case" baseline
+    // ------------------------------------------------------------------
+
+    [Benchmark(Description = "Reflection registration (no GenDI, assembly scan)")]
     public string ReflectionRegistrationStartup()
     {
         var services = new ServiceCollection();
