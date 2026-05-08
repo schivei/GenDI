@@ -1,49 +1,49 @@
-# Roadmap
+# 🗺️ Roadmap
 
-## Current status
+## 📊 Current status
 
 | Phase | Description | Status |
 |---|---|---|
-| 1 | Foundation — `InjectableAttribute`, source generator, unit tests | ✅ Done |
-| 2 | Attribute model, Microsoft DI integration, ordering, lifetimes | ✅ Done |
-| 3 | NativeAOT / trimming validation | ✅ Done |
-| 4 | Benchmarks, Docusaurus website, CI hardening | ✅ Done |
-| 5 | NuGet publication and announcement | 🔄 In progress |
-| 6 | Developer experience, ecosystem expansion | 📋 Planned |
+| 1 | 🏗️ Foundation — `InjectableAttribute`, source generator, unit tests | ✅ Done |
+| 2 | 🔌 Attribute model, Microsoft DI integration, ordering, lifetimes | ✅ Done |
+| 3 | 🚀 NativeAOT / trimming validation | ✅ Done |
+| 4 | 📈 Benchmarks, Docusaurus website, CI hardening | ✅ Done |
+| 5 | 📦 NuGet publication and announcement | ✅ Done |
+| 6 | 🌟 Developer experience, ecosystem expansion | 📋 Planned |
 
 For the full phase-by-phase checklist, see [`ROADMAP.md`](https://github.com/schivei/GenDI/blob/main/ROADMAP.md) in the repository.
 
 ---
 
-## Phase 6 highlights (what's coming)
+## 🌟 Phase 6 highlights — what's coming
 
-### Source-generator quality
+### 🔬 Source-generator quality
 - `GenDI.Analyzers` companion package — IDE warnings for misconfigured `[Injectable]` / `[Inject]` usage
 - Code-fix provider: convert constructor injection to GenDI property injection automatically
 - Incremental generator optimization to reduce rebuild cost on partial changes
 
-### Registration model
+### 🗂️ Registration model
 - `[InjectOptional]` — optional property injection (skips unregistered services gracefully)
 - `[ConditionalInjectable(environmentName)]` — environment-conditional registration
 - `[DecoratorFor<TService>]` — decorator pattern auto-wiring
 - Open-generic service registration support
 - Module-based grouping with `[InjectableModule]`
 
-### Platform support
+### 🌐 Platform support
 - Blazor WebAssembly validated property injection
 - MAUI / mobile AOT on iOS and Android
 - Worker Service and hosted service integration examples
 - F# attribute support exploration
 
-### Testing
+### 🧪 Testing
 - `GenDI.Testing` companion package with `ServiceBuilder` helper for unit tests using property injection
 
-### Tooling and IDE
+### 🛠️ Tooling and IDE
 - Visual Studio item-template: "GenDI Service" scaffold
 - `dotnet new` template: `gendi-service`
 - Rider live template
 
-### Observability
+### 📡 Observability
 - `[ObservableService]` — auto-generated OpenTelemetry spans around service method calls
 - Startup registration summary log at `Debug` level
 

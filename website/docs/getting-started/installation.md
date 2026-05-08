@@ -1,6 +1,6 @@
-# Installation
+# 📦 Installation
 
-## 1) Add runtime package reference
+## 1️⃣ Add runtime package reference
 
 Reference the core package in the consuming project:
 
@@ -10,7 +10,7 @@ Reference the core package in the consuming project:
 </ItemGroup>
 ```
 
-## 2) Add generator as analyzer
+## 2️⃣ Add generator as analyzer
 
 When consumed as NuGet, the source generator should be wired as analyzer/private assets behavior:
 
@@ -22,7 +22,7 @@ When consumed as NuGet, the source generator should be wired as analyzer/private
 </ItemGroup>
 ```
 
-## 3) Add attributes in your code
+## 3️⃣ Add attributes in your code
 
 ```csharp
 [ServiceInjection]
@@ -34,7 +34,7 @@ public sealed class MyService : IMyService
 }
 ```
 
-## 4) Register generated services
+## 4️⃣ Register generated services
 
 ```csharp
 using <YourAssemblyName>.DependencyInjection;
@@ -42,20 +42,20 @@ using <YourAssemblyName>.DependencyInjection;
 services.AddGenDIServices();
 ```
 
-## 5) Optional: coverage behavior toggle
+## 5️⃣ Optional: coverage behavior toggle
 
 ```csharp
 [assembly: GenDI.GenDICoveration(true)]
 ```
 
-- `true` (default): generated extension remains included in coverage.
-- `false`: generated extension receives `[ExcludeFromCodeCoverage]`.
+- ✅ `true` (default): generated extension remains included in coverage.
+- ⛔ `false`: generated extension receives `[ExcludeFromCodeCoverage]`.
 
-## 6) Local tooling and hooks
+## 🛠️ Local tooling and hooks
 
 The repository ships local tools (`csharpier`, `husky`) in `dotnet-tools.json`.
 
-- pre-commit formats and validates:
+- 🔄 pre-commit formats and validates:
   - `dotnet csharpier format .`
   - `dotnet test`
-- on fresh clone, the main project runs a pre-restore target that restores local tools and installs husky hooks.
+- 🔧 on fresh clone, the main project runs a pre-restore target that restores local tools and installs husky hooks.

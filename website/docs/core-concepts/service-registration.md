@@ -1,24 +1,24 @@
-# Service Registration Model
+# 📐 Service Registration Model
 
 GenDI generation strategy is deterministic and explicit.
 
-## Contract discovery
+## 🔍 Contract discovery
 
 For each `[Injectable]` class, GenDI gathers contracts in this order:
 
-1. Contracts discovered from implemented interfaces / abstract base types marked with `[ServiceInjection]`
-2. Explicit contract from `Injectable<TService>` (if used)
-3. Fallback to concrete class itself when no service contract exists
+1. 🔗 Contracts discovered from implemented interfaces / abstract base types marked with `[ServiceInjection]`
+2. 🎯 Explicit contract from `Injectable<TService>` (if used)
+3. 🔄 Fallback to concrete class itself when no service contract exists
 
-## Activation strategy
+## ⚙️ Activation strategy
 
 Each registration is emitted with a factory that performs typed activation:
 
 - Constructor parameters resolved through `serviceProvider.GetRequiredService<T>()`
 - Init-property injections generated for `[Inject]` properties
-- No runtime type scanning required
+- 🚫 No runtime type scanning required
 
-## Deterministic ordering
+## 📊 Deterministic ordering
 
 Registrations are emitted by:
 
@@ -28,12 +28,12 @@ Registrations are emitted by:
 
 This supports stable ordering for cross-cutting patterns such as staged pipelines.
 
-## Mixed generated/non-generated DI
+## 🔀 Mixed generated/non-generated DI
 
 GenDI is intentionally interoperable with normal Microsoft DI registrations. You can combine:
 
-- Generated services (`AddGenDIServices()`)
-- Manual registrations (`AddSingleton`, `AddScoped`, open generics)
+- ⚡ Generated services (`AddGenDIServices()`)
+- ✍️ Manual registrations (`AddSingleton`, `AddScoped`, open generics)
 
 The repository includes integration tests validating both directions:
 

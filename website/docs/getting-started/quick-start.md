@@ -1,8 +1,8 @@
-# Quick Start
+# 🚀 Quick Start
 
 This walkthrough builds a minimal but production-shaped setup using GenDI's idiomatic **property injection** style.
 
-## Step 1: Define contracts
+## 🎯 Step 1: Define contracts
 
 Mark the interfaces you want injected with `[ServiceInjection]`:
 
@@ -20,7 +20,7 @@ public interface IClock
 }
 ```
 
-## Step 2: Implement with property injection
+## 🏗️ Step 2: Implement with property injection
 
 Declare dependencies as `required` init-only properties. No constructor needed:
 
@@ -47,7 +47,7 @@ public sealed class InvoiceService : IInvoiceService
 
 Each `[Inject]` property replaces a constructor parameter + a private field + an assignment — all at once.
 
-## Step 3: Register generated services
+## ⚡ Step 3: Register generated services
 
 One call wires everything GenDI discovered at compile time:
 
@@ -57,19 +57,19 @@ using MyProject.DependencyInjection;
 builder.Services.AddGenDIServices();
 ```
 
-## Step 4: Consume
+## ▶️ Step 4: Consume
 
 ```csharp
 var service = provider.GetRequiredService<IInvoiceService>();
 await service.GenerateAsync(Guid.NewGuid());
 ```
 
-## Property injection vs constructor injection at a glance
+## 🏆 Property injection vs constructor injection at a glance
 
 Both styles work. Property injection shines as the number of dependencies grows:
 
 ```csharp
-// Constructor style — each new dependency touches three things:
+// ❌ Constructor style — each new dependency touches three things:
 // 1. a private backing field
 // 2. a constructor parameter
 // 3. an assignment inside the constructor
@@ -81,12 +81,12 @@ public InvoiceService(IClock clock, ILogger<InvoiceService> logger)
     _logger = logger;
 }
 
-// Property style — one [Inject] line per dependency, zero private fields
+// ✅ Property style — one [Inject] line per dependency, zero private fields
 [Inject] public required IClock Clock { get; init; }
 [Inject] public required ILogger<InvoiceService> Logger { get; init; }
 ```
 
-## Keyed services
+## 🔑 Keyed services
 
 Use `Key` on `[Injectable]` and `[Inject]` to work with keyed registrations:
 
@@ -101,7 +101,7 @@ public sealed class InvoiceService : IInvoiceService
 var service = provider.GetRequiredKeyedService<IInvoiceService>("invoices");
 ```
 
-## Notes
+## 📝 Notes
 
 - If no `[ServiceInjection]` contract is found, GenDI falls back to registering the concrete type as its own service.
 - `[Inject]` properties must be `get; init;` with public or internal visibility.
