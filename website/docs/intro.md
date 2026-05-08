@@ -2,7 +2,7 @@
 sidebar_position: 1
 ---
 
-# Introduction to GenDI
+# 🧩 Introduction to GenDI
 
 [![CI/CD Pipeline](https://github.com/schivei/GenDI/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/schivei/GenDI/actions/workflows/ci-cd.yml)
 [![Deploy Documentation](https://github.com/schivei/GenDI/actions/workflows/deploy-docs.yml/badge.svg)](https://github.com/schivei/GenDI/actions/workflows/deploy-docs.yml)
@@ -10,41 +10,89 @@ sidebar_position: 1
 [![NuGet GenDI.SourceGenerator](https://img.shields.io/nuget/v/GenDI.SourceGenerator.svg)](https://www.nuget.org/packages/GenDI.SourceGenerator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/schivei/GenDI/blob/main/LICENSE.md)
 
-GenDI is an attribute-first dependency injection source generator for .NET. It generates DI registrations and activation code at compile time to reduce runtime reflection and keep applications compatible with NativeAOT and trimming.
+GenDI is an attribute-first dependency injection source generator for .NET. It generates DI registrations and activation code at **compile time** — no reflection, no runtime scanning, no boilerplate.
 
-## Key features and practical value
+## 😤 Stop writing constructor boilerplate
 
-- **Developer agility**: attribute-driven registration reduces repetitive setup code and speeds up onboarding.
-- **Code quality and clarity**: generated activation uses explicit `new` + `GetRequiredService<T>()`, which is easier to inspect and reason about.
-- **Predictable behavior**: deterministic ordering with `Group` and `Order` helps avoid ambiguous pipeline composition.
-- **Modern DI scenarios**: supports keyed registrations and keyed resolution through both Microsoft DI attributes and GenDI attributes.
-- **Performance-oriented defaults**: compile-time generation avoids runtime scanning overhead.
-- **Future-proof deployment path**: NativeAOT/trimming support is available when you need it, while still improving day-to-day development for traditional deployments.
+Every .NET developer knows the pain: a service gains one more dependency, so you update the constructor signature, add another private field, and repeat the same assignment yet again. As a codebase grows, constructors become maintenance burdens rather than meaningful code.
 
-## Why GenDI exists
+GenDI eliminates this ceremony entirely with **property injection**:
 
-Traditional runtime scanning patterns are practical, but they add startup cost and can create compatibility risks when an app is published with aggressive trimming or NativeAOT. GenDI shifts this work to compile-time:
+```csharp
+// ❌ Traditional constructor injection — repetitive, noisy, hard to extend
+public class ReportService
+{
+    private readonly IReportRepository _repo;
+    private readonly IEmailService _email;
+    private readonly IStorageService _storage;
+    private readonly ILogger<ReportService> _logger;
+
+    public ReportService(
+        IReportRepository repo,
+        IEmailService email,
+        IStorageService storage,
+        ILogger<ReportService> logger)
+    {
+        _repo = repo;
+        _email = email;
+        _storage = storage;
+        _logger = logger;
+    }
+}
+```
+
+```csharp
+// ✅ GenDI property injection — clean, declarative, self-documenting
+[Injectable<IReportService>(ServiceLifetime.Scoped)]
+public class ReportService : IReportService
+{
+    [Inject] public required IReportRepository Repo { get; init; }
+    [Inject] public required IEmailService Email { get; init; }
+    [Inject] public required IStorageService Storage { get; init; }
+    [Inject] public required ILogger<ReportService> Logger { get; init; }
+}
+```
+
+The `required` keyword guarantees that every dependency is provided — the compiler enforces it. GenDI generates the wiring code so you never touch it.
+
+## 🏆 Why property injection wins
+
+| | Constructor injection | GenDI property injection |
+|---|---|---|
+| ➕ Adding a dependency | Edit ctor signature + field + assignment | Add one `[Inject]` property |
+| 👀 Reading the class | Ctor signature + private fields | Properties listed at a glance |
+| 🧪 Unit testing | Build a mock for every ctor param | Assign only the props you need |
+| 🔀 Refactoring | Risk of parameter order mistakes | Properties are named — no position bugs |
+| ⚙️ Generated code | None | Explicit, readable, debuggable |
+
+## ✨ Key features and practical value
+
+- 🎯 **Property injection as first-class citizen**: `[Inject]` on `required` init-only properties — dependencies read like documentation, not plumbing.
+- 🚫 **Zero boilerplate registration**: one `[Injectable]` attribute replaces manual `AddScoped<>()` calls in startup files.
+- 🔒 **Compile-time safety**: the C# compiler enforces that every `required` `[Inject]` property is assigned in the generated initializer — you cannot accidentally omit a dependency. Note: unregistered services still surface as runtime container exceptions, just like standard DI.
+- 📖 **Readable generated flow**: activation uses explicit `new` + `GetRequiredService<T>()`, easy to inspect and debug.
+- 📐 **Predictable behavior**: deterministic ordering with `Group` and `Order` avoids ambiguous pipeline composition.
+- 🔑 **Modern DI scenarios**: keyed registrations and keyed resolution through both Microsoft DI and GenDI attributes.
+- ⚡ **No startup overhead**: compile-time generation eliminates reflection-based scanning costs.
+- 🚀 **Future-proof deployment**: NativeAOT and trimming support when you need it — no friction for traditional deployments.
+
+## 💡 Why GenDI exists
+
+Traditional runtime scanning is practical, but adds startup cost and can break with aggressive trimming or NativeAOT. GenDI shifts all of this to compile-time:
 
 - Registration mapping is generated from attributes.
-- Constructor and init-property injection are generated as strongly typed C# code.
-- Microsoft DI remains the runtime container.
+- Property and constructor injection are generated as strongly typed C# code.
+- Microsoft DI remains the runtime container — GenDI is purely additive.
 
-## Core goals
-
-- **Predictable service registration**
-- **NativeAOT and trim-friendly behavior**
-- **Simple, explicit attribute model**
-- **Deterministic ordering support for advanced pipelines**
-
-## Feature summary
+## 📋 Feature summary
 
 - `[Injectable]` and `[Injectable<TService>]` to mark concrete services
-- `[ServiceInjection]` to mark interfaces/abstract contracts to be injected
-- `[Inject]` for init-only property injection (`get; init;`)
+- `[ServiceInjection]` to mark interfaces/abstract contracts
+- `[Inject]` for init-only property injection (`get; init;`) — the idiomatic GenDI way
 - `[assembly: GenDICoveration(...)]` to control generated extension coverage behavior
 - Ordering by `Group`, then `Order`, then service type name (ordinal)
 
-## Typical generation output
+## ⚙️ Typical generation output
 
 GenDI generates an extension method in the consumer assembly namespace:
 
@@ -55,9 +103,9 @@ services.AddGenDIServices();
 
 Each registration uses generated `new` expressions and `GetRequiredService<T>()`, keeping activation explicit and analyzer-friendly.
 
-## Documentation map
+## 🗺️ Documentation map
 
-- **Getting Started**: installation and first setup
-- **Core Concepts**: attributes, contracts, registration strategy
-- **Advanced**: NativeAOT/trimming validation and test strategy
-- **Community**: contribution and roadmap references
+- 📦 **Getting Started**: installation and first setup
+- 📚 **Core Concepts**: attributes, contracts, registration strategy
+- 🔬 **Advanced**: NativeAOT/trimming validation, benchmarks and test strategy
+- 🌍 **Community**: contribution, roadmap and sponsorship

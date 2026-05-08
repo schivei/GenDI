@@ -32,9 +32,29 @@ public interface IBenchmarkService
     string Execute();
 }
 
+/// <summary>Constructor-injection variant — used by GenDI generated and manual benchmarks.</summary>
 [Injectable<IBenchmarkService>(ServiceLifetime.Transient, Group = 1, Order = 1)]
 public sealed class BenchmarkService(IBenchmarkClock clock, IBenchmarkRepository repository)
     : IBenchmarkService
 {
     public string Execute() => $"{repository.GetCount()}@{clock.UtcNow:O}";
+}
+
+// -----------------------------------------------------------------------
+// Property-injection variant — identical logic, dependencies via [Inject]
+// -----------------------------------------------------------------------
+
+[ServiceInjection]
+public interface IBenchmarkServiceViaProperties
+{
+    string Execute();
+}
+
+[Injectable<IBenchmarkServiceViaProperties>(ServiceLifetime.Transient, Group = 1, Order = 2)]
+public sealed class BenchmarkServiceViaProperties : IBenchmarkServiceViaProperties
+{
+    [Inject] public required IBenchmarkClock Clock { get; init; }
+    [Inject] public required IBenchmarkRepository Repository { get; init; }
+
+    public string Execute() => $"{Repository.GetCount()}@{Clock.UtcNow:O}";
 }

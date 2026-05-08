@@ -51,10 +51,6 @@ public sealed partial class GenDISourceGenerator
 
         public int GetHashCode(ServiceRegistration obj)
         {
-            if (obj is null)
-            {
-                throw new ArgumentNullException(nameof(obj));
-            }
             unchecked
             {
                 var hashCode =
