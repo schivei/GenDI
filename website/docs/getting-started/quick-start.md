@@ -69,14 +69,19 @@ await service.GenerateAsync(Guid.NewGuid());
 Both styles work. Property injection shines as the number of dependencies grows:
 
 ```csharp
-// Constructor style — each new dependency touches three lines
+// Constructor style — each new dependency touches three things:
+// 1. a private backing field
+// 2. a constructor parameter
+// 3. an assignment inside the constructor
+private readonly IClock _clock;
+private readonly ILogger<InvoiceService> _logger;
 public InvoiceService(IClock clock, ILogger<InvoiceService> logger)
 {
-    _clock = clock;   // private field
-    _logger = logger; // private field
+    _clock = clock;
+    _logger = logger;
 }
 
-// Property style — one line per dependency, zero private fields
+// Property style — one [Inject] line per dependency, zero private fields
 [Inject] public required IClock Clock { get; init; }
 [Inject] public required ILogger<InvoiceService> Logger { get; init; }
 ```
