@@ -61,8 +61,58 @@ jobs:
       - name: Build solution
         run: dotnet build GenDI.slnx --configuration Release --no-restore
 
-      - name: Run tests
-        run: dotnet test GenDI.slnx --configuration Release --no-build --verbosity normal
+      - name: Install coverage tools
+        run: |
+          dotnet tool install --global dotnet-coverage --version "18.*"
+          dotnet tool install --global dotnet-reportgenerator-globaltool --version "5.*"
+
+      - name: Run tests with coverage collection
+        run: |
+          mkdir -p coverage-results
+          # Run each MTP-enabled test project via dotnet-coverage (also enforces pass/fail)
+          dotnet-coverage collect \
+            "tests/GenDI.SourceGenerator.CoverageEnabled.Tests/bin/Release/net10.0/GenDI.SourceGenerator.CoverageEnabled.Tests" \
+            --output coverage-results/cov_coverage_enabled.xml --output-format xml
+          dotnet-coverage collect \
+            "tests/GenDI.SourceGenerator.CoverageDisabled.Tests/bin/Release/net10.0/GenDI.SourceGenerator.CoverageDisabled.Tests" \
+            --output coverage-results/cov_coverage_disabled.xml --output-format xml
+          dotnet-coverage collect \
+            "tests/GenDI.SourceGenerator.NoCoverageAttribute.Tests/bin/Release/net10.0/GenDI.SourceGenerator.NoCoverageAttribute.Tests" \
+            --output coverage-results/cov_nocoverage.xml --output-format xml
+          dotnet-coverage collect \
+            "tests/GenDI.Integration.Tests/bin/Release/net10.0/GenDI.Integration.Tests" \
+            --output coverage-results/cov_integration.xml --output-format xml
+          # Run Phase3 publish-validation tests (spawn dotnet publish internally)
+          dotnet test tests/GenDI.Phase3.Validation.Tests --configuration Release --no-build --verbosity normal
+
+      - name: Merge coverage and enforce 95% threshold
+        run: |
+          dotnet-coverage merge coverage-results/*.xml --output coverage-merged.xml --output-format xml
+          reportgenerator \
+            -reports:coverage-merged.xml \
+            -targetdir:coverage-report \
+            -reporttypes:TextSummary \
+            -assemblyfilters:"+GenDI;+GenDI.SourceGenerator"
+          cat coverage-report/Summary.txt
+          LINE_COV=$(grep -oP '(?<=Line coverage: )\d+\.?\d*' coverage-report/Summary.txt)
+          echo "Line coverage: ${LINE_COV}%"
+          python3 -c "
+          import sys
+          cov = float('${LINE_COV}')
+          threshold = 95.0
+          if cov < threshold:
+              print(f'Coverage {cov:.1f}% is below the 95% minimum threshold.')
+              sys.exit(1)
+          print(f'Coverage {cov:.1f}% meets the 95% threshold.')
+          "
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage-report/
+          retention-days: 14
 
       - name: Run startup benchmark snapshot
         run: dotnet run -c Release --project tests/GenDI.Benchmarks/GenDI.Benchmarks.csproj -- --job Short --filter "*"
