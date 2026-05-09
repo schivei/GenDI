@@ -23,8 +23,16 @@ internal static class GenDISourceTemplates
 
         namespace {{NAMESPACE}}.DependencyInjection;
 
+        /// <summary>
+        /// Extension methods for registering services discovered by GenDI.
+        /// </summary>
         {{EXCLUDE_FROM_COVERAGE}}public static class GenDIServiceCollectionExtensions
         {
+            /// <summary>
+            /// Registers services discovered by GenDI in the specified <see cref="IServiceCollection"/>.
+            /// </summary>
+            /// <param name="services">The service collection to add services to.</param>
+            /// <returns>The same service collection, for chaining.</returns>
             public static IServiceCollection AddGenDIServices(this IServiceCollection services)
             {
                 if (services is null)
