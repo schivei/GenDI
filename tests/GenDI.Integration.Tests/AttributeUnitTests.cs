@@ -34,7 +34,12 @@ public class AttributeUnitTests
     [Fact]
     public void InjectableAttribute_mutable_properties_round_trip()
     {
-        var attr = new InjectableAttribute { Order = 5, Group = 3, Key = "myKey" };
+        var attr = new InjectableAttribute
+        {
+            Order = 5,
+            Group = 3,
+            Key = "myKey",
+        };
 
         Assert.Equal(5, attr.Order);
         Assert.Equal(3, attr.Group);
@@ -73,7 +78,7 @@ public class AttributeUnitTests
         {
             Order = 10,
             Group = 2,
-            Key = 42
+            Key = 42,
         };
 
         Assert.Equal(10, attr.Order);

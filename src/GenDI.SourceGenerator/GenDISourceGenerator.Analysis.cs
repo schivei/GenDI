@@ -170,8 +170,8 @@ public sealed partial class GenDISourceGenerator
         return serviceTypes
             .GroupBy(static target => target.ServiceType, StringComparer.Ordinal)
             .Select(static group =>
-                group.FirstOrDefault(
-                    static target => !string.IsNullOrWhiteSpace(target.FallbackLifetime)
+                group.FirstOrDefault(static target =>
+                    !string.IsNullOrWhiteSpace(target.FallbackLifetime)
                 ) ?? group.First()
             )
             .ToImmutableArray();
@@ -196,16 +196,16 @@ public sealed partial class GenDISourceGenerator
             return injectableLifetime;
         }
 
-        return string.IsNullOrWhiteSpace(fallbackLifetime)
-            ? injectableLifetime
-            : fallbackLifetime;
+        return string.IsNullOrWhiteSpace(fallbackLifetime) ? injectableLifetime : fallbackLifetime;
     }
 
     private static string? TryGetServiceInjectionLifetime(ITypeSymbol symbol)
     {
         foreach (var attributeData in symbol.GetAttributes())
         {
-            if (attributeData.AttributeClass?.ToDisplayString() != "GenDI.ServiceInjectionAttribute")
+            if (
+                attributeData.AttributeClass?.ToDisplayString() != "GenDI.ServiceInjectionAttribute"
+            )
             {
                 continue;
             }
@@ -284,7 +284,8 @@ public sealed partial class GenDISourceGenerator
                     SymbolDisplayFormat.FullyQualifiedFormat
                 );
                 var injectMetadata = GetInjectPropertyMetadata(property);
-                var keyExpression = injectMetadata.KeyExpression ?? GetFromKeyedServicesKey(property);
+                var keyExpression =
+                    injectMetadata.KeyExpression ?? GetFromKeyedServicesKey(property);
                 return new InjectablePropertyInfo(
                     property.Name,
                     propertyType,
@@ -323,9 +324,7 @@ public sealed partial class GenDISourceGenerator
 
         return property
             .GetAttributes()
-            .Any(attributeData =>
-                IsInjectPropertyAttribute(attributeData.AttributeClass)
-            );
+            .Any(attributeData => IsInjectPropertyAttribute(attributeData.AttributeClass));
     }
 
     private static bool IsInjectPropertyAttribute(INamedTypeSymbol? attributeClass)
@@ -372,8 +371,9 @@ public sealed partial class GenDISourceGenerator
         // NullableAnnotation.None means the symbol comes from an oblivious context
         // (for example, nullable disabled in the consumer assembly).
         // In this mode we prefer optional resolution to avoid assuming non-null.
-        return typeSymbol.NullableAnnotation is NullableAnnotation.Annotated
-            or NullableAnnotation.None;
+        return typeSymbol.NullableAnnotation
+            is NullableAnnotation.Annotated
+                or NullableAnnotation.None;
     }
 
     private static InjectPropertyMetadata GetInjectPropertyMetadata(IPropertySymbol property)
@@ -385,7 +385,8 @@ public sealed partial class GenDISourceGenerator
         {
             var attributeDisplayName = attributeData.AttributeClass?.ToDisplayString();
             if (
-                attributeDisplayName is not ("GenDI.InjectAttribute" or "GenDI.InjectOptionalAttribute")
+                attributeDisplayName
+                is not ("GenDI.InjectAttribute" or "GenDI.InjectOptionalAttribute")
             )
             {
                 continue;
@@ -480,6 +481,7 @@ public sealed partial class GenDISourceGenerator
             _ => null,
         };
     }
+
     private static string BuildFloatConstantExpression(float value)
     {
         return value switch
@@ -507,21 +509,23 @@ public sealed partial class GenDISourceGenerator
         var builder = new StringBuilder(value.Length);
         foreach (var character in value)
         {
-            builder.Append(character switch
-            {
-                '\"' => "\\\"",
-                '\\' => "\\\\",
-                '\0' => "\\0",
-                '\a' => "\\a",
-                '\b' => "\\b",
-                '\f' => "\\f",
-                '\n' => "\\n",
-                '\r' => "\\r",
-                '\t' => "\\t",
-                '\v' => "\\v",
-                _ when char.IsControl(character) => $"\\u{(int)character:X4}",
-                _ => character.ToString(),
-            });
+            builder.Append(
+                character switch
+                {
+                    '\"' => "\\\"",
+                    '\\' => "\\\\",
+                    '\0' => "\\0",
+                    '\a' => "\\a",
+                    '\b' => "\\b",
+                    '\f' => "\\f",
+                    '\n' => "\\n",
+                    '\r' => "\\r",
+                    '\t' => "\\t",
+                    '\v' => "\\v",
+                    _ when char.IsControl(character) => $"\\u{(int)character:X4}",
+                    _ => character.ToString(),
+                }
+            );
         }
 
         return builder.ToString();
