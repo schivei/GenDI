@@ -1,6 +1,6 @@
-using System.Threading.Tasks;
-using System.Reflection;
 using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
 using GenDI.Analyzers;
 using Xunit;
 
@@ -185,6 +185,56 @@ public class InjectableUsageAnalyzerTests
     }
 
     [Fact]
+    public void Constructor_with_only_base_propagation_does_not_report_code_fix_hint()
+    {
+        var diagnostics = AnalyzerTestHelper.Run(
+            """
+            public abstract class BaseService
+            {
+                protected BaseService(IServiceProvider serviceProvider)
+                {
+                }
+            }
+
+            [Injectable]
+            public sealed class DerivedService : BaseService
+            {
+                public DerivedService(IServiceProvider serviceProvider) : base(serviceProvider)
+                {
+                }
+            }
+            """
+        );
+
+        Assert.DoesNotContain(diagnostics, static diagnostic => diagnostic.Id == "GENDI003");
+    }
+
+    [Fact]
+    public void Constructor_with_partial_base_propagation_reports_code_fix_hint()
+    {
+        var diagnostics = AnalyzerTestHelper.Run(
+            """
+            public abstract class BaseService
+            {
+                protected BaseService(IServiceProvider serviceProvider)
+                {
+                }
+            }
+
+            [Injectable]
+            public sealed class DerivedService : BaseService
+            {
+                public DerivedService(IServiceProvider serviceProvider, IFormatProvider formatProvider) : base(serviceProvider)
+                {
+                }
+            }
+            """
+        );
+
+        Assert.Contains(diagnostics, static diagnostic => diagnostic.Id == "GENDI003");
+    }
+
+    [Fact]
     public async Task Code_fix_converts_constructor_injection_to_inject_properties()
     {
         var fixedSource = await AnalyzerTestHelper.ApplyConstructorInjectionCodeFixAsync(
@@ -200,9 +250,15 @@ public class InjectableUsageAnalyzerTests
         );
 
         Assert.DoesNotContain("public ConstructorInjectedService(", fixedSource);
-        Assert.Contains("[Inject]", fixedSource);
-        Assert.Contains("public required IServiceProvider ServiceProvider { get; init; }", fixedSource);
-        Assert.Contains("public required IFormatProvider FormatProvider { get; init; }", fixedSource);
+        Assert.Contains("[global::GenDI.Inject]", fixedSource);
+        Assert.Contains(
+            "public required IServiceProvider ServiceProvider { get; init; }",
+            fixedSource
+        );
+        Assert.Contains(
+            "public required IFormatProvider FormatProvider { get; init; }",
+            fixedSource
+        );
     }
 
     [Fact]
@@ -222,7 +278,46 @@ public class InjectableUsageAnalyzerTests
             """
         );
 
-        Assert.Contains("public required IServiceProvider ServiceProvider1 { get; init; }", fixedSource);
+        Assert.Contains(
+            "public required IServiceProvider ServiceProvider1 { get; init; }",
+            fixedSource
+        );
+    }
+
+    [Fact]
+    public async Task Code_fix_converts_only_non_propagated_parameters()
+    {
+        var fixedSource = await AnalyzerTestHelper.ApplyConstructorInjectionCodeFixAsync(
+            """
+            public abstract class BaseService
+            {
+                protected BaseService(IServiceProvider serviceProvider)
+                {
+                }
+            }
+
+            [Injectable]
+            public sealed class DerivedService : BaseService
+            {
+                public DerivedService(IServiceProvider serviceProvider, IFormatProvider formatProvider) : base(serviceProvider)
+                {
+                }
+            }
+            """
+        );
+
+        Assert.Contains(
+            "public required IFormatProvider FormatProvider { get; init; }",
+            fixedSource
+        );
+        Assert.DoesNotContain(
+            "public required IServiceProvider ServiceProvider { get; init; }",
+            fixedSource
+        );
+        Assert.Contains(
+            "public DerivedService(IServiceProvider serviceProvider) : base(serviceProvider)",
+            fixedSource
+        );
     }
 
     [Fact]

@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace GenDI.Analyzers;
@@ -52,7 +52,10 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
 
     private static void AnalyzeNamedType(SymbolAnalysisContext context)
     {
-        if (context.Symbol is not INamedTypeSymbol typeSymbol || !HasInjectableAttribute(typeSymbol))
+        if (
+            context.Symbol is not INamedTypeSymbol typeSymbol
+            || !HasInjectableAttribute(typeSymbol)
+        )
         {
             return;
         }
@@ -73,9 +76,11 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
 
     private static bool HasInjectAttribute(IPropertySymbol propertySymbol)
     {
-        return propertySymbol.GetAttributes().Any(attributeData =>
-            attributeData.AttributeClass?.ToDisplayString() == "GenDI.InjectAttribute"
-        );
+        return propertySymbol
+            .GetAttributes()
+            .Any(attributeData =>
+                attributeData.AttributeClass?.ToDisplayString() == "GenDI.InjectAttribute"
+            );
     }
 
     private static bool HasInjectableAttribute(INamedTypeSymbol typeSymbol)
@@ -113,19 +118,30 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
             || constructorDeclaration.Body is null
             || constructorDeclaration.Body.Statements.Count > 0
             || constructorDeclaration.ExpressionBody is not null
-            || constructorDeclaration.Initializer is not null
         )
         {
             return;
         }
 
         if (
-            context.SemanticModel.GetDeclaredSymbol(constructorDeclaration, context.CancellationToken)
-            is not IMethodSymbol constructorSymbol
+            context.SemanticModel.GetDeclaredSymbol(
+                constructorDeclaration,
+                context.CancellationToken
+            )
+                is not IMethodSymbol constructorSymbol
             || constructorSymbol.ContainingType is null
             || !HasInjectableAttribute(constructorSymbol.ContainingType)
             || constructorSymbol.DeclaredAccessibility != Accessibility.Public
         )
+        {
+            return;
+        }
+
+        var propagatedParameterNames = GetPropagatedParameterNames(constructorDeclaration);
+        var hasConvertibleParameter = constructorDeclaration.ParameterList.Parameters.Any(
+            parameter => !propagatedParameterNames.Contains(parameter.Identifier.ValueText)
+        );
+        if (!hasConvertibleParameter)
         {
             return;
         }
@@ -137,5 +153,26 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
                 constructorSymbol.ContainingType.Name
             )
         );
+    }
+
+    private static HashSet<string> GetPropagatedParameterNames(
+        ConstructorDeclarationSyntax constructorDeclaration
+    )
+    {
+        if (constructorDeclaration.Initializer?.ArgumentList is null)
+        {
+            return [];
+        }
+
+        var propagatedParameterNames = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var argument in constructorDeclaration.Initializer.ArgumentList.Arguments)
+        {
+            if (argument.Expression is IdentifierNameSyntax identifierName)
+            {
+                propagatedParameterNames.Add(identifierName.Identifier.ValueText);
+            }
+        }
+
+        return propagatedParameterNames;
     }
 }

@@ -22,19 +22,16 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
                     ) as INamedTypeSymbol
             )
             .Where(static symbol => symbol is not null)
-            .SelectMany(
-                static (symbol, _) => BuildRegistrations(symbol!).AsEnumerable()
-            )
+            .SelectMany(static (symbol, _) => BuildRegistrations(symbol!))
             .Collect();
 
-        var generationOptions = context
-            .CompilationProvider.Select(
-                static (compilation, _) =>
-                    (
-                        Namespace: GetProjectNamespace(compilation),
-                        IncludeExcludeFromCodeCoverage: !IsGeneratedCodeCoverageEnabled(compilation)
-                    )
-            );
+        var generationOptions = context.CompilationProvider.Select(
+            static (compilation, _) =>
+                (
+                    Namespace: GetProjectNamespace(compilation),
+                    IncludeExcludeFromCodeCoverage: !IsGeneratedCodeCoverageEnabled(compilation)
+                )
+        );
 
         var generationInput = registrations.Combine(generationOptions);
 

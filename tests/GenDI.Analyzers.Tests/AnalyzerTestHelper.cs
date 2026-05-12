@@ -21,6 +21,7 @@ internal static class AnalyzerTestHelper
     public static ImmutableArray<Diagnostic> Run(string userSource)
     {
         var source = $$"""
+            using System;
             using GenDI;
             using Microsoft.Extensions.DependencyInjection;
 
@@ -69,7 +70,9 @@ internal static class AnalyzerTestHelper
             references.Add(MetadataReference.CreateFromFile(path));
         }
 
-        references.Add(MetadataReference.CreateFromFile(typeof(InjectableAttribute).Assembly.Location));
+        references.Add(
+            MetadataReference.CreateFromFile(typeof(InjectableAttribute).Assembly.Location)
+        );
         references.Add(
             MetadataReference.CreateFromFile(
                 Assembly.Load("Microsoft.Extensions.DependencyInjection.Abstractions").Location
@@ -82,6 +85,7 @@ internal static class AnalyzerTestHelper
     public static async Task<string> ApplyConstructorInjectionCodeFixAsync(string userSource)
     {
         var source = $$"""
+            using System;
             using GenDI;
             using Microsoft.Extensions.DependencyInjection;
 
@@ -92,16 +96,20 @@ internal static class AnalyzerTestHelper
         var projectId = ProjectId.CreateNewId();
         var documentId = DocumentId.CreateNewId(projectId);
 
-        var solution = workspace.CurrentSolution
-            .AddProject(
+        var solution = workspace
+            .CurrentSolution.AddProject(
                 ProjectInfo.Create(
                     projectId,
                     VersionStamp.Create(),
                     "AnalyzerTests",
                     "AnalyzerTests",
                     LanguageNames.CSharp,
-                    parseOptions: CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest),
-                    compilationOptions: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary),
+                    parseOptions: CSharpParseOptions.Default.WithLanguageVersion(
+                        LanguageVersion.Latest
+                    ),
+                    compilationOptions: new CSharpCompilationOptions(
+                        OutputKind.DynamicallyLinkedLibrary
+                    ),
                     metadataReferences: BuildReferences()
                 )
             )
@@ -126,7 +134,9 @@ internal static class AnalyzerTestHelper
         );
 
         await codeFixProvider.RegisterCodeFixesAsync(context).ConfigureAwait(false);
-        var operations = await actions[0].GetOperationsAsync(CancellationToken.None).ConfigureAwait(false);
+        var operations = await actions[0]
+            .GetOperationsAsync(CancellationToken.None)
+            .ConfigureAwait(false);
         var applyOperation = operations.OfType<ApplyChangesOperation>().Single();
         var changedDocument = applyOperation.ChangedSolution.GetDocument(documentId)!;
         var changedText = await changedDocument.GetTextAsync().ConfigureAwait(false);
