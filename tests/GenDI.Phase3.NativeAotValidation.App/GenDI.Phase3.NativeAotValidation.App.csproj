@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
-    <PublishAot>true</PublishAot>
+    <PublishAot Condition="'$(GenDI_EnableNativeAotPublish)' == 'true'">true</PublishAot>
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 

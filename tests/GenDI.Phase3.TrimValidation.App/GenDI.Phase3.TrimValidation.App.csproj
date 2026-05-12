@@ -5,8 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
-    <PublishTrimmed>true</PublishTrimmed>
-    <TrimMode>full</TrimMode>
+    <PublishTrimmed Condition="'$(GenDI_EnableTrimPublish)' == 'true'">true</PublishTrimmed>
+    <TrimMode Condition="'$(GenDI_EnableTrimPublish)' == 'true'">full</TrimMode>
   </PropertyGroup>
 
   <ItemGroup>
