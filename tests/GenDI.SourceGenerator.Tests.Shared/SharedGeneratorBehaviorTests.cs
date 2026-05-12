@@ -358,4 +358,86 @@ public class SharedGeneratorBehaviorTests
             StringComparison.Ordinal
         );
     }
+
+    [Fact]
+    public void InjectOptional_uses_optional_resolution_even_for_non_nullable_property()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionalProperty;
+
+            public interface IDependency
+            {
+            }
+
+            [Injectable]
+            public sealed class ServiceWithOptionalDependency
+            {
+                [InjectOptional]
+                public required IDependency Dependency { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "@Dependency = serviceProvider.GetService<global::OptionalProperty.IDependency>()",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void ServiceInjection_lifetime_is_used_as_fallback_when_injectable_is_transient()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ContractLifetime;
+
+            [ServiceInjection(ServiceLifetime.Scoped)]
+            public interface IContract
+            {
+            }
+
+            [Injectable]
+            public sealed class ContractService : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddScoped<global::ContractLifetime.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Injectable_lifetime_takes_precedence_over_ServiceInjection_fallback()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ContractLifetimePriority;
+
+            [ServiceInjection(ServiceLifetime.Scoped)]
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>(ServiceLifetime.Singleton)]
+            public sealed class ContractService : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddSingleton<global::ContractLifetimePriority.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
 }

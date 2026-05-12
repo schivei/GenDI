@@ -40,9 +40,9 @@ public sealed partial class GenDISourceGenerator
         var factoryBody = BuildFactoryBody(symbol, implementationType, constructor);
 
         return serviceTypes.Select(serviceType => new ServiceRegistration(
-            serviceType,
+            serviceType.ServiceType,
             implementationType,
-            lifetime,
+            ResolveRegistrationLifetime(lifetime, serviceType.FallbackLifetime),
             factoryBody,
             order,
             group,
@@ -75,16 +75,7 @@ public sealed partial class GenDISourceGenerator
 
             if (attributeData.ConstructorArguments.Length > 0)
             {
-                var argument = attributeData.ConstructorArguments[0];
-                if (argument.Value is int enumValue)
-                {
-                    lifetime = enumValue switch
-                    {
-                        0 => "ServiceLifetime.Singleton",
-                        1 => "ServiceLifetime.Scoped",
-                        _ => "ServiceLifetime.Transient",
-                    };
-                }
+                lifetime = ConvertLifetimeEnumToExpression(attributeData.ConstructorArguments[0]);
             }
 
             if (
@@ -119,13 +110,13 @@ public sealed partial class GenDISourceGenerator
         return false;
     }
 
-    private static ImmutableArray<string> GetServiceTypes(
+    private static ImmutableArray<ServiceContractTarget> GetServiceTypes(
         INamedTypeSymbol symbol,
         string implementationType,
         string? explicitServiceType
     )
     {
-        var serviceTypes = new List<string>();
+        var serviceTypes = new List<ServiceContractTarget>();
         var hasAnyContract = false;
 
         if (!string.IsNullOrWhiteSpace(explicitServiceType))
@@ -133,7 +124,7 @@ public sealed partial class GenDISourceGenerator
             var nonNullExplicitServiceType = explicitServiceType;
             if (nonNullExplicitServiceType is not null)
             {
-                serviceTypes.Add(nonNullExplicitServiceType);
+                serviceTypes.Add(new ServiceContractTarget(nonNullExplicitServiceType, null));
                 hasAnyContract = true;
             }
         }
@@ -147,7 +138,10 @@ public sealed partial class GenDISourceGenerator
 
             hasAnyContract = true;
             serviceTypes.Add(
-                interfaceSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+                new ServiceContractTarget(
+                    interfaceSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                    TryGetServiceInjectionLifetime(interfaceSymbol)
+                )
             );
         }
 
@@ -158,7 +152,10 @@ public sealed partial class GenDISourceGenerator
             {
                 hasAnyContract = true;
                 serviceTypes.Add(
-                    baseType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+                    new ServiceContractTarget(
+                        baseType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                        TryGetServiceInjectionLifetime(baseType)
+                    )
                 );
             }
 
@@ -167,10 +164,17 @@ public sealed partial class GenDISourceGenerator
 
         if (!hasAnyContract)
         {
-            serviceTypes.Add(implementationType);
+            serviceTypes.Add(new ServiceContractTarget(implementationType, null));
         }
 
-        return serviceTypes.Distinct(StringComparer.Ordinal).ToImmutableArray();
+        return serviceTypes
+            .GroupBy(static target => target.ServiceType, StringComparer.Ordinal)
+            .Select(static group =>
+                group.FirstOrDefault(
+                    static target => !string.IsNullOrWhiteSpace(target.FallbackLifetime)
+                ) ?? group.First()
+            )
+            .ToImmutableArray();
     }
 
     private static bool HasServiceInjectionAttribute(ITypeSymbol symbol)
@@ -180,6 +184,41 @@ public sealed partial class GenDISourceGenerator
             .Any(attributeData =>
                 attributeData.AttributeClass?.ToDisplayString() == "GenDI.ServiceInjectionAttribute"
             );
+    }
+
+    private static string ResolveRegistrationLifetime(
+        string injectableLifetime,
+        string? fallbackLifetime
+    )
+    {
+        if (injectableLifetime != "ServiceLifetime.Transient")
+        {
+            return injectableLifetime;
+        }
+
+        return string.IsNullOrWhiteSpace(fallbackLifetime)
+            ? injectableLifetime
+            : fallbackLifetime;
+    }
+
+    private static string? TryGetServiceInjectionLifetime(ITypeSymbol symbol)
+    {
+        foreach (var attributeData in symbol.GetAttributes())
+        {
+            if (attributeData.AttributeClass?.ToDisplayString() != "GenDI.ServiceInjectionAttribute")
+            {
+                continue;
+            }
+
+            if (attributeData.ConstructorArguments.Length > 0)
+            {
+                return ConvertLifetimeEnumToExpression(attributeData.ConstructorArguments[0]);
+            }
+
+            return "ServiceLifetime.Transient";
+        }
+
+        return null;
     }
 
     private static string BuildFactoryBody(
@@ -244,13 +283,14 @@ public sealed partial class GenDISourceGenerator
                 var propertyType = property.Type.ToDisplayString(
                     SymbolDisplayFormat.FullyQualifiedFormat
                 );
-                var keyExpression =
-                    GetInjectAttributeKey(property) ?? GetFromKeyedServicesKey(property);
+                var injectMetadata = GetInjectPropertyMetadata(property);
+                var keyExpression = injectMetadata.KeyExpression ?? GetFromKeyedServicesKey(property);
                 return new InjectablePropertyInfo(
                     property.Name,
                     propertyType,
                     keyExpression,
-                    ShouldUseOptionalResolution(property.Type)
+                    injectMetadata.HasInjectOptionalAttribute
+                        || ShouldUseOptionalResolution(property.Type)
                 );
             })
             .ToImmutableArray();
@@ -284,8 +324,29 @@ public sealed partial class GenDISourceGenerator
         return property
             .GetAttributes()
             .Any(attributeData =>
-                attributeData.AttributeClass?.ToDisplayString() == "GenDI.InjectAttribute"
+                IsInjectPropertyAttribute(attributeData.AttributeClass)
             );
+    }
+
+    private static bool IsInjectPropertyAttribute(INamedTypeSymbol? attributeClass)
+    {
+        var attributeDisplayName = attributeClass?.ToDisplayString();
+        return attributeDisplayName is "GenDI.InjectAttribute" or "GenDI.InjectOptionalAttribute";
+    }
+
+    private static string ConvertLifetimeEnumToExpression(TypedConstant argument)
+    {
+        if (argument.Value is not int enumValue)
+        {
+            return "ServiceLifetime.Transient";
+        }
+
+        return enumValue switch
+        {
+            0 => "ServiceLifetime.Singleton",
+            1 => "ServiceLifetime.Scoped",
+            _ => "ServiceLifetime.Transient",
+        };
     }
 
     private static string BuildResolutionExpression(
@@ -315,25 +376,36 @@ public sealed partial class GenDISourceGenerator
             or NullableAnnotation.None;
     }
 
-    private static string? GetInjectAttributeKey(IPropertySymbol property)
+    private static InjectPropertyMetadata GetInjectPropertyMetadata(IPropertySymbol property)
     {
+        var keyExpression = default(string);
+        var hasInjectOptionalAttribute = false;
+
         foreach (var attributeData in property.GetAttributes())
         {
-            if (attributeData.AttributeClass?.ToDisplayString() != "GenDI.InjectAttribute")
+            var attributeDisplayName = attributeData.AttributeClass?.ToDisplayString();
+            if (
+                attributeDisplayName is not ("GenDI.InjectAttribute" or "GenDI.InjectOptionalAttribute")
+            )
             {
                 continue;
+            }
+
+            if (attributeDisplayName == "GenDI.InjectOptionalAttribute")
+            {
+                hasInjectOptionalAttribute = true;
             }
 
             foreach (var namedArgument in attributeData.NamedArguments)
             {
                 if (namedArgument.Key == "Key")
                 {
-                    return BuildTypedConstantExpression(namedArgument.Value);
+                    keyExpression = BuildTypedConstantExpression(namedArgument.Value);
                 }
             }
         }
 
-        return null;
+        return new InjectPropertyMetadata(keyExpression, hasInjectOptionalAttribute);
     }
 
     private static string? GetFromKeyedServicesKey(ISymbol symbol)
@@ -490,5 +562,18 @@ public sealed partial class GenDISourceGenerator
         public string? KeyExpression { get; }
 
         public bool UseOptionalResolution { get; }
+    }
+
+    private sealed class InjectPropertyMetadata
+    {
+        public InjectPropertyMetadata(string? keyExpression, bool hasInjectOptionalAttribute)
+        {
+            KeyExpression = keyExpression;
+            HasInjectOptionalAttribute = hasInjectOptionalAttribute;
+        }
+
+        public string? KeyExpression { get; }
+
+        public bool HasInjectOptionalAttribute { get; }
     }
 }

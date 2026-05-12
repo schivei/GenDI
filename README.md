@@ -103,6 +103,17 @@ public class MyService : IMyService
 }
 ```
 
+`ServiceInjectionAttribute` also supports an optional fallback lifetime:
+
+```csharp
+[ServiceInjection(ServiceLifetime.Scoped)]
+public interface IScopedContract
+{
+}
+```
+
+Fallback precedence is: `Injectable > ServiceInjection > Transient`.
+
 `InjectableAttribute` supports:
 
 - `Lifetime` (constructor argument, default `Transient`)
@@ -155,6 +166,13 @@ public class OrderProcessor : IOrderProcessor
 ```csharp
 [Inject(Key = "primary")]
 public required IMyService Service { get; init; }
+```
+
+For optional dependencies that should not throw when unregistered, use `[InjectOptional]`:
+
+```csharp
+[InjectOptional]
+public required IMyService? OptionalService { get; init; }
 ```
 
 Constructor injection is also supported and can use the native DI attribute:

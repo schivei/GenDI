@@ -56,6 +56,19 @@ public class RealWorldIntegrationTests
         Assert.IsType<Repository<Order>>(service.OrderRepository);
         Assert.IsType<ConsoleLogger>(service.Logger);
     }
+
+    [Fact]
+    public void InjectOptional_allows_missing_dependency_without_throwing()
+    {
+        var services = new ServiceCollection();
+        services.AddGenDIServices();
+
+        using var provider = services.BuildServiceProvider();
+        var service = provider.GetRequiredService<IOptionalGeneratedContract>();
+
+        Assert.NotNull(service);
+        Assert.Null(service.MissingDependency);
+    }
 }
 
 public sealed class Order;
@@ -93,6 +106,14 @@ public interface ILogger;
 
 public sealed class ConsoleLogger : ILogger;
 
+public interface IMissingDependency;
+
+[ServiceInjection]
+public interface IOptionalGeneratedContract
+{
+    IMissingDependency? MissingDependency { get; }
+}
+
 [ServiceInjection]
 public interface IKeyedGeneratedContract
 {
@@ -122,6 +143,13 @@ public sealed class KeyedGeneratedService(
 
     [Inject(Key = "logger")]
     public required ILogger Logger { get; init; }
+}
+
+[Injectable<IOptionalGeneratedContract>(ServiceLifetime.Singleton)]
+public sealed class OptionalGeneratedService : IOptionalGeneratedContract
+{
+    [InjectOptional]
+    public required IMissingDependency? MissingDependency { get; init; }
 }
 
 public sealed class NotGeneratedService;

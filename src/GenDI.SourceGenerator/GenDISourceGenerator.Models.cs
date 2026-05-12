@@ -38,6 +38,19 @@ public sealed partial class GenDISourceGenerator
         public string? KeyExpression { get; }
     }
 
+    private sealed class ServiceContractTarget
+    {
+        public ServiceContractTarget(string serviceType, string? fallbackLifetime)
+        {
+            ServiceType = serviceType;
+            FallbackLifetime = fallbackLifetime;
+        }
+
+        public string ServiceType { get; }
+
+        public string? FallbackLifetime { get; }
+    }
+
     private sealed class ServiceRegistrationComparer : IEqualityComparer<ServiceRegistration>
     {
         public static ServiceRegistrationComparer Instance { get; } = new();

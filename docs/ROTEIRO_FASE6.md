@@ -72,10 +72,10 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
 
 ## 4.2 Modelo de registro
 
-- [ ] **RM-01** `[InjectOptional]`.
+- [x] **RM-01** `[InjectOptional]`.
 - [ ] **RM-02** `[ConditionalInjectable(environmentName)]`.
 - [ ] **RM-03** `[DecoratorFor<TService>]`.
-- [ ] **RM-04** Definir `ServiceLifetime` no `ServiceInjectionAttribute` com fallback:
+- [x] **RM-04** Definir `ServiceLifetime` no `ServiceInjectionAttribute` com fallback:
   `Injectable > ServiceInjection > Transient`.
 - [ ] **RM-05** Permitir injeção indireta por `[Inject]` sem exigir `[Injectable]` no tipo de implementação.
   - Critérios:
@@ -165,3 +165,4 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
 - **v1.1**: remoção de escopo open-generic e inclusão dos novos itens de plano para fallback de lifetime,
   injeção indireta, thread isolation, varredura de dependências e OptionConfig.
 - **v1.2**: implementação do code-fix de migração de constructor injection e otimização incremental no generator.
+- **v1.3**: implementação de `[InjectOptional]` e fallback de `ServiceInjectionAttribute.Lifetime`.

@@ -99,6 +99,24 @@ public class AttributeUnitTests
         Assert.Equal("injectionKey", attr.Key);
     }
 
+    // ─── InjectOptionalAttribute ──────────────────────────────────────────────
+
+    [Fact]
+    public void InjectOptionalAttribute_default_key_is_null()
+    {
+        var attr = new InjectOptionalAttribute();
+
+        Assert.Null(attr.Key);
+    }
+
+    [Fact]
+    public void InjectOptionalAttribute_key_round_trips()
+    {
+        var attr = new InjectOptionalAttribute { Key = "optionalKey" };
+
+        Assert.Equal("optionalKey", attr.Key);
+    }
+
     // ─── ServiceInjectionAttribute ───────────────────────────────────────────
 
     [Fact]
@@ -107,6 +125,18 @@ public class AttributeUnitTests
         var attr = new ServiceInjectionAttribute();
 
         Assert.NotNull(attr);
+        Assert.Equal(ServiceLifetime.Transient, attr.Lifetime);
+    }
+
+    [Theory]
+    [InlineData(ServiceLifetime.Singleton)]
+    [InlineData(ServiceLifetime.Scoped)]
+    [InlineData(ServiceLifetime.Transient)]
+    public void ServiceInjectionAttribute_lifetime_ctor_stores_lifetime(ServiceLifetime lifetime)
+    {
+        var attr = new ServiceInjectionAttribute(lifetime);
+
+        Assert.Equal(lifetime, attr.Lifetime);
     }
 
     // ─── GenDICoverationAttribute ─────────────────────────────────────────────
