@@ -185,7 +185,7 @@ public class InjectableUsageAnalyzerTests
     }
 
     [Fact]
-    public void Constructor_with_only_base_propagation_does_not_report_code_fix_hint()
+    public void Constructor_with_only_base_propagation_does_not_report_gendi003_diagnostic()
     {
         var diagnostics = AnalyzerTestHelper.Run(
             """
@@ -210,7 +210,7 @@ public class InjectableUsageAnalyzerTests
     }
 
     [Fact]
-    public void Constructor_with_partial_base_propagation_reports_code_fix_hint()
+    public void Constructor_with_partial_base_propagation_reports_gendi003_diagnostic()
     {
         var diagnostics = AnalyzerTestHelper.Run(
             """
