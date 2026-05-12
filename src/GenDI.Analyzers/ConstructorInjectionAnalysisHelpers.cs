@@ -18,8 +18,7 @@ internal static class ConstructorInjectionAnalysisHelpers
             );
         }
 
-        var parameterNames = GetPropagatedParameterNames(constructorDeclaration);
-        if (parameterNames.Count == 0 && constructorDeclaration.Initializer.ArgumentList.Arguments.Count > 0)
+        if (!TryCollectPropagatedParameterNames(constructorDeclaration, out var parameterNames))
         {
             return new PropagationAnalysisResult(
                 new HashSet<string>(StringComparer.Ordinal),
@@ -45,28 +44,25 @@ internal static class ConstructorInjectionAnalysisHelpers
             || constructorBody.CloseBraceToken.LeadingTrivia.Any(IsMeaningful);
     }
 
-    private static HashSet<string> GetPropagatedParameterNames(
-        ConstructorDeclarationSyntax constructorDeclaration
+    private static bool TryCollectPropagatedParameterNames(
+        ConstructorDeclarationSyntax constructorDeclaration,
+        out HashSet<string> propagatedParameterNames
     )
     {
-        if (constructorDeclaration.Initializer?.ArgumentList is null)
-        {
-            return new HashSet<string>(StringComparer.Ordinal);
-        }
-
-        var propagatedParameterNames = new HashSet<string>(StringComparer.Ordinal);
+        propagatedParameterNames = new HashSet<string>(StringComparer.Ordinal);
         foreach (var argument in constructorDeclaration.Initializer.ArgumentList.Arguments)
         {
             var propagatedParameterName = TryGetForwardedParameterName(argument.Expression);
             if (propagatedParameterName is null)
             {
-                return [];
+                propagatedParameterNames.Clear();
+                return false;
             }
 
             propagatedParameterNames.Add(propagatedParameterName);
         }
 
-        return propagatedParameterNames;
+        return true;
     }
 
     private static string? TryGetForwardedParameterName(ExpressionSyntax expression)
