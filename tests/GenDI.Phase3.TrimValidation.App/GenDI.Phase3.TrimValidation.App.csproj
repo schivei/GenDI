@@ -7,6 +7,7 @@
     <LangVersion>latest</LangVersion>
     <PublishTrimmed Condition="'$(GenDI_EnableTrimPublish)' == 'true'">true</PublishTrimmed>
     <TrimMode Condition="'$(GenDI_EnableTrimPublish)' == 'true'">full</TrimMode>
+    <TargetLatestRuntimePatch Condition="'$(GenDI_EnableTrimPublish)' == 'true'">false</TargetLatestRuntimePatch>
   </PropertyGroup>
 
   <ItemGroup>
