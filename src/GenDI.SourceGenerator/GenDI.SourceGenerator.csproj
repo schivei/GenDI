@@ -22,8 +22,22 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference
+      Include="../GenDI.Analyzers/GenDI.Analyzers.csproj"
+      PrivateAssets="all"
+      ReferenceOutputAssembly="false"
+    />
+  </ItemGroup>
+
+  <ItemGroup>
     <None
       Include="$(OutputPath)$(AssemblyName).dll"
+      Pack="true"
+      PackagePath="analyzers/dotnet/cs"
+      Visible="true"
+    />
+    <None
+      Include="$(MSBuildThisFileDirectory)..\GenDI.Analyzers\bin\$(Configuration)\netstandard2.0\GenDI.Analyzers.dll"
       Pack="true"
       PackagePath="analyzers/dotnet/cs"
       Visible="true"
@@ -31,5 +45,11 @@
     <None Include="../../README.md" Pack="true" PackagePath="\" Visible="true" />
     <None Include="../../LICENSE" Pack="true" PackagePath="\" Visible="true" />
     <None Include="../../assets/icon.png" Pack="true" PackagePath="icon.png" Visible="true" />
+    <None
+      Include="buildTransitive/GenDI.SourceGenerator.props"
+      Pack="true"
+      PackagePath="buildTransitive/GenDI.SourceGenerator.props"
+      Visible="true"
+    />
   </ItemGroup>
 </Project>

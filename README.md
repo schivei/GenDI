@@ -76,7 +76,11 @@ No private fields. No constructor ceremony. No manual wiring. Just declare your 
 
 ```bash
 dotnet add package GenDI
+dotnet add package GenDI.SourceGenerator
 ```
+
+`GenDI.SourceGenerator` now bundles `GenDI.Analyzers` and ships `buildTransitive/GenDI.SourceGenerator.props` (`Using Include="GenDI"`).  
+`GenDI` remains the runtime package (no buildTransitive content).
 
 ---
 

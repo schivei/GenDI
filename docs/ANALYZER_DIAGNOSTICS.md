@@ -2,6 +2,8 @@
 
 This page is the official reference for `GenDI.Analyzers` diagnostic IDs.
 
+> Packaging note: `GenDI.SourceGenerator` bundles `GenDI.Analyzers` in `analyzers/dotnet/cs`, so consumers installing the source-generator package receive these diagnostics automatically.
+
 ## GENDI001 - Inject attribute requires init-only property
 
 - **Category**: `GenDI.Usage`

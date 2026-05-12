@@ -6,6 +6,8 @@ sidebar_position: 4
 
 GenDI ships analyzer diagnostics to guide attribute usage and migration paths.
 
+> `GenDI.SourceGenerator` bundles `GenDI.Analyzers` in `analyzers/dotnet/cs`, so these diagnostics are available automatically when the source-generator package is installed.
+
 ## 📋 Official diagnostic list
 
 | Code | Severity | Purpose |
