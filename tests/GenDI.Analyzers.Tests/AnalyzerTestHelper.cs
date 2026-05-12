@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using GenDI.Analyzers;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
@@ -75,7 +75,7 @@ internal static class AnalyzerTestHelper
         );
         references.Add(
             MetadataReference.CreateFromFile(
-                Assembly.Load("Microsoft.Extensions.DependencyInjection.Abstractions").Location
+                typeof(ServiceLifetime).Assembly.Location
             )
         );
 

@@ -41,6 +41,40 @@ public class InjectableUsageAnalyzerTests
     }
 
     [Fact]
+    public void Inject_on_private_non_init_property_does_not_report_diagnostic()
+    {
+        var diagnostics = AnalyzerTestHelper.Run(
+            """
+            [Injectable]
+            public sealed class PrivateInjectProperty
+            {
+                [Inject]
+                private object Service { get; set; } = default!;
+            }
+            """
+        );
+
+        Assert.DoesNotContain(diagnostics, static diagnostic => diagnostic.Id == "GENDI001");
+    }
+
+    [Fact]
+    public void Inject_on_protected_non_init_property_does_not_report_diagnostic()
+    {
+        var diagnostics = AnalyzerTestHelper.Run(
+            """
+            [Injectable]
+            public class ProtectedInjectProperty
+            {
+                [Inject]
+                protected object Service { get; set; } = default!;
+            }
+            """
+        );
+
+        Assert.DoesNotContain(diagnostics, static diagnostic => diagnostic.Id == "GENDI001");
+    }
+
+    [Fact]
     public void Inject_on_init_property_does_not_report_non_init_diagnostic()
     {
         var diagnostics = AnalyzerTestHelper.Run(
@@ -235,6 +269,50 @@ public class InjectableUsageAnalyzerTests
     }
 
     [Fact]
+    public void Constructor_with_unsupported_base_propagation_does_not_report_gendi003_diagnostic()
+    {
+        var diagnostics = AnalyzerTestHelper.Run(
+            """
+            public abstract class BaseService
+            {
+                protected BaseService(IServiceProvider serviceProvider)
+                {
+                }
+            }
+
+            [Injectable]
+            public sealed class DerivedService : BaseService
+            {
+                public DerivedService(IServiceProvider serviceProvider, IFormatProvider formatProvider) : base((IServiceProvider)serviceProvider)
+                {
+                }
+            }
+            """
+        );
+
+        Assert.DoesNotContain(diagnostics, static diagnostic => diagnostic.Id == "GENDI003");
+    }
+
+    [Fact]
+    public void Constructor_with_body_comment_does_not_report_gendi003_diagnostic()
+    {
+        var diagnostics = AnalyzerTestHelper.Run(
+            """
+            [Injectable]
+            public sealed class ConstructorInjectedService
+            {
+                public ConstructorInjectedService(IServiceProvider serviceProvider)
+                {
+                    // Keep this constructor for docs
+                }
+            }
+            """
+        );
+
+        Assert.DoesNotContain(diagnostics, static diagnostic => diagnostic.Id == "GENDI003");
+    }
+
+    [Fact]
     public async Task Code_fix_converts_constructor_injection_to_inject_properties()
     {
         var fixedSource = await AnalyzerTestHelper.ApplyConstructorInjectionCodeFixAsync(
@@ -318,6 +396,24 @@ public class InjectableUsageAnalyzerTests
             "public DerivedService(IServiceProvider serviceProvider) : base(serviceProvider)",
             fixedSource
         );
+    }
+
+    [Fact]
+    public async Task Code_fix_keeps_keyed_service_metadata_when_present()
+    {
+        var fixedSource = await AnalyzerTestHelper.ApplyConstructorInjectionCodeFixAsync(
+            """
+            [Injectable]
+            public sealed class ConstructorInjectedService
+            {
+                public ConstructorInjectedService([FromKeyedServices("my-key")] IServiceProvider serviceProvider)
+                {
+                }
+            }
+            """
+        );
+
+        Assert.Contains("[global::GenDI.Inject(Key = \"my-key\")]", fixedSource);
     }
 
     [Fact]

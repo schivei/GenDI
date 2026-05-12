@@ -51,7 +51,13 @@ public sealed class ConstructorInjectionCodeFixProvider : CodeFixProvider
     )
     {
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
         if (root is null || constructor.Parent is not ClassDeclarationSyntax containingClass)
+        {
+            return document;
+        }
+
+        if (constructor.Body is null || HasMeaningfulBodyTrivia(constructor.Body))
         {
             return document;
         }
@@ -68,20 +74,21 @@ public sealed class ConstructorInjectionCodeFixProvider : CodeFixProvider
                 }
             );
 
-        var propagatedParameterNames = GetPropagatedParameterNames(constructor);
+        var propagation = TryGetPropagatedParameterNames(constructor);
+        if (!propagation.IsSafe)
+        {
+            return document;
+        }
+
         var parametersToConvert = constructor
             .ParameterList.Parameters.Where(parameter =>
-                !propagatedParameterNames.Contains(parameter.Identifier.ValueText)
+                !propagation.ParameterNames.Contains(parameter.Identifier.ValueText)
             )
             .ToImmutableArray();
         if (parametersToConvert.Length == 0)
         {
             return document;
         }
-
-        var injectAttribute = SyntaxFactory.Attribute(
-            SyntaxFactory.ParseName("global::GenDI.Inject")
-        );
 
         var newProperties = parametersToConvert
             .Select(parameter =>
@@ -96,7 +103,9 @@ public sealed class ConstructorInjectionCodeFixProvider : CodeFixProvider
                     .WithAttributeLists(
                         SyntaxFactory.SingletonList(
                             SyntaxFactory.AttributeList(
-                                SyntaxFactory.SingletonSeparatedList(injectAttribute)
+                                SyntaxFactory.SingletonSeparatedList(
+                                    BuildInjectAttribute(parameter, semanticModel, cancellationToken)
+                                )
                             )
                         )
                     )
@@ -127,7 +136,7 @@ public sealed class ConstructorInjectionCodeFixProvider : CodeFixProvider
             .ToImmutableArray();
 
         SyntaxList<MemberDeclarationSyntax> updatedMembers;
-        if (propagatedParameterNames.Count == 0)
+        if (propagation.ParameterNames.Count == 0)
         {
             var newPropertiesWithTrivia = newProperties;
             newPropertiesWithTrivia =
@@ -142,7 +151,7 @@ public sealed class ConstructorInjectionCodeFixProvider : CodeFixProvider
         else
         {
             var propagatedParameters = constructor.ParameterList.Parameters.Where(parameter =>
-                propagatedParameterNames.Contains(parameter.Identifier.ValueText)
+                propagation.ParameterNames.Contains(parameter.Identifier.ValueText)
             );
             var updatedConstructor = constructor.WithParameterList(
                 SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(propagatedParameters))
@@ -192,18 +201,144 @@ public sealed class ConstructorInjectionCodeFixProvider : CodeFixProvider
     {
         if (constructorDeclaration.Initializer?.ArgumentList is null)
         {
-            return [];
+            return new HashSet<string>(StringComparer.Ordinal);
         }
 
         var propagatedParameterNames = new HashSet<string>(StringComparer.Ordinal);
         foreach (var argument in constructorDeclaration.Initializer.ArgumentList.Arguments)
         {
-            if (argument.Expression is IdentifierNameSyntax identifierName)
+            var propagatedParameterName = TryGetForwardedParameterName(argument.Expression);
+            if (propagatedParameterName is null)
             {
-                propagatedParameterNames.Add(identifierName.Identifier.ValueText);
+                return [];
             }
+
+            propagatedParameterNames.Add(propagatedParameterName);
         }
 
         return propagatedParameterNames;
+    }
+
+    private static PropagationAnalysisResult TryGetPropagatedParameterNames(
+        ConstructorDeclarationSyntax constructorDeclaration
+    )
+    {
+        if (constructorDeclaration.Initializer?.ArgumentList is null)
+        {
+            return new PropagationAnalysisResult(
+                new HashSet<string>(StringComparer.Ordinal),
+                isSafe: true
+            );
+        }
+
+        var parameterNames = GetPropagatedParameterNames(constructorDeclaration);
+        if (parameterNames.Count == 0 && constructorDeclaration.Initializer.ArgumentList.Arguments.Count > 0)
+        {
+            return new PropagationAnalysisResult(
+                new HashSet<string>(StringComparer.Ordinal),
+                isSafe: false
+            );
+        }
+
+        return new PropagationAnalysisResult(parameterNames, isSafe: true);
+    }
+
+    private static string? TryGetForwardedParameterName(ExpressionSyntax expression)
+    {
+        while (true)
+        {
+            switch (expression)
+            {
+                case ParenthesizedExpressionSyntax parenthesizedExpression:
+                    expression = parenthesizedExpression.Expression;
+                    continue;
+                case IdentifierNameSyntax identifierName:
+                    return identifierName.Identifier.ValueText;
+                default:
+                    return null;
+            }
+        }
+    }
+
+    private static AttributeSyntax BuildInjectAttribute(
+        ParameterSyntax parameter,
+        SemanticModel? semanticModel,
+        CancellationToken cancellationToken
+    )
+    {
+        var keyExpression = GetFromKeyedServicesKeyExpression(parameter, semanticModel, cancellationToken);
+        if (keyExpression is null)
+        {
+            return SyntaxFactory.Attribute(SyntaxFactory.ParseName("global::GenDI.Inject"));
+        }
+
+        return SyntaxFactory.Attribute(
+            SyntaxFactory.ParseName("global::GenDI.Inject"),
+            SyntaxFactory.AttributeArgumentList(
+                SyntaxFactory.SingletonSeparatedList(
+                    SyntaxFactory.AttributeArgument(keyExpression)
+                        .WithNameEquals(SyntaxFactory.NameEquals("Key"))
+                )
+            )
+        );
+    }
+
+    private static ExpressionSyntax? GetFromKeyedServicesKeyExpression(
+        ParameterSyntax parameter,
+        SemanticModel? semanticModel,
+        CancellationToken cancellationToken
+    )
+    {
+        foreach (var attributeList in parameter.AttributeLists)
+        {
+            foreach (var attribute in attributeList.Attributes)
+            {
+                if (attribute.ArgumentList?.Arguments.Count is not > 0)
+                {
+                    continue;
+                }
+
+                var attributeType = semanticModel?.GetTypeInfo(attribute, cancellationToken).Type;
+                if (
+                    attributeType?.ToDisplayString()
+                    != "Microsoft.Extensions.DependencyInjection.FromKeyedServicesAttribute"
+                )
+                {
+                    continue;
+                }
+
+                return attribute.ArgumentList.Arguments[0].Expression;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool HasMeaningfulBodyTrivia(BlockSyntax constructorBody)
+    {
+        static bool IsMeaningful(SyntaxTrivia trivia)
+        {
+            return trivia is not
+            {
+                RawKind: (int)Microsoft.CodeAnalysis.CSharp.SyntaxKind.WhitespaceTrivia
+                    or (int)Microsoft.CodeAnalysis.CSharp.SyntaxKind.EndOfLineTrivia
+            };
+        }
+
+        return constructorBody.OpenBraceToken.TrailingTrivia.Any(IsMeaningful)
+            || constructorBody.CloseBraceToken.LeadingTrivia.Any(IsMeaningful);
+    }
+
+    private readonly struct PropagationAnalysisResult
+    {
+        public PropagationAnalysisResult(HashSet<string> parameterNames, bool isSafe)
+        {
+            ParameterNames = parameterNames;
+            IsSafe = isSafe;
+        }
+
+        public HashSet<string> ParameterNames { get; }
+
+        public bool IsSafe { get; }
     }
 }

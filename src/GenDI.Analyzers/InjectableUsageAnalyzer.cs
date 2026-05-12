@@ -36,7 +36,17 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        if (property.SetMethod is { IsInitOnly: true })
+        if (
+            property.DeclaredAccessibility is not (Accessibility.Public or Accessibility.Internal)
+            || property.SetMethod is null
+            || property.SetMethod.DeclaredAccessibility
+                is not (Accessibility.Public or Accessibility.Internal)
+        )
+        {
+            return;
+        }
+
+        if (property.SetMethod.IsInitOnly)
         {
             return;
         }
@@ -118,6 +128,7 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
             || constructorDeclaration.Body is null
             || constructorDeclaration.Body.Statements.Count > 0
             || constructorDeclaration.ExpressionBody is not null
+            || HasMeaningfulBodyTrivia(constructorDeclaration.Body)
         )
         {
             return;
@@ -137,9 +148,14 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var propagatedParameterNames = GetPropagatedParameterNames(constructorDeclaration);
+        var propagation = TryGetPropagatedParameterNames(constructorDeclaration);
+        if (!propagation.IsSafe)
+        {
+            return;
+        }
+
         var hasConvertibleParameter = constructorDeclaration.ParameterList.Parameters.Any(
-            parameter => !propagatedParameterNames.Contains(parameter.Identifier.ValueText)
+            parameter => !propagation.ParameterNames.Contains(parameter.Identifier.ValueText)
         );
         if (!hasConvertibleParameter)
         {
@@ -161,18 +177,90 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
     {
         if (constructorDeclaration.Initializer?.ArgumentList is null)
         {
-            return [];
+            return new HashSet<string>(StringComparer.Ordinal);
         }
 
         var propagatedParameterNames = new HashSet<string>(StringComparer.Ordinal);
         foreach (var argument in constructorDeclaration.Initializer.ArgumentList.Arguments)
         {
-            if (argument.Expression is IdentifierNameSyntax identifierName)
+            var propagatedParameterName = TryGetForwardedParameterName(argument.Expression);
+            if (propagatedParameterName is null)
             {
-                propagatedParameterNames.Add(identifierName.Identifier.ValueText);
+                return [];
             }
+
+            propagatedParameterNames.Add(propagatedParameterName);
         }
 
         return propagatedParameterNames;
+    }
+
+    private static PropagationAnalysisResult TryGetPropagatedParameterNames(
+        ConstructorDeclarationSyntax constructorDeclaration
+    )
+    {
+        if (constructorDeclaration.Initializer?.ArgumentList is null)
+        {
+            return new PropagationAnalysisResult(
+                new HashSet<string>(StringComparer.Ordinal),
+                isSafe: true
+            );
+        }
+
+        var parameterNames = GetPropagatedParameterNames(constructorDeclaration);
+        if (parameterNames.Count == 0 && constructorDeclaration.Initializer.ArgumentList.Arguments.Count > 0)
+        {
+            return new PropagationAnalysisResult(
+                new HashSet<string>(StringComparer.Ordinal),
+                isSafe: false
+            );
+        }
+
+        return new PropagationAnalysisResult(parameterNames, isSafe: true);
+    }
+
+    private static string? TryGetForwardedParameterName(ExpressionSyntax expression)
+    {
+        while (true)
+        {
+            switch (expression)
+            {
+                case ParenthesizedExpressionSyntax parenthesizedExpression:
+                    expression = parenthesizedExpression.Expression;
+                    continue;
+                case IdentifierNameSyntax identifierName:
+                    return identifierName.Identifier.ValueText;
+                default:
+                    return null;
+            }
+        }
+    }
+
+    private static bool HasMeaningfulBodyTrivia(BlockSyntax constructorBody)
+    {
+        static bool IsMeaningful(SyntaxTrivia trivia)
+        {
+            return trivia is not
+            {
+                RawKind: (int)Microsoft.CodeAnalysis.CSharp.SyntaxKind.WhitespaceTrivia
+                    or (int)Microsoft.CodeAnalysis.CSharp.SyntaxKind.EndOfLineTrivia
+            };
+        }
+
+        return constructorBody.OpenBraceToken.TrailingTrivia.Any(IsMeaningful)
+            || constructorBody.CloseBraceToken.LeadingTrivia.Any(IsMeaningful);
+    }
+
+    private readonly struct PropagationAnalysisResult
+    {
+        public PropagationAnalysisResult(HashSet<string> parameterNames, bool isSafe)
+        {
+            ParameterNames = parameterNames;
+            IsSafe = isSafe;
+        }
+
+        public HashSet<string> ParameterNames { get; }
+
+        public bool IsSafe { get; }
     }
 }
