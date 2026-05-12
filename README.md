@@ -80,7 +80,8 @@ dotnet add package GenDI.SourceGenerator
 ```
 
 `GenDI.SourceGenerator` now bundles `GenDI.Analyzers` and ships `buildTransitive/GenDI.SourceGenerator.props` (`Using Include="GenDI"`).  
-`GenDI` remains the runtime package (no buildTransitive content).
+`GenDI` remains the runtime package (no buildTransitive content).  
+When using `GenDI.SourceGenerator`, you normally **should not** install `GenDI.Analyzers` separately to avoid duplicate diagnostics/code-fix hints.
 
 ---
 

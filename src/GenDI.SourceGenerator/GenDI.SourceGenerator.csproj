@@ -11,6 +11,7 @@
     <NoWarn>$(NoWarn);RS2008;NU5128</NoWarn>
     <DevelopmentDependency>true</DevelopmentDependency>
     <IsPackable>true</IsPackable>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);IncludeBundledAnalyzerInPackage</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
 
   <ItemGroup>
@@ -36,12 +37,6 @@
       PackagePath="analyzers/dotnet/cs"
       Visible="false"
     />
-    <None
-      Include="$(MSBuildThisFileDirectory)..\GenDI.Analyzers\bin\$(Configuration)\$(TargetFramework)\GenDI.Analyzers.dll"
-      Pack="true"
-      PackagePath="analyzers/dotnet/cs"
-      Visible="false"
-    />
     <None Include="../../README.md" Pack="true" PackagePath="\" Visible="false" />
     <None Include="../../LICENSE" Pack="true" PackagePath="\" Visible="false" />
     <None Include="../../assets/icon.png" Pack="true" PackagePath="icon.png" Visible="false" />
@@ -52,4 +47,23 @@
       Visible="false"
     />
   </ItemGroup>
+
+  <Target Name="IncludeBundledAnalyzerInPackage">
+    <MSBuild
+      Projects="../GenDI.Analyzers/GenDI.Analyzers.csproj"
+      Targets="GetTargetPath"
+      Properties="Configuration=$(Configuration);TargetFramework=netstandard2.0"
+    >
+      <Output TaskParameter="TargetOutputs" ItemName="_BundledAnalyzerTargetPath" />
+    </MSBuild>
+
+    <ItemGroup>
+      <TfmSpecificPackageFile
+        Include="@(_BundledAnalyzerTargetPath)"
+        Condition="'%(_BundledAnalyzerTargetPath.Filename)%(_BundledAnalyzerTargetPath.Extension)' == 'GenDI.Analyzers.dll'"
+      >
+        <PackagePath>analyzers/dotnet/cs</PackagePath>
+      </TfmSpecificPackageFile>
+    </ItemGroup>
+  </Target>
 </Project>
