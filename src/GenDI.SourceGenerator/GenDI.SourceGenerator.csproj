@@ -60,7 +60,7 @@
     <ItemGroup>
       <TfmSpecificPackageFile
         Include="@(_BundledAnalyzerTargetPath)"
-        Condition="'%(_BundledAnalyzerTargetPath.Filename)%(_BundledAnalyzerTargetPath.Extension)' == 'GenDI.Analyzers.dll'"
+        Condition="'%(_BundledAnalyzerTargetPath.Identity)' != '' and '%(_BundledAnalyzerTargetPath.Filename)' == 'GenDI.Analyzers' and '%(_BundledAnalyzerTargetPath.Extension)' == '.dll'"
       >
         <PackagePath>analyzers/dotnet/cs</PackagePath>
       </TfmSpecificPackageFile>
