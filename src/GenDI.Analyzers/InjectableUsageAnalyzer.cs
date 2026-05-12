@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 
@@ -11,6 +12,7 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
     [
         GenDIDiagnostics.InjectRequiresInitOnlyProperty,
         GenDIDiagnostics.InjectableRequiresConcreteClass,
+        GenDIDiagnostics.ConstructorInjectionCanBeConverted,
     ];
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => SupportedRules;
@@ -21,6 +23,10 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
         context.EnableConcurrentExecution();
         context.RegisterSymbolAction(AnalyzeProperty, SymbolKind.Property);
         context.RegisterSymbolAction(AnalyzeNamedType, SymbolKind.NamedType);
+        context.RegisterSyntaxNodeAction(
+            AnalyzeConstructorDeclaration,
+            Microsoft.CodeAnalysis.CSharp.SyntaxKind.ConstructorDeclaration
+        );
     }
 
     private static void AnalyzeProperty(SymbolAnalysisContext context)
@@ -93,5 +99,43 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
         }
 
         return false;
+    }
+
+    private static void AnalyzeConstructorDeclaration(SyntaxNodeAnalysisContext context)
+    {
+        if (context.Node is not ConstructorDeclarationSyntax constructorDeclaration)
+        {
+            return;
+        }
+
+        if (
+            constructorDeclaration.ParameterList.Parameters.Count == 0
+            || constructorDeclaration.Body is null
+            || constructorDeclaration.Body.Statements.Count > 0
+            || constructorDeclaration.ExpressionBody is not null
+            || constructorDeclaration.Initializer is not null
+        )
+        {
+            return;
+        }
+
+        if (
+            context.SemanticModel.GetDeclaredSymbol(constructorDeclaration, context.CancellationToken)
+            is not IMethodSymbol constructorSymbol
+            || constructorSymbol.ContainingType is null
+            || !HasInjectableAttribute(constructorSymbol.ContainingType)
+            || constructorSymbol.DeclaredAccessibility != Accessibility.Public
+        )
+        {
+            return;
+        }
+
+        context.ReportDiagnostic(
+            Diagnostic.Create(
+                GenDIDiagnostics.ConstructorInjectionCanBeConverted,
+                constructorDeclaration.GetLocation(),
+                constructorSymbol.ContainingType.Name
+            )
+        );
     }
 }

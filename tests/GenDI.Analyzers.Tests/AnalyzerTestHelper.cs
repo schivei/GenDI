@@ -2,11 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 using GenDI.Analyzers;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CodeActions;
+using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Text;
 
 namespace GenDI.Analyzers.Tests;
 
@@ -71,5 +77,59 @@ internal static class AnalyzerTestHelper
         );
 
         return references.ToImmutableArray();
+    }
+
+    public static async Task<string> ApplyConstructorInjectionCodeFixAsync(string userSource)
+    {
+        var source = $$"""
+            using GenDI;
+            using Microsoft.Extensions.DependencyInjection;
+
+            {{userSource}}
+            """;
+
+        using var workspace = new AdhocWorkspace();
+        var projectId = ProjectId.CreateNewId();
+        var documentId = DocumentId.CreateNewId(projectId);
+
+        var solution = workspace.CurrentSolution
+            .AddProject(
+                ProjectInfo.Create(
+                    projectId,
+                    VersionStamp.Create(),
+                    "AnalyzerTests",
+                    "AnalyzerTests",
+                    LanguageNames.CSharp,
+                    parseOptions: CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest),
+                    compilationOptions: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary),
+                    metadataReferences: BuildReferences()
+                )
+            )
+            .AddDocument(documentId, "Test.cs", SourceText.From(source));
+
+        var document = solution.GetDocument(documentId)!;
+        var compilation = await document.Project.GetCompilationAsync().ConfigureAwait(false);
+        var diagnostics = await compilation!
+            .WithAnalyzers([new InjectableUsageAnalyzer()])
+            .GetAnalyzerDiagnosticsAsync()
+            .ConfigureAwait(false);
+
+        var targetDiagnostic = diagnostics.Single(static diagnostic => diagnostic.Id == "GENDI003");
+        var codeFixProvider = new ConstructorInjectionCodeFixProvider();
+        var actions = new List<CodeAction>();
+
+        var context = new CodeFixContext(
+            document,
+            targetDiagnostic,
+            (action, _) => actions.Add(action),
+            CancellationToken.None
+        );
+
+        await codeFixProvider.RegisterCodeFixesAsync(context).ConfigureAwait(false);
+        var operations = await actions[0].GetOperationsAsync(CancellationToken.None).ConfigureAwait(false);
+        var applyOperation = operations.OfType<ApplyChangesOperation>().Single();
+        var changedDocument = applyOperation.ChangedSolution.GetDocument(documentId)!;
+        var changedText = await changedDocument.GetTextAsync().ConfigureAwait(false);
+        return changedText.ToString();
     }
 }

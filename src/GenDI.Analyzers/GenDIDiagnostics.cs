@@ -23,4 +23,16 @@ internal static class GenDIDiagnostics
         isEnabledByDefault: true,
         description: "GenDI registers only concrete implementation types."
     );
+
+    public static readonly DiagnosticDescriptor ConstructorInjectionCanBeConverted = new(
+        id: "GENDI003",
+        title: "Constructor injection can be converted to GenDI property injection",
+        messageFormat:
+            "Constructor injection in '{0}' can be converted to [Inject] init-only properties",
+        category: "GenDI.Usage",
+        defaultSeverity: DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description:
+            "Use a code fix to migrate constructor-injected dependencies to GenDI property injection."
+    );
 }

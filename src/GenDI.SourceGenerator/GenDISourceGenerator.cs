@@ -11,7 +11,7 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var candidates = context
+        var registrations = context
             .SyntaxProvider.CreateSyntaxProvider(
                 static (node, _) =>
                     node is ClassDeclarationSyntax classDeclaration
@@ -22,25 +22,35 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
                     ) as INamedTypeSymbol
             )
             .Where(static symbol => symbol is not null)
-            .Select(static (symbol, _) => symbol!)
+            .SelectMany(
+                static (symbol, _) => BuildRegistrations(symbol!).AsEnumerable()
+            )
             .Collect();
 
-        var generationInput = context.CompilationProvider.Combine(candidates);
+        var generationOptions = context
+            .CompilationProvider.Select(
+                static (compilation, _) =>
+                    (
+                        Namespace: GetProjectNamespace(compilation),
+                        IncludeExcludeFromCodeCoverage: !IsGeneratedCodeCoverageEnabled(compilation)
+                    )
+            );
+
+        var generationInput = registrations.Combine(generationOptions);
 
         context.RegisterSourceOutput(
             generationInput,
             static (sourceProductionContext, source) =>
             {
-                var (compilation, symbols) = source;
-                var registrations = symbols
-                    .SelectMany(BuildRegistrations)
+                var (registrationCandidates, options) = source;
+                var normalizedRegistrations = registrationCandidates
                     .Distinct(ServiceRegistrationComparer.Instance)
                     .OrderBy(static registration => registration.Group)
                     .ThenBy(static registration => registration.Order)
                     .ThenBy(static registration => registration.ServiceType, StringComparer.Ordinal)
                     .ToImmutableArray();
 
-                if (registrations.Length == 0)
+                if (normalizedRegistrations.Length == 0)
                 {
                     return;
                 }
@@ -48,9 +58,9 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
                 sourceProductionContext.AddSource(
                     "GenDIServiceCollectionExtensions.g.cs",
                     BuildGeneratedSource(
-                        registrations,
-                        GetProjectNamespace(compilation),
-                        includeExcludeFromCodeCoverage: !IsGeneratedCodeCoverageEnabled(compilation)
+                        normalizedRegistrations,
+                        options.Namespace,
+                        includeExcludeFromCodeCoverage: options.IncludeExcludeFromCodeCoverage
                     )
                 );
             }

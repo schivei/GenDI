@@ -67,8 +67,8 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
   - Critérios:
     - Emite diagnóstico para classe abstrata.
     - Tratamento preparado para tipo inválido não concreto.
-- [ ] **QG-04** Code-fix provider: migração de constructor injection para property injection.
-- [ ] **QG-05** Otimização incremental do source generator.
+- [x] **QG-04** Code-fix provider: migração de constructor injection para property injection.
+- [x] **QG-05** Otimização incremental do source generator.
 
 ## 4.2 Modelo de registro
 
@@ -164,3 +164,4 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
 - **v1.0**: criação do roteiro detalhado e início do incremento 6.1 (fundação de analyzers).
 - **v1.1**: remoção de escopo open-generic e inclusão dos novos itens de plano para fallback de lifetime,
   injeção indireta, thread isolation, varredura de dependências e OptionConfig.
+- **v1.2**: implementação do code-fix de migração de constructor injection e otimização incremental no generator.
