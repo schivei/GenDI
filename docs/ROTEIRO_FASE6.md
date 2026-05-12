@@ -38,7 +38,7 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
 - `[InjectOptional]`
 - `[ConditionalInjectable(environmentName)]`
 - `[DecoratorFor<TService>]`
-- Open-generic, factory e module grouping.
+- Factory, module grouping, injeção indireta e políticas avançadas de lifetime.
 
 ### Incremento 6.4 — Plataformas e exemplos
 
@@ -75,9 +75,24 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
 - [ ] **RM-01** `[InjectOptional]`.
 - [ ] **RM-02** `[ConditionalInjectable(environmentName)]`.
 - [ ] **RM-03** `[DecoratorFor<TService>]`.
-- [ ] **RM-04** Open-generic registration (`IRepository<>`).
-- [ ] **RM-05** `[InjectableFactory]` em métodos estáticos.
-- [ ] **RM-06** `[InjectableModule]` para agrupamento.
+- [ ] **RM-04** Definir `ServiceLifetime` no `ServiceInjectionAttribute` com fallback:
+  `Injectable > ServiceInjection > Transient`.
+- [ ] **RM-05** Permitir injeção indireta por `[Inject]` sem exigir `[Injectable]` no tipo de implementação.
+  - Critérios:
+    - Varredura de implementações concretas para o serviço solicitado.
+    - Se contrato não tiver `[ServiceInjection]`, tratar o tipo da propriedade como contrato implícito.
+    - Proibir open-generic; somente contratos/implementações fechados (closed generic) são elegíveis.
+- [ ] **RM-06** Permitir override de `ServiceLifetime` no `[Inject]`, refletindo no registro:
+  `Inject > Injectable > ServiceInjection > Transient`.
+  - Critérios:
+    - Registrar somente uma implementação final por resolução.
+    - Empate por magnitude de lifetime: `Scoped > Singleton > Transient`.
+- [ ] **RM-07** Thread isolation no registro por `Injectable`/`ServiceInjection` com os três lifetimes.
+- [ ] **RM-08** Varredura de dependências entre bibliotecas referenciadas na solução para registro centralizado.
+- [ ] **RM-09** Suporte a injeção indireta para tipos genéricos fechados quando a implementação concreta for inferível.
+- [ ] **RM-10** `OptionConfigAttribute` para mapear tipo concreto em `IOptions<>` com chave/path obrigatório.
+- [ ] **RM-11** `[InjectableFactory]` em métodos estáticos.
+- [ ] **RM-12** `[InjectableModule]` para agrupamento.
 
 ## 4.3 Plataforma e framework
 
@@ -141,7 +156,11 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
   - **Mitigação**: manter responsabilidades separadas e validar com testes independentes.
 - **Dependência**: estabilidade de APIs Roslyn/Microsoft.CodeAnalysis.
   - **Mitigação**: fixar intervalo de versão compatível usado no repositório.
+- **Restrição arquitetural**: open-generic é fora de escopo por premissas de NativeAOT.
+  - **Mitigação**: validar e bloquear cenários open-generic em roadmap, plano e implementação.
 
 ## 8) Log de revisões deste roteiro
 
 - **v1.0**: criação do roteiro detalhado e início do incremento 6.1 (fundação de analyzers).
+- **v1.1**: remoção de escopo open-generic e inclusão dos novos itens de plano para fallback de lifetime,
+  injeção indireta, thread isolation, varredura de dependências e OptionConfig.
