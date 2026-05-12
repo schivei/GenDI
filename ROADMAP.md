@@ -73,9 +73,9 @@ This document outlines the planned phases of development for GenDI.
 
 ### 🔬 Source-generator quality
 
-- [ ] `GenDI.Analyzers` companion package: IDE warnings for misconfigured `[Injectable]` / `[Inject]` usage
-- [ ] Diagnostic for `[Inject]` on non-init property (CS error surfaced as IDE hint)
-- [ ] Diagnostic for `[Injectable]` on abstract type or interface
+- [x] `GenDI.Analyzers` companion package: IDE warnings for misconfigured `[Injectable]` / `[Inject]` usage
+- [x] Diagnostic for `[Inject]` on non-init property (CS error surfaced as IDE hint)
+- [x] Diagnostic for `[Injectable]` on abstract type or interface
 - [ ] Code-fix provider: convert constructor injection to GenDI property injection automatically
 - [ ] Incremental generator optimization: reduce rebuild cost on partial changes
 
