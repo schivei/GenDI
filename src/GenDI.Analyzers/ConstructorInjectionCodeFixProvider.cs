@@ -130,6 +130,11 @@ public sealed class ConstructorInjectionCodeFixProvider : CodeFixProvider
 
     private static string ToPascalCase(string value)
     {
+        if (string.IsNullOrEmpty(value))
+        {
+            return "Dependency";
+        }
+
         return char.ToUpperInvariant(value[0]) + value.Substring(1);
     }
 }

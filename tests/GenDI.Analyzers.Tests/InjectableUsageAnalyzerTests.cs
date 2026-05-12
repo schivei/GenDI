@@ -1,4 +1,6 @@
 using System.Threading.Tasks;
+using System.Reflection;
+using GenDI.Analyzers;
 using Xunit;
 
 namespace GenDI.Analyzers.Tests;
@@ -163,5 +165,17 @@ public class InjectableUsageAnalyzerTests
         );
 
         Assert.Contains("public required IServiceProvider ServiceProvider1 { get; init; }", fixedSource);
+    }
+
+    [Fact]
+    public void Code_fix_pascal_case_fallback_handles_empty_value()
+    {
+        var method = typeof(ConstructorInjectionCodeFixProvider).GetMethod(
+            "ToPascalCase",
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
+
+        var result = (string?)method!.Invoke(null, [""]);
+        Assert.Equal("Dependency", result);
     }
 }
