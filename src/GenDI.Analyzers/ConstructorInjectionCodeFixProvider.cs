@@ -51,16 +51,20 @@ public sealed class ConstructorInjectionCodeFixProvider : CodeFixProvider
     )
     {
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
         if (root is null || constructor.Parent is not ClassDeclarationSyntax containingClass)
         {
             return document;
         }
 
-        if (constructor.Body is null || HasMeaningfulBodyTrivia(constructor.Body))
+        if (
+            constructor.Body is null
+            || ConstructorInjectionAnalysisHelpers.HasMeaningfulBodyTrivia(constructor.Body)
+        )
         {
             return document;
         }
+
+        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
         var existingPropertyNames = containingClass
             .Members.OfType<PropertyDeclarationSyntax>()
@@ -74,7 +78,9 @@ public sealed class ConstructorInjectionCodeFixProvider : CodeFixProvider
                 }
             );
 
-        var propagation = TryGetPropagatedParameterNames(constructor);
+        var propagation = ConstructorInjectionAnalysisHelpers.TryGetPropagatedParameterNames(
+            constructor
+        );
         if (!propagation.IsSafe)
         {
             return document;
@@ -195,71 +201,6 @@ public sealed class ConstructorInjectionCodeFixProvider : CodeFixProvider
         return char.ToUpperInvariant(value[0]) + value.Substring(1);
     }
 
-    private static HashSet<string> GetPropagatedParameterNames(
-        ConstructorDeclarationSyntax constructorDeclaration
-    )
-    {
-        if (constructorDeclaration.Initializer?.ArgumentList is null)
-        {
-            return new HashSet<string>(StringComparer.Ordinal);
-        }
-
-        var propagatedParameterNames = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var argument in constructorDeclaration.Initializer.ArgumentList.Arguments)
-        {
-            var propagatedParameterName = TryGetForwardedParameterName(argument.Expression);
-            if (propagatedParameterName is null)
-            {
-                return [];
-            }
-
-            propagatedParameterNames.Add(propagatedParameterName);
-        }
-
-        return propagatedParameterNames;
-    }
-
-    private static PropagationAnalysisResult TryGetPropagatedParameterNames(
-        ConstructorDeclarationSyntax constructorDeclaration
-    )
-    {
-        if (constructorDeclaration.Initializer?.ArgumentList is null)
-        {
-            return new PropagationAnalysisResult(
-                new HashSet<string>(StringComparer.Ordinal),
-                isSafe: true
-            );
-        }
-
-        var parameterNames = GetPropagatedParameterNames(constructorDeclaration);
-        if (parameterNames.Count == 0 && constructorDeclaration.Initializer.ArgumentList.Arguments.Count > 0)
-        {
-            return new PropagationAnalysisResult(
-                new HashSet<string>(StringComparer.Ordinal),
-                isSafe: false
-            );
-        }
-
-        return new PropagationAnalysisResult(parameterNames, isSafe: true);
-    }
-
-    private static string? TryGetForwardedParameterName(ExpressionSyntax expression)
-    {
-        while (true)
-        {
-            switch (expression)
-            {
-                case ParenthesizedExpressionSyntax parenthesizedExpression:
-                    expression = parenthesizedExpression.Expression;
-                    continue;
-                case IdentifierNameSyntax identifierName:
-                    return identifierName.Identifier.ValueText;
-                default:
-                    return null;
-            }
-        }
-    }
-
     private static AttributeSyntax BuildInjectAttribute(
         ParameterSyntax parameter,
         SemanticModel? semanticModel,
@@ -312,33 +253,5 @@ public sealed class ConstructorInjectionCodeFixProvider : CodeFixProvider
         }
 
         return null;
-    }
-
-    private static bool HasMeaningfulBodyTrivia(BlockSyntax constructorBody)
-    {
-        static bool IsMeaningful(SyntaxTrivia trivia)
-        {
-            return trivia is not
-            {
-                RawKind: (int)Microsoft.CodeAnalysis.CSharp.SyntaxKind.WhitespaceTrivia
-                    or (int)Microsoft.CodeAnalysis.CSharp.SyntaxKind.EndOfLineTrivia
-            };
-        }
-
-        return constructorBody.OpenBraceToken.TrailingTrivia.Any(IsMeaningful)
-            || constructorBody.CloseBraceToken.LeadingTrivia.Any(IsMeaningful);
-    }
-
-    private readonly struct PropagationAnalysisResult
-    {
-        public PropagationAnalysisResult(HashSet<string> parameterNames, bool isSafe)
-        {
-            ParameterNames = parameterNames;
-            IsSafe = isSafe;
-        }
-
-        public HashSet<string> ParameterNames { get; }
-
-        public bool IsSafe { get; }
     }
 }
