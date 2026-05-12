@@ -73,18 +73,23 @@ This document outlines the planned phases of development for GenDI.
 
 ### 🔬 Source-generator quality
 
-- [ ] `GenDI.Analyzers` companion package: IDE warnings for misconfigured `[Injectable]` / `[Inject]` usage
-- [ ] Diagnostic for `[Inject]` on non-init property (CS error surfaced as IDE hint)
-- [ ] Diagnostic for `[Injectable]` on abstract type or interface
-- [ ] Code-fix provider: convert constructor injection to GenDI property injection automatically
-- [ ] Incremental generator optimization: reduce rebuild cost on partial changes
+- [x] `GenDI.Analyzers` companion package: IDE warnings for misconfigured `[Injectable]` / `[Inject]` usage
+- [x] Diagnostic for `[Inject]` on non-init property (CS error surfaced as IDE hint)
+- [x] Diagnostic for `[Injectable]` on abstract type or interface
+- [x] Code-fix provider: convert constructor injection to GenDI property injection automatically
+- [x] Incremental generator optimization: reduce rebuild cost on partial changes
 
 ### 🗂️ Registration model
 
 - [ ] `[InjectOptional]` — nullable/optional property injection (skips unregistered services gracefully)
 - [ ] `[ConditionalInjectable(environmentName)]` — environment-conditional registration
 - [ ] `[DecoratorFor<TService>]` — decorator pattern auto-wiring
-- [ ] Open-generic service registration support (`[Injectable(typeof(IRepository<>))]`)
+- [ ] `ServiceInjectionAttribute` lifetime override as fallback (`Injectable > ServiceInjection > Transient`)
+- [ ] Indirect injection (`[Inject]`) with implementation scanning and closed-generic-only support
+- [ ] `[Inject]` lifetime override precedence (`Inject > Injectable > ServiceInjection > Transient`) with registration tie-break (`Scoped > Singleton > Transient`)
+- [ ] Thread isolation registration policy configurable via `Injectable` / `ServiceInjection`
+- [ ] Dependency scanning across referenced solution libraries for centralized registration
+- [ ] `OptionConfigAttribute` to bind concrete option types into `IOptions<>` using required configuration key/path
 - [ ] Factory registration: `[InjectableFactory]` on static factory methods
 - [ ] Module-based grouping: `[InjectableModule]` on a partial class to namespace registrations
 

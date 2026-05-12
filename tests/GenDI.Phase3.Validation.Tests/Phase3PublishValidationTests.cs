@@ -14,7 +14,7 @@ public class Phase3PublishValidationTests
         var projectPath = GetProjectPath(
             "GenDI.Phase3.TrimValidation.App/GenDI.Phase3.TrimValidation.App.csproj"
         );
-        RunDotnetPublish(projectPath, "-c Release");
+        RunDotnetPublish(projectPath, "-c Release -p:GenDI_EnableTrimPublish=true");
     }
 
     [Fact]
@@ -23,7 +23,10 @@ public class Phase3PublishValidationTests
         var projectPath = GetProjectPath(
             "GenDI.Phase3.NativeAotValidation.App/GenDI.Phase3.NativeAotValidation.App.csproj"
         );
-        RunDotnetPublish(projectPath, $"-c Release -r {GetCurrentRuntimeIdentifier()}");
+        RunDotnetPublish(
+            projectPath,
+            $"-c Release -r {GetCurrentRuntimeIdentifier()} -p:GenDI_EnableNativeAotPublish=true"
+        );
     }
 
     private static string GetProjectPath(string relativeProjectPath)

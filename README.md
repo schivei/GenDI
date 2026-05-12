@@ -76,7 +76,12 @@ No private fields. No constructor ceremony. No manual wiring. Just declare your 
 
 ```bash
 dotnet add package GenDI
+dotnet add package GenDI.SourceGenerator
 ```
+
+`GenDI.SourceGenerator` now bundles `GenDI.Analyzers` and ships `buildTransitive/GenDI.SourceGenerator.props` (`Using Include="GenDI"`).  
+`GenDI` remains the runtime package (no buildTransitive content).  
+When using `GenDI.SourceGenerator`, you normally **should not** install `GenDI.Analyzers` separately to avoid duplicate diagnostics/code-fix hints.
 
 ---
 
@@ -157,6 +162,18 @@ Constructor injection is also supported and can use the native DI attribute:
 ```csharp
 public MyConsumer([FromKeyedServices("primary")] IMyService service) { }
 ```
+
+### Analyzer diagnostics (`GenDI.Analyzers`)
+
+`GenDI.Analyzers` currently publishes:
+
+- `GENDI001` — `[Inject]` requires `init`-only property
+- `GENDI002` — `[Injectable]` requires concrete non-abstract class
+- `GENDI003` — constructor injection can be converted to GenDI property injection (code-fix available)
+
+Official diagnostics list:
+
+- [docs/ANALYZER_DIAGNOSTICS.md](docs/ANALYZER_DIAGNOSTICS.md)
 
 ### Service Contract Discovery
 
