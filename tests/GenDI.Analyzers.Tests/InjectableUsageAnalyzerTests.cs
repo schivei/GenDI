@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using System.Reflection;
+using System.Linq;
 using GenDI.Analyzers;
 using Xunit;
 
@@ -87,6 +88,63 @@ public class InjectableUsageAnalyzerTests
         );
 
         Assert.Contains(diagnostics, static diagnostic => diagnostic.Id == "GENDI003");
+    }
+
+    [Fact]
+    public void Diagnostics_expose_help_links_for_documentation_index()
+    {
+        var nonInitDiagnostics = AnalyzerTestHelper.Run(
+            """
+            [Injectable]
+            public sealed class InvalidInjectProperty
+            {
+                [Inject]
+                public object Service { get; set; } = default!;
+            }
+            """
+        );
+        var abstractTypeDiagnostics = AnalyzerTestHelper.Run(
+            """
+            [Injectable]
+            public abstract class AbstractService
+            {
+            }
+            """
+        );
+        var constructorDiagnostics = AnalyzerTestHelper.Run(
+            """
+            [Injectable]
+            public sealed class ConstructorInjectedService
+            {
+                public ConstructorInjectedService(IServiceProvider serviceProvider)
+                {
+                }
+            }
+            """
+        );
+
+        var diagnostic001 = Assert.Single(
+            nonInitDiagnostics.Where(static diagnostic => diagnostic.Id == "GENDI001")
+        );
+        var diagnostic002 = Assert.Single(
+            abstractTypeDiagnostics.Where(static diagnostic => diagnostic.Id == "GENDI002")
+        );
+        var diagnostic003 = Assert.Single(
+            constructorDiagnostics.Where(static diagnostic => diagnostic.Id == "GENDI003")
+        );
+
+        Assert.Equal(
+            "https://github.com/schivei/GenDI/blob/main/docs/ANALYZER_DIAGNOSTICS.md#gendi001---inject-attribute-requires-init-only-property",
+            diagnostic001.Descriptor.HelpLinkUri
+        );
+        Assert.Equal(
+            "https://github.com/schivei/GenDI/blob/main/docs/ANALYZER_DIAGNOSTICS.md#gendi002---injectable-attribute-requires-concrete-class",
+            diagnostic002.Descriptor.HelpLinkUri
+        );
+        Assert.Equal(
+            "https://github.com/schivei/GenDI/blob/main/docs/ANALYZER_DIAGNOSTICS.md#gendi003---constructor-injection-can-be-converted-to-gendi-property-injection",
+            diagnostic003.Descriptor.HelpLinkUri
+        );
     }
 
     [Fact]

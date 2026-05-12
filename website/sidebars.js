@@ -28,6 +28,7 @@ const sidebars = {
         'advanced/nativeaot-and-trimming',
         'advanced/benchmarks',
         'advanced/testing-and-validation',
+        'advanced/analyzer-diagnostics',
       ],
     },
     {

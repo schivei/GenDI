@@ -108,4 +108,5 @@ Each registration uses generated `new` expressions and `GetRequiredService<T>()`
 - 📦 **Getting Started**: installation and first setup
 - 📚 **Core Concepts**: attributes, contracts, registration strategy
 - 🔬 **Advanced**: NativeAOT/trimming validation, benchmarks and test strategy
+- 🧭 **Analyzer diagnostics**: reference list for `GENDI001+` and IDE help links
 - 🌍 **Community**: contribution, roadmap and sponsorship

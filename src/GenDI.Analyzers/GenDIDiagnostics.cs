@@ -4,6 +4,9 @@ namespace GenDI.Analyzers;
 
 internal static class GenDIDiagnostics
 {
+    private const string AnalyzerDiagnosticsDocBaseUrl =
+        "https://github.com/schivei/GenDI/blob/main/docs/ANALYZER_DIAGNOSTICS.md";
+
     public static readonly DiagnosticDescriptor InjectRequiresInitOnlyProperty = new(
         id: "GENDI001",
         title: "Inject attribute requires init-only property",
@@ -11,7 +14,8 @@ internal static class GenDIDiagnostics
         category: "GenDI.Usage",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "GenDI property injection supports only init-only properties."
+        description: "GenDI property injection supports only init-only properties.",
+        helpLinkUri: $"{AnalyzerDiagnosticsDocBaseUrl}#gendi001---inject-attribute-requires-init-only-property"
     );
 
     public static readonly DiagnosticDescriptor InjectableRequiresConcreteClass = new(
@@ -21,7 +25,8 @@ internal static class GenDIDiagnostics
         category: "GenDI.Usage",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "GenDI registers only concrete implementation types."
+        description: "GenDI registers only concrete implementation types.",
+        helpLinkUri: $"{AnalyzerDiagnosticsDocBaseUrl}#gendi002---injectable-attribute-requires-concrete-class"
     );
 
     public static readonly DiagnosticDescriptor ConstructorInjectionCanBeConverted = new(
@@ -33,6 +38,8 @@ internal static class GenDIDiagnostics
         defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true,
         description:
-            "Use a code fix to migrate constructor-injected dependencies to GenDI property injection."
+            "Use a code fix to migrate constructor-injected dependencies to GenDI property injection.",
+        helpLinkUri:
+            $"{AnalyzerDiagnosticsDocBaseUrl}#gendi003---constructor-injection-can-be-converted-to-gendi-property-injection"
     );
 }

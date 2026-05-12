@@ -158,6 +158,18 @@ Constructor injection is also supported and can use the native DI attribute:
 public MyConsumer([FromKeyedServices("primary")] IMyService service) { }
 ```
 
+### Analyzer diagnostics (`GenDI.Analyzers`)
+
+`GenDI.Analyzers` currently publishes:
+
+- `GENDI001` — `[Inject]` requires `init`-only property
+- `GENDI002` — `[Injectable]` requires concrete non-abstract class
+- `GENDI003` — constructor injection can be converted to GenDI property injection (code-fix available)
+
+Official diagnostics list:
+
+- [docs/ANALYZER_DIAGNOSTICS.md](docs/ANALYZER_DIAGNOSTICS.md)
+
 ### Service Contract Discovery
 
 - GenDI discovers services from `[ServiceInjection]` in implemented interfaces and base types.
