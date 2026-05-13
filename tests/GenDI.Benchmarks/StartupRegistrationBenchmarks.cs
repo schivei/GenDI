@@ -8,7 +8,7 @@ namespace GenDI.Benchmarks;
 
 [MemoryDiagnoser]
 [SimpleJob(RunStrategy.ColdStart, launchCount: 1, warmupCount: 3, iterationCount: 10)]
-public class StartupRegistrationBenchmarks
+public static class StartupRegistrationBenchmarks
 {
     // ------------------------------------------------------------------
     // 1. No GenDI — manual registration of the same service set, container-driven activation
