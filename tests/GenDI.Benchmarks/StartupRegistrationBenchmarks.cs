@@ -8,14 +8,15 @@ namespace GenDI.Benchmarks;
 
 [MemoryDiagnoser]
 [SimpleJob(RunStrategy.ColdStart, launchCount: 1, warmupCount: 3, iterationCount: 10)]
-public static class StartupRegistrationBenchmarks
+#pragma warning disable CA1822 // BenchmarkDotNet requires instance benchmark methods
+public class StartupRegistrationBenchmarks
 {
     // ------------------------------------------------------------------
     // 1. No GenDI — manual registration of the same service set, container-driven activation
     // ------------------------------------------------------------------
 
     [Benchmark(Description = "Manual registration (no GenDI)")]
-    public static string ManualRegistrationStartup()
+    public string ManualRegistrationStartup()
     {
         var services = new ServiceCollection();
         // Register the identical service set that AddGenDIServices() produces
@@ -41,7 +42,7 @@ public static class StartupRegistrationBenchmarks
     // ------------------------------------------------------------------
 
     [Benchmark(Description = "GenDI: constructor injection (generated)")]
-    public static string GeneratedConstructorInjectionStartup()
+    public string GeneratedConstructorInjectionStartup()
     {
         var services = new ServiceCollection();
         services.AddGenDIServices();
@@ -56,7 +57,7 @@ public static class StartupRegistrationBenchmarks
     // ------------------------------------------------------------------
 
     [Benchmark(Description = "GenDI: property injection (generated)")]
-    public static string GeneratedPropertyInjectionStartup()
+    public string GeneratedPropertyInjectionStartup()
     {
         var services = new ServiceCollection();
         services.AddGenDIServices();
@@ -71,7 +72,7 @@ public static class StartupRegistrationBenchmarks
     // ------------------------------------------------------------------
 
     [Benchmark(Description = "Reflection registration (no GenDI, assembly scan)")]
-    public static string ReflectionRegistrationStartup()
+    public string ReflectionRegistrationStartup()
     {
         var services = new ServiceCollection();
         ReflectionRegistration.AddByReflection(
@@ -84,6 +85,7 @@ public static class StartupRegistrationBenchmarks
         return service.Execute();
     }
 }
+#pragma warning restore CA1822
 
 internal static class ReflectionRegistration
 {
