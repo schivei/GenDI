@@ -112,7 +112,7 @@ jobs:
           # Run Phase3 publish-validation tests (spawn dotnet publish internally)
           dotnet test tests/GenDI.Phase3.Validation.Tests --configuration Release --no-build --verbosity normal
 
-      - name: Merge coverage and build summary
+      - name: Merge coverage and build summary report
         id: coverage
         run: |
           dotnet-coverage merge coverage-results/*.xml --output coverage-merged.xml --output-format xml
@@ -180,13 +180,9 @@ jobs:
           script: |
             const marker = '<!-- gendi-coverage-summary -->';
             const lineCoverage = process.env.COVERAGE_LINE || 'n/a';
-            const threshold = '95.0';
-            const status = (lineCoverage !== 'n/a' && Number.parseFloat(lineCoverage) >= Number.parseFloat(threshold))
-              ? '✅'
-              : '❌';
             const body = `${marker}
             ## GenDI Coverage
-            ${status} Line coverage: **${lineCoverage}%** (threshold **${threshold}%**)
+            Line coverage: **${lineCoverage}%** (threshold **95.0%**)
 
             _Source: CI/CD workflow run #${context.runNumber}_`;
 
