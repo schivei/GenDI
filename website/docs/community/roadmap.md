@@ -9,7 +9,7 @@
 | 3 | 🚀 NativeAOT / trimming validation | ✅ Done |
 | 4 | 📈 Benchmarks, Docusaurus website, CI hardening | ✅ Done |
 | 5 | 📦 NuGet publication and announcement | ✅ Done |
-| 6 | 🌟 Developer experience, ecosystem expansion | 📋 Planned |
+| 6 | 🌟 Developer experience, ecosystem expansion | 🚧 In progress |
 
 For the full phase-by-phase checklist, see [`ROADMAP.md`](https://github.com/schivei/GenDI/blob/main/ROADMAP.md) in the repository.
 
@@ -34,6 +34,9 @@ For the full phase-by-phase checklist, see [`ROADMAP.md`](https://github.com/sch
 - ✅ `OptionConfigAttribute` for `IOptions<>` registration with required key/path
 - ✅ Static factory registration with `[InjectableFactory]`
 - ✅ Module-based grouping with `[InjectableModule]`
+
+Detailed notes for delivered RM-08..RM-12:
+- [RM-08..RM-12 registration model details](../advanced/registration-model-rm08-rm12)
 
 ### 🌐 Platform support
 - Blazor WebAssembly validated property injection

@@ -5,6 +5,9 @@ namespace GenDI;
 /// <summary>
 /// Marks a static factory method for source-generated registration.
 /// </summary>
+/// <remarks>
+/// Open-generic service shapes are not supported by generated registration and are ignored by the source generator.
+/// </remarks>
 [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
 public sealed class InjectableFactoryAttribute : Attribute
 {

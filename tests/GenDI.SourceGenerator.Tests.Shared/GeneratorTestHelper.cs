@@ -11,6 +11,15 @@ namespace GenDI.SourceGenerator.Tests;
 
 internal static class GeneratorTestHelper
 {
+    public static Diagnostic[] GetGeneratorDiagnostics(
+        string userSource,
+        bool? includeGeneratedCodeInCoverage
+    )
+    {
+        var (_, diagnostics) = RunGenerator("Consumer.Tests", userSource, includeGeneratedCodeInCoverage);
+        return diagnostics;
+    }
+
     public static string GenerateSource(string userSource, bool? includeGeneratedCodeInCoverage)
     {
         return GenerateSourceWithAssemblyName("Consumer.Tests", userSource, includeGeneratedCodeInCoverage);
@@ -31,30 +40,11 @@ internal static class GeneratorTestHelper
         bool? includeGeneratedCodeInCoverage
     )
     {
-        var assemblyCoverageAttribute = includeGeneratedCodeInCoverage.HasValue
-            ? $"[assembly: GenDI.GenDICoveration({includeGeneratedCodeInCoverage.Value.ToString().ToLowerInvariant()})]"
-            : string.Empty;
-
-        var source = $$"""
-            using GenDI;
-            using Microsoft.Extensions.DependencyInjection;
-            {{assemblyCoverageAttribute}}
-
-            {{userSource}}
-            """;
-
-        var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
-        var syntaxTree = CSharpSyntaxTree.ParseText(source, parseOptions);
-        var compilation = CSharpCompilation.Create(
-            assemblyName: assemblyName,
-            syntaxTrees: new[] { syntaxTree },
-            references: BuildReferences(),
-            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        var (driver, diagnostics) = RunGenerator(
+            assemblyName,
+            userSource,
+            includeGeneratedCodeInCoverage
         );
-
-        IIncrementalGenerator generator = CreateGenerator();
-        GeneratorDriver driver = CSharpGeneratorDriver.Create(generator.AsSourceGenerator());
-        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out var diagnostics);
 
         var generationErrors = diagnostics
             .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
@@ -78,6 +68,33 @@ internal static class GeneratorTestHelper
         bool? includeGeneratedCodeInCoverage
     )
     {
+        var (driver, diagnostics) = RunGenerator(
+            assemblyName,
+            userSource,
+            includeGeneratedCodeInCoverage
+        );
+
+        var generationErrors = diagnostics
+            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+            .ToArray();
+        Assert.Empty(generationErrors);
+
+        var result = driver.GetRunResult();
+        var generated = result
+            .Results.SelectMany(static runResult => runResult.GeneratedSources)
+            .Single(static generatedSource =>
+                generatedSource.HintName == "GenDIServiceCollectionExtensions.g.cs"
+            );
+
+        return generated.SourceText.ToString();
+    }
+
+    private static (GeneratorDriver Driver, Diagnostic[] Diagnostics) RunGenerator(
+        string? assemblyName,
+        string userSource,
+        bool? includeGeneratedCodeInCoverage
+    )
+    {
         var assemblyCoverageAttribute = includeGeneratedCodeInCoverage.HasValue
             ? $"[assembly: GenDI.GenDICoveration({includeGeneratedCodeInCoverage.Value.ToString().ToLowerInvariant()})]"
             : string.Empty;
@@ -101,21 +118,13 @@ internal static class GeneratorTestHelper
 
         IIncrementalGenerator generator = CreateGenerator();
         GeneratorDriver driver = CSharpGeneratorDriver.Create(generator.AsSourceGenerator());
-        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out var diagnostics);
-
-        var generationErrors = diagnostics
-            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .ToArray();
-        Assert.Empty(generationErrors);
+        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _);
 
         var result = driver.GetRunResult();
-        var generated = result
-            .Results.SelectMany(static runResult => runResult.GeneratedSources)
-            .Single(static generatedSource =>
-                generatedSource.HintName == "GenDIServiceCollectionExtensions.g.cs"
-            );
-
-        return generated.SourceText.ToString();
+        var generatorDiagnostics = result
+            .Results.SelectMany(static runResult => runResult.Diagnostics)
+            .ToArray();
+        return (driver, generatorDiagnostics);
     }
 
     private static IIncrementalGenerator CreateGenerator()

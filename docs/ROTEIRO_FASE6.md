@@ -169,3 +169,8 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
 - **v1.4**: implementação de `[ConditionalInjectable(environmentName)]` para registro condicional por ambiente.
 - **v1.5**: implementação de `[DecoratorFor<TService>]`, injeção indireta por `[Inject]`, override de lifetime no `[Inject]` e thread isolation configurável.
 - **v1.6**: implementação de RM-08 até RM-12 (varredura em bibliotecas referenciadas, inferência closed-generic indireta, `OptionConfigAttribute`, `[InjectableFactory]` e `[InjectableModule]`).
+
+## 8) Referência detalhada das entregas RM-08..RM-12
+
+- Documentação técnica detalhada: [REGISTRATION_MODEL_RM08_RM12.md](./REGISTRATION_MODEL_RM08_RM12.md)
+- Website (documentação pública): `website/docs/advanced/registration-model-rm08-rm12.md`

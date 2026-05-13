@@ -1,4 +1,5 @@
 using System;
+using Microsoft.CodeAnalysis;
 using Xunit;
 
 namespace GenDI.SourceGenerator.Tests;
@@ -712,5 +713,99 @@ public class SharedGeneratorBehaviorTests
             StringComparison.Ordinal
         );
         Assert.Contains("IsModuleEnabled(modules, \"Billing\")", generatedSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Open_generic_injectable_factory_is_bypassed_with_warning()
+    {
+        GeneratorTestHelper.AssertNoSourceGenerated(
+            """
+            namespace OpenFactoryCase;
+
+            public interface IGenericContract<T>
+            {
+            }
+
+            public static class FactoryModule
+            {
+                [InjectableFactory(typeof(IGenericContract<>), ServiceLifetime.Singleton)]
+                public static object Create() => new object();
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        var diagnostics = GeneratorTestHelper.GetGeneratorDiagnostics(
+            """
+            namespace OpenFactoryCase;
+
+            public interface IGenericContract<T>
+            {
+            }
+
+            public static class FactoryModule
+            {
+                [InjectableFactory(typeof(IGenericContract<>), ServiceLifetime.Singleton)]
+                public static object Create() => new object();
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            diagnostics,
+            static diagnostic =>
+                diagnostic.Id == "GENDISG001"
+                && diagnostic.Severity == DiagnosticSeverity.Warning
+                && diagnostic.GetMessage().Contains("InjectableFactory registration", StringComparison.Ordinal)
+        );
+    }
+
+    [Fact]
+    public void Open_generic_inject_contract_is_bypassed_with_warning()
+    {
+        GeneratorTestHelper.AssertNoSourceGenerated(
+            """
+            namespace OpenInjectCase;
+
+            public interface IGenericContract<T>
+            {
+            }
+
+            [Injectable]
+            public sealed class Consumer<T>
+            {
+                [Inject]
+                public required IGenericContract<T> Contract { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        var diagnostics = GeneratorTestHelper.GetGeneratorDiagnostics(
+            """
+            namespace OpenInjectCase;
+
+            public interface IGenericContract<T>
+            {
+            }
+
+            [Injectable]
+            public sealed class Consumer<T>
+            {
+                [Inject]
+                public required IGenericContract<T> Contract { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            diagnostics,
+            static diagnostic =>
+                diagnostic.Id == "GENDISG001"
+                && diagnostic.Severity == DiagnosticSeverity.Warning
+                && diagnostic.GetMessage().Contains("Injectable class registration", StringComparison.Ordinal)
+        );
     }
 }

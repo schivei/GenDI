@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 
 namespace GenDI.SourceGenerator;
@@ -77,6 +78,7 @@ public sealed partial class GenDISourceGenerator
         public InjectableMetadata(
             string lifetime,
             string? explicitServiceType,
+            bool hasOpenGenericExplicitServiceType,
             int order,
             int group,
             string? keyExpression,
@@ -86,6 +88,7 @@ public sealed partial class GenDISourceGenerator
         {
             Lifetime = lifetime;
             ExplicitServiceType = explicitServiceType;
+            HasOpenGenericExplicitServiceType = hasOpenGenericExplicitServiceType;
             Order = order;
             Group = group;
             KeyExpression = keyExpression;
@@ -96,6 +99,8 @@ public sealed partial class GenDISourceGenerator
         public string Lifetime { get; }
 
         public string? ExplicitServiceType { get; }
+
+        public bool HasOpenGenericExplicitServiceType { get; }
 
         public int Order { get; }
 
@@ -113,6 +118,7 @@ public sealed partial class GenDISourceGenerator
         public InjectableFactoryMetadata(
             string lifetime,
             string? serviceType,
+            bool hasOpenGenericServiceType,
             int order,
             int group,
             string? keyExpression,
@@ -122,6 +128,7 @@ public sealed partial class GenDISourceGenerator
         {
             Lifetime = lifetime;
             ServiceType = serviceType;
+            HasOpenGenericServiceType = hasOpenGenericServiceType;
             Order = order;
             Group = group;
             KeyExpression = keyExpression;
@@ -132,6 +139,8 @@ public sealed partial class GenDISourceGenerator
         public string Lifetime { get; }
 
         public string? ServiceType { get; }
+
+        public bool HasOpenGenericServiceType { get; }
 
         public int Order { get; }
 
@@ -170,6 +179,38 @@ public sealed partial class GenDISourceGenerator
         public string? LifetimeOverride { get; }
 
         public string? ModuleName { get; }
+    }
+
+    private sealed class OpenGenericBypassWarning
+    {
+        public OpenGenericBypassWarning(Location location, string context, string typeDisplay)
+        {
+            Location = location;
+            Context = context;
+            TypeDisplay = typeDisplay;
+        }
+
+        public Location Location { get; }
+
+        public string Context { get; }
+
+        public string TypeDisplay { get; }
+    }
+
+    private sealed class RegistrationBuildResult
+    {
+        public RegistrationBuildResult(
+            ImmutableArray<ServiceRegistration> registrations,
+            ImmutableArray<OpenGenericBypassWarning> warnings
+        )
+        {
+            Registrations = registrations;
+            Warnings = warnings;
+        }
+
+        public ImmutableArray<ServiceRegistration> Registrations { get; }
+
+        public ImmutableArray<OpenGenericBypassWarning> Warnings { get; }
     }
 
     private sealed class DecoratorTarget

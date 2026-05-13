@@ -8,6 +8,14 @@ namespace GenDI.SourceGenerator;
 public sealed partial class GenDISourceGenerator : IIncrementalGenerator
 {
     private const int DefaultOrderingValue = int.MaxValue;
+    private static readonly DiagnosticDescriptor OpenGenericBypassWarningDescriptor = new(
+        id: "GENDISG001",
+        title: "Open-generic type ignored by GenDI source generation",
+        messageFormat: "GenDI ignored open-generic type '{0}' in {1}. Only closed-generic types are supported for generated registrations.",
+        category: "GenDI.SourceGenerator",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true
+    );
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -45,8 +53,20 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
                     .Distinct(SymbolEqualityComparer.Default)
                     .Cast<INamedTypeSymbol>()
                     .ToImmutableArray();
-                var registrationCandidates = BuildRegistrations(allTypes);
-                var normalizedRegistrations = registrationCandidates
+                var buildResult = BuildRegistrations(allTypes);
+                foreach (var warning in buildResult.Warnings)
+                {
+                    sourceProductionContext.ReportDiagnostic(
+                        Diagnostic.Create(
+                            OpenGenericBypassWarningDescriptor,
+                            warning.Location,
+                            warning.TypeDisplay,
+                            warning.Context
+                        )
+                    );
+                }
+
+                var normalizedRegistrations = buildResult.Registrations
                     .Distinct(ServiceRegistrationComparer.Instance)
                     .OrderBy(static registration => registration.Group)
                     .ThenBy(static registration => registration.Order)

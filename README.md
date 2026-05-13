@@ -70,6 +70,7 @@ No private fields. No constructor ceremony. No manual wiring. Just declare your 
 - **Factory-first registration**: use `[InjectableFactory]` on static methods when construction should be centralized.
 - **Module filtering**: group registrations with `[InjectableModule]` / `Module` and load only selected modules.
 - **Options mapping**: `[OptionConfig("Path")]` enables automatic `IOptions<T>` registration from configuration.
+- **Open-generic safety**: open-generic registrations are bypassed and reported as generator warnings (`GENDISG001`).
 - **No runtime scanning cost**: compile-time generation eliminates startup overhead from reflection-based scanning.
 - **AOT/trimming friendly by design**: safe path for teams that need NativeAOT, without forcing this concern for every project.
 
@@ -228,6 +229,8 @@ public static class BillingFactories
 }
 ```
 
+> ⚠️ `[InjectableFactory]` supports only **closed-generic** types. Open-generic service types, return types, parameters, generic factory methods, or generic containing types are ignored and emitted as warnings.
+
 To bind options automatically:
 
 ```csharp
@@ -373,9 +376,13 @@ For fresh clones, `src/GenDI/GenDI.csproj` runs a pre-restore target that execut
 | 2     | Attribute model + contract discovery + ordering           | Implemented |
 | 3     | Advanced NativeAOT support (ILLink.xml, trimming, AOT)   | Implemented |
 | 4     | Benchmarks, website/docs, and CI hardening               | Implemented |
-| 5     | Official NuGet publication                                | In Progress |
+| 5     | Official NuGet publication                                | Implemented |
+| 6     | Developer experience and ecosystem expansion              | In Progress |
 
 See the full plan in [ROADMAP.md](ROADMAP.md).
+
+Detailed RM-08..RM-12 documentation:
+- [docs/REGISTRATION_MODEL_RM08_RM12.md](docs/REGISTRATION_MODEL_RM08_RM12.md)
 
 ---
 
