@@ -129,13 +129,18 @@ const BadgeGroups = [
   ],
 ];
 
+const BadgeRows = BadgeGroups.map((badges) => ({
+  key: badges.map((badge) => badge.alt).join('|'),
+  badges,
+}));
+
 function HomepageBadges() {
   return (
     <section className={styles.badges}>
       <div className="container">
-        {BadgeGroups.map((group) => (
-          <div key={group.map((badge) => badge.alt).join('|')} className={styles.badgeRow}>
-            {group.map((badge) => (
+        {BadgeRows.map((group) => (
+          <div key={group.key} className={styles.badgeRow}>
+            {group.badges.map((badge) => (
               <a key={badge.alt} href={badge.href}>
                 <img src={badge.img} alt={badge.alt} />
               </a>
