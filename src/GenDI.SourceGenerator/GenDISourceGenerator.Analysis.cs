@@ -1547,16 +1547,16 @@ public sealed partial class GenDISourceGenerator
             }
 
             var typeParameterIndex = -1;
-            for (var parameterIndex = 0; parameterIndex < openImplementationType.TypeParameters.Length; parameterIndex++)
+            for (var paramIndex = 0; paramIndex < openImplementationType.TypeParameters.Length; paramIndex++)
             {
                 if (
                     SymbolEqualityComparer.Default.Equals(
-                        openImplementationType.TypeParameters[parameterIndex],
+                        openImplementationType.TypeParameters[paramIndex],
                         typeParameter
                     )
                 )
                 {
-                    typeParameterIndex = parameterIndex;
+                    typeParameterIndex = paramIndex;
                     break;
                 }
             }
