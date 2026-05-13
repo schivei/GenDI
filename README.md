@@ -67,6 +67,9 @@ No private fields. No constructor ceremony. No manual wiring. Just declare your 
 - **Deterministic registration order**: `Group` + `Order` give you predictable, testable pipeline composition.
 - **Attribute-first contract mapping**: combine `[Injectable]`, `[Injectable<TService>]`, and `[ServiceInjection]` with clear intent.
 - **Keyed services support**: works with both native `[FromKeyedServices]` and GenDI `[Inject(Key = ...)]`.
+- **Factory-first registration**: use `[InjectableFactory]` on static methods when construction should be centralized.
+- **Module filtering**: group registrations with `[InjectableModule]` / `Module` and load only selected modules.
+- **Options mapping**: `[OptionConfig("Path")]` enables automatic `IOptions<T>` registration from configuration.
 - **No runtime scanning cost**: compile-time generation eliminates startup overhead from reflection-based scanning.
 - **AOT/trimming friendly by design**: safe path for teams that need NativeAOT, without forcing this concern for every project.
 
@@ -133,6 +136,7 @@ Fallback precedence is: `Injectable > ServiceInjection > Transient`.
   - `[Injectable<TService>]` -> `typeof(TService)` as explicit contract (additive with `[ServiceInjection]`)
 - `Key` (optional, default `null`) for keyed service registration generation
 - `ThreadIsolation` (optional) using `ThreadIsolationPolicy.{Singleton|Scoped|Transient}` for thread-local resolution cache
+- `Module` (optional) to associate registration with a module group
 
 Service registration emission order is:
 1. `Group`
@@ -211,6 +215,27 @@ public sealed class CoreService : IMyService { }
 
 [DecoratorFor<IMyService>]
 public sealed class LoggingDecorator(IMyService inner) : IMyService { }
+```
+
+For factory registration, annotate static factory methods:
+
+```csharp
+[InjectableModule("Billing")]
+public static class BillingFactories
+{
+    [InjectableFactory(typeof(IMyService), ServiceLifetime.Singleton)]
+    public static IMyService Create() => new MyService();
+}
+```
+
+To bind options automatically:
+
+```csharp
+[OptionConfig("Features:MyOptions")]
+public sealed class MyOptions
+{
+    public string? Name { get; init; }
+}
 ```
 
 Constructor injection is also supported and can use the native DI attribute:

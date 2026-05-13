@@ -22,5 +22,6 @@
   <ItemGroup>
     <ProjectReference Include="../../src/GenDI/GenDI.csproj" PrivateAssets="all" />
     <ProjectReference Include="../../src/GenDI.SourceGenerator/GenDI.SourceGenerator.csproj" PrivateAssets="all" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../GenDI.ReferenceLibrary/GenDI.ReferenceLibrary.csproj" PrivateAssets="all" />
   </ItemGroup>
 </Project>

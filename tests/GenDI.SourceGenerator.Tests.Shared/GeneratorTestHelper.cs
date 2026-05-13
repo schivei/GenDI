@@ -186,6 +186,21 @@ internal static class GeneratorTestHelper
                 typeof(Microsoft.Extensions.DependencyInjection.ServiceLifetime).Assembly.Location
             )
         );
+        references.Add(
+            MetadataReference.CreateFromFile(
+                typeof(Microsoft.Extensions.Options.IOptions<>).Assembly.Location
+            )
+        );
+        references.Add(
+            MetadataReference.CreateFromFile(
+                typeof(Microsoft.Extensions.Configuration.IConfiguration).Assembly.Location
+            )
+        );
+        references.Add(
+            MetadataReference.CreateFromFile(
+                typeof(Microsoft.Extensions.Configuration.ConfigurationBinder).Assembly.Location
+            )
+        );
 
         return references;
     }

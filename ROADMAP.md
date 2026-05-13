@@ -88,10 +88,11 @@ This document outlines the planned phases of development for GenDI.
 - [x] Indirect injection (`[Inject]`) with implementation scanning and closed-generic-only support
 - [x] `[Inject]` lifetime override precedence (`Inject > Injectable > ServiceInjection > Transient`) with registration tie-break (`Scoped > Singleton > Transient`)
 - [x] Thread isolation registration policy configurable via `Injectable` / `ServiceInjection`
-- [ ] Dependency scanning across referenced solution libraries for centralized registration
-- [ ] `OptionConfigAttribute` to bind concrete option types into `IOptions<>` using required configuration key/path
-- [ ] Factory registration: `[InjectableFactory]` on static factory methods
-- [ ] Module-based grouping: `[InjectableModule]` on a partial class to namespace registrations
+- [x] Dependency scanning across referenced solution libraries for centralized registration
+- [x] Closed-generic indirect injection inference when concrete implementation is inferable
+- [x] `OptionConfigAttribute` to bind concrete option types into `IOptions<>` using required configuration key/path
+- [x] Factory registration: `[InjectableFactory]` on static factory methods
+- [x] Module-based grouping: `[InjectableModule]` for grouped registrations
 
 ### 🌐 Platform and framework support
 

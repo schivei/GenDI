@@ -18,6 +18,7 @@ public class AttributeUnitTests
         Assert.Equal(int.MaxValue, attr.Group);
         Assert.Null(attr.Key);
         Assert.Equal(ThreadIsolationPolicy.None, attr.ThreadIsolation);
+        Assert.Null(attr.Module);
         Assert.Equal(int.MaxValue, InjectableAttribute.DefaultOrderingValue);
     }
 
@@ -41,12 +42,14 @@ public class AttributeUnitTests
             Group = 3,
             Key = "myKey",
             ThreadIsolation = ThreadIsolationPolicy.Scoped,
+            Module = "Core",
         };
 
         Assert.Equal(5, attr.Order);
         Assert.Equal(3, attr.Group);
         Assert.Equal("myKey", attr.Key);
         Assert.Equal(ThreadIsolationPolicy.Scoped, attr.ThreadIsolation);
+        Assert.Equal("Core", attr.Module);
     }
 
     // ─── InjectableAttribute<T> ───────────────────────────────────────────────
@@ -62,6 +65,7 @@ public class AttributeUnitTests
         Assert.Equal(InjectableAttribute.DefaultOrderingValue, attr.Group);
         Assert.Null(attr.Key);
         Assert.Equal(ThreadIsolationPolicy.None, attr.ThreadIsolation);
+        Assert.Null(attr.Module);
     }
 
     [Theory]
@@ -84,12 +88,14 @@ public class AttributeUnitTests
             Group = 2,
             Key = 42,
             ThreadIsolation = ThreadIsolationPolicy.Singleton,
+            Module = "App",
         };
 
         Assert.Equal(10, attr.Order);
         Assert.Equal(2, attr.Group);
         Assert.Equal(42, attr.Key);
         Assert.Equal(ThreadIsolationPolicy.Singleton, attr.ThreadIsolation);
+        Assert.Equal("App", attr.Module);
     }
 
     // ─── InjectAttribute ──────────────────────────────────────────────────────
@@ -183,6 +189,54 @@ public class AttributeUnitTests
         var attrType = typeof(DecoratorForAttribute<IServiceContract>);
 
         Assert.Equal("DecoratorForAttribute`1", attrType.Name);
+    }
+
+    [Fact]
+    public void OptionConfigAttribute_ctor_stores_path()
+    {
+        var attr = new OptionConfigAttribute("App:Feature");
+
+        Assert.Equal("App:Feature", attr.Path);
+    }
+
+    [Fact]
+    public void InjectableModuleAttribute_ctor_stores_name()
+    {
+        var attr = new InjectableModuleAttribute("Billing");
+
+        Assert.Equal("Billing", attr.Name);
+    }
+
+    [Fact]
+    public void InjectableFactoryAttribute_defaults_are_transient()
+    {
+        var attr = new InjectableFactoryAttribute();
+
+        Assert.Equal(ServiceLifetime.Transient, attr.Lifetime);
+        Assert.Null(attr.ServiceType);
+        Assert.Equal(ThreadIsolationPolicy.None, attr.ThreadIsolation);
+        Assert.Null(attr.Module);
+    }
+
+    [Fact]
+    public void InjectableFactoryAttribute_serviceType_ctor_stores_values()
+    {
+        var attr = new InjectableFactoryAttribute(typeof(IServiceContract), ServiceLifetime.Singleton)
+        {
+            Group = 2,
+            Order = 1,
+            Key = "k1",
+            ThreadIsolation = ThreadIsolationPolicy.Scoped,
+            Module = "M1",
+        };
+
+        Assert.Equal(ServiceLifetime.Singleton, attr.Lifetime);
+        Assert.Equal(typeof(IServiceContract), attr.ServiceType);
+        Assert.Equal(2, attr.Group);
+        Assert.Equal(1, attr.Order);
+        Assert.Equal("k1", attr.Key);
+        Assert.Equal(ThreadIsolationPolicy.Scoped, attr.ThreadIsolation);
+        Assert.Equal("M1", attr.Module);
     }
 
     // ─── GenDICoverationAttribute ─────────────────────────────────────────────

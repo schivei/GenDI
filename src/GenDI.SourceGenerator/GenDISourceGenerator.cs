@@ -25,6 +25,7 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
         var generationOptions = context.CompilationProvider.Select(
             static (compilation, _) =>
                 (
+                    Compilation: compilation,
                     Namespace: GetProjectNamespace(compilation),
                     IncludeExcludeFromCodeCoverage: !IsGeneratedCodeCoverageEnabled(compilation)
                 )
@@ -38,6 +39,9 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
             {
                 var (discoveredTypes, options) = source;
                 var allTypes = discoveredTypes
+                    .Where(static symbol => symbol is not null)
+                    .Cast<ISymbol>()
+                    .Concat(GetReferencedAssemblyTypes(options.Compilation).Cast<ISymbol>())
                     .Distinct(SymbolEqualityComparer.Default)
                     .Cast<INamedTypeSymbol>()
                     .ToImmutableArray();

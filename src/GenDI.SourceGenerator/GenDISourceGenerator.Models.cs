@@ -15,7 +15,8 @@ public sealed partial class GenDISourceGenerator
             int order,
             int group,
             string? keyExpression,
-            string? environmentName
+            string? environmentName,
+            string? moduleName
         )
         {
             ServiceType = serviceType;
@@ -27,6 +28,7 @@ public sealed partial class GenDISourceGenerator
             Group = group;
             KeyExpression = keyExpression;
             EnvironmentName = environmentName;
+            ModuleName = moduleName;
         }
 
         public string ServiceType { get; }
@@ -46,6 +48,8 @@ public sealed partial class GenDISourceGenerator
         public string? KeyExpression { get; }
 
         public string? EnvironmentName { get; }
+
+        public string? ModuleName { get; }
     }
 
     private sealed class ServiceContractTarget
@@ -76,7 +80,8 @@ public sealed partial class GenDISourceGenerator
             int order,
             int group,
             string? keyExpression,
-            string? threadIsolationLifetime
+            string? threadIsolationLifetime,
+            string? moduleName
         )
         {
             Lifetime = lifetime;
@@ -85,6 +90,7 @@ public sealed partial class GenDISourceGenerator
             Group = group;
             KeyExpression = keyExpression;
             ThreadIsolationLifetime = threadIsolationLifetime;
+            ModuleName = moduleName;
         }
 
         public string Lifetime { get; }
@@ -98,6 +104,44 @@ public sealed partial class GenDISourceGenerator
         public string? KeyExpression { get; }
 
         public string? ThreadIsolationLifetime { get; }
+
+        public string? ModuleName { get; }
+    }
+
+    private sealed class InjectableFactoryMetadata
+    {
+        public InjectableFactoryMetadata(
+            string lifetime,
+            string? serviceType,
+            int order,
+            int group,
+            string? keyExpression,
+            string? threadIsolationLifetime,
+            string? moduleName
+        )
+        {
+            Lifetime = lifetime;
+            ServiceType = serviceType;
+            Order = order;
+            Group = group;
+            KeyExpression = keyExpression;
+            ThreadIsolationLifetime = threadIsolationLifetime;
+            ModuleName = moduleName;
+        }
+
+        public string Lifetime { get; }
+
+        public string? ServiceType { get; }
+
+        public int Order { get; }
+
+        public int Group { get; }
+
+        public string? KeyExpression { get; }
+
+        public string? ThreadIsolationLifetime { get; }
+
+        public string? ModuleName { get; }
     }
 
     private sealed class InjectContractRequest
@@ -106,13 +150,15 @@ public sealed partial class GenDISourceGenerator
             INamedTypeSymbol contractSymbol,
             string serviceType,
             string? keyExpression,
-            string? lifetimeOverride
+            string? lifetimeOverride,
+            string? moduleName
         )
         {
             ContractSymbol = contractSymbol;
             ServiceType = serviceType;
             KeyExpression = keyExpression;
             LifetimeOverride = lifetimeOverride;
+            ModuleName = moduleName;
         }
 
         public INamedTypeSymbol ContractSymbol { get; }
@@ -122,6 +168,8 @@ public sealed partial class GenDISourceGenerator
         public string? KeyExpression { get; }
 
         public string? LifetimeOverride { get; }
+
+        public string? ModuleName { get; }
     }
 
     private sealed class DecoratorTarget
@@ -145,7 +193,8 @@ public sealed partial class GenDISourceGenerator
             string lifetime,
             string? threadIsolationLifetime,
             int order,
-            int group
+            int group,
+            string? moduleName
         )
         {
             Symbol = symbol;
@@ -154,6 +203,7 @@ public sealed partial class GenDISourceGenerator
             ThreadIsolationLifetime = threadIsolationLifetime;
             Order = order;
             Group = group;
+            ModuleName = moduleName;
         }
 
         public INamedTypeSymbol Symbol { get; }
@@ -167,6 +217,8 @@ public sealed partial class GenDISourceGenerator
         public int Order { get; }
 
         public int Group { get; }
+
+        public string? ModuleName { get; }
     }
 
     private sealed class ServiceRegistrationComparer : IEqualityComparer<ServiceRegistration>
@@ -179,7 +231,8 @@ public sealed partial class GenDISourceGenerator
                 && x?.ImplementationType == y?.ImplementationType
                 && x?.KeyExpression == y?.KeyExpression
                 && x?.EnvironmentName == y?.EnvironmentName
-                && x?.ThreadIsolationLifetime == y?.ThreadIsolationLifetime;
+                && x?.ThreadIsolationLifetime == y?.ThreadIsolationLifetime
+                && x?.ModuleName == y?.ModuleName;
         }
 
         public int GetHashCode(ServiceRegistration obj)
@@ -191,7 +244,8 @@ public sealed partial class GenDISourceGenerator
                     ^ (obj.ImplementationType?.GetHashCode() ?? 0);
                 hashCode = (hashCode * 397) ^ (obj.KeyExpression?.GetHashCode() ?? 0);
                 hashCode = (hashCode * 397) ^ (obj.EnvironmentName?.GetHashCode() ?? 0);
-                return (hashCode * 397) ^ (obj.ThreadIsolationLifetime?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (obj.ThreadIsolationLifetime?.GetHashCode() ?? 0);
+                return (hashCode * 397) ^ (obj.ModuleName?.GetHashCode() ?? 0);
             }
         }
     }

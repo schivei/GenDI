@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using GenDI;
 using GenDI.Integration.Tests.DependencyInjection;
+using GenDI.ReferenceLibrary;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -165,6 +166,49 @@ public class RealWorldIntegrationTests
         Assert.NotNull(workerThreadInstance);
         Assert.NotSame(mainThreadInstance, workerThreadInstance);
     }
+
+    [Fact]
+    public void Referenced_library_services_are_scanned_and_registered()
+    {
+        var services = new ServiceCollection();
+        services.AddGenDIServices();
+        using var provider = services.BuildServiceProvider();
+
+        Assert.NotNull(provider.GetService<IReferencedContract>());
+    }
+
+    [Fact]
+    public void InjectableFactory_static_method_registration_resolves_service()
+    {
+        var services = new ServiceCollection();
+        services.AddGenDIServices("Factories");
+        using var provider = services.BuildServiceProvider();
+
+        var resolved = provider.GetRequiredService<IFactoryContract>();
+        Assert.Equal("factory", resolved.Kind);
+    }
+
+    [Fact]
+    public void InjectableModule_filter_registers_only_selected_modules()
+    {
+        var services = new ServiceCollection();
+        services.AddGenDIServices("Referenced");
+        using var provider = services.BuildServiceProvider();
+
+        Assert.NotNull(provider.GetService<IReferencedContract>());
+        Assert.Null(provider.GetService<IGeneratedContract>());
+    }
+
+    [Fact]
+    public void Indirect_closed_generic_resolution_constructs_inferred_implementation()
+    {
+        var services = new ServiceCollection();
+        services.AddGenDIServices();
+        using var provider = services.BuildServiceProvider();
+
+        var consumer = provider.GetRequiredService<IUsesGenericIndirect>();
+        Assert.IsType<GenericRepository<Order>>(consumer.Repository);
+    }
 }
 
 public sealed class Order;
@@ -290,4 +334,37 @@ public interface IThreadIsolatedContract
 public sealed class ThreadIsolatedService : IThreadIsolatedContract
 {
     public Guid InstanceId { get; } = Guid.NewGuid();
+}
+
+public interface IFactoryContract
+{
+    string Kind { get; }
+}
+
+public sealed class FactoryContract : IFactoryContract
+{
+    public string Kind { get; } = "factory";
+}
+
+[InjectableModule("Factories")]
+public static class FactoryModule
+{
+    [InjectableFactory(typeof(IFactoryContract), ServiceLifetime.Singleton)]
+    public static IFactoryContract Create() => new FactoryContract();
+}
+
+public interface IGenericRepository<T>;
+
+public sealed class GenericRepository<T> : IGenericRepository<T>;
+
+public interface IUsesGenericIndirect
+{
+    IGenericRepository<Order> Repository { get; }
+}
+
+[Injectable<IUsesGenericIndirect>(ServiceLifetime.Singleton)]
+public sealed class UsesGenericIndirect : IUsesGenericIndirect
+{
+    [Inject]
+    public required IGenericRepository<Order> Repository { get; init; }
 }

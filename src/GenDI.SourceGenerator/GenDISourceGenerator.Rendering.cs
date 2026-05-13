@@ -78,16 +78,45 @@ public sealed partial class GenDISourceGenerator
             );
 
         var registrationStatement = $"{cacheRegistration}\n{accessRegistration}";
-        if (string.IsNullOrWhiteSpace(registration.EnvironmentName))
-        {
-            return registrationStatement;
-        }
+        registrationStatement = string.IsNullOrWhiteSpace(registration.EnvironmentName)
+            ? registrationStatement
+            : string.Format(
+                GenDISourceTemplates.ConditionalRegistrationTemplate,
+                EscapeStringLiteral(registration.EnvironmentName),
+                registrationStatement
+            );
+
+        return WrapModuleRegistration(registration, registrationStatement);
+    }
+
+    private static string WrapModuleRegistration(
+        ServiceRegistration registration,
+        string registrationStatement
+    )
+    {
+        var moduleCondition = string.IsNullOrWhiteSpace(registration.ModuleName)
+            ? "modules.Length == 0"
+            : $"modules.Length == 0 || IsModuleEnabled(modules, \"{EscapeStringLiteral(registration.ModuleName)}\")";
 
         return string.Format(
-            GenDISourceTemplates.ConditionalRegistrationTemplate,
-            EscapeStringLiteral(registration.EnvironmentName),
+            GenDISourceTemplates.ModuleRegistrationTemplate,
+            moduleCondition,
             registrationStatement
         );
+    }
+
+    private static string WrapEnvironmentRegistration(
+        ServiceRegistration registration,
+        string registrationStatement
+    )
+    {
+        return string.IsNullOrWhiteSpace(registration.EnvironmentName)
+            ? registrationStatement
+            : string.Format(
+                GenDISourceTemplates.ConditionalRegistrationTemplate,
+                EscapeStringLiteral(registration.EnvironmentName),
+                registrationStatement
+            );
     }
 
     private static string BuildStandardRegistrationLine(
@@ -116,15 +145,9 @@ public sealed partial class GenDISourceGenerator
             );
         }
 
-        if (string.IsNullOrWhiteSpace(registration.EnvironmentName))
-        {
-            return registrationStatement;
-        }
-
-        return string.Format(
-            GenDISourceTemplates.ConditionalRegistrationTemplate,
-            EscapeStringLiteral(registration.EnvironmentName),
-            registrationStatement
+        return WrapModuleRegistration(
+            registration,
+            WrapEnvironmentRegistration(registration, registrationStatement)
         );
     }
 

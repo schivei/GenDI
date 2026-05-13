@@ -59,6 +59,11 @@ public sealed class InjectableAttribute : Attribute
     /// When set, generated registration resolves through a thread-local cache.
     /// </summary>
     public ThreadIsolationPolicy ThreadIsolation { get; set; } = ThreadIsolationPolicy.None;
+
+    /// <summary>
+    /// Optional registration module name used for grouped registration.
+    /// </summary>
+    public string? Module { get; set; }
 }
 
 /// <summary>
@@ -108,4 +113,9 @@ public sealed class InjectableAttribute<TService> : Attribute
     /// When set, generated registration resolves through a thread-local cache.
     /// </summary>
     public ThreadIsolationPolicy ThreadIsolation { get; set; } = ThreadIsolationPolicy.None;
+
+    /// <summary>
+    /// Optional registration module name used for grouped registration.
+    /// </summary>
+    public string? Module { get; set; }
 }

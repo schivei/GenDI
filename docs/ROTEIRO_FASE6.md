@@ -88,11 +88,11 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
     - Registrar somente uma implementação final por resolução.
     - Empate por magnitude de lifetime: `Scoped > Singleton > Transient`.
 - [x] **RM-07** Thread isolation no registro por `Injectable`/`ServiceInjection` com os três lifetimes.
-- [ ] **RM-08** Varredura de dependências entre bibliotecas referenciadas na solução para registro centralizado.
-- [ ] **RM-09** Suporte a injeção indireta para tipos genéricos fechados quando a implementação concreta for inferível.
-- [ ] **RM-10** `OptionConfigAttribute` para mapear tipo concreto em `IOptions<>` com chave/path obrigatório.
-- [ ] **RM-11** `[InjectableFactory]` em métodos estáticos.
-- [ ] **RM-12** `[InjectableModule]` para agrupamento.
+- [x] **RM-08** Varredura de dependências entre bibliotecas referenciadas na solução para registro centralizado.
+- [x] **RM-09** Suporte a injeção indireta para tipos genéricos fechados quando a implementação concreta for inferível.
+- [x] **RM-10** `OptionConfigAttribute` para mapear tipo concreto em `IOptions<>` com chave/path obrigatório.
+- [x] **RM-11** `[InjectableFactory]` em métodos estáticos.
+- [x] **RM-12** `[InjectableModule]` para agrupamento.
 
 ## 4.3 Plataforma e framework
 
@@ -168,3 +168,4 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
 - **v1.3**: implementação de `[InjectOptional]` e fallback de `ServiceInjectionAttribute.Lifetime`.
 - **v1.4**: implementação de `[ConditionalInjectable(environmentName)]` para registro condicional por ambiente.
 - **v1.5**: implementação de `[DecoratorFor<TService>]`, injeção indireta por `[Inject]`, override de lifetime no `[Inject]` e thread isolation configurável.
+- **v1.6**: implementação de RM-08 até RM-12 (varredura em bibliotecas referenciadas, inferência closed-generic indireta, `OptionConfigAttribute`, `[InjectableFactory]` e `[InjectableModule]`).

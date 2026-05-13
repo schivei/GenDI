@@ -572,4 +572,145 @@ public class SharedGeneratorBehaviorTests
             StringComparison.Ordinal
         );
     }
+
+    [Fact]
+    public void Indirect_closed_generic_inference_registers_constructed_implementation()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ClosedGenericInference;
+
+            public interface IRepository<T>
+            {
+            }
+
+            [Injectable]
+            public sealed class UsesRepository
+            {
+                [Inject]
+                public required IRepository<Order> Repository { get; init; }
+            }
+
+            public sealed class Repository<T> : IRepository<T>
+            {
+            }
+
+            public sealed class Order
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddTransient<global::ClosedGenericInference.IRepository<global::ClosedGenericInference.Order>>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "new global::ClosedGenericInference.Repository<global::ClosedGenericInference.Order>()",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void OptionConfig_generates_IOptions_registration_from_required_path()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionsCase;
+            using Microsoft.Extensions.Options;
+
+            [OptionConfig("Features:MyOption")]
+            public sealed class MyOption
+            {
+                public string? Value { get; init; }
+            }
+
+            [Injectable]
+            public sealed class UsesOptions
+            {
+                [Inject]
+                public required IOptions<MyOption> Options { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "ConfigurationBinder.Get<global::OptionsCase.MyOption>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "GetSection(\"Features:MyOption\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void InjectableFactory_static_method_is_registered()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace FactoryCase;
+
+            public interface IContract
+            {
+            }
+
+            public sealed class Contract : IContract
+            {
+            }
+
+            [InjectableModule("factory-module")]
+            public static class ServiceFactories
+            {
+                [InjectableFactory(typeof(IContract), ServiceLifetime.Singleton)]
+                public static IContract Create() => new Contract();
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddSingleton<global::FactoryCase.IContract>(static serviceProvider => global::FactoryCase.ServiceFactories.Create())",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "IsModuleEnabled(modules, \"factory-module\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Module_grouping_generates_module_filtered_overload()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ModuleCase;
+
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>(Module = "Billing")]
+            public sealed class Service : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "public static IServiceCollection AddGenDIServices(this IServiceCollection services, params string[] modules)",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("IsModuleEnabled(modules, \"Billing\")", generatedSource, StringComparison.Ordinal);
+    }
 }
