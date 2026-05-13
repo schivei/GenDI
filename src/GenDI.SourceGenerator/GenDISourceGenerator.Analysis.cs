@@ -486,33 +486,25 @@ public sealed partial class GenDISourceGenerator
 
             foreach (var namedArgument in attributeData.NamedArguments)
             {
-                switch (namedArgument.Key)
+                ApplyCommonRegistrationNamedArgument(
+                    namedArgument,
+                    ref order,
+                    ref group,
+                    ref keyExpression,
+                    ref threadIsolationLifetime,
+                    ref moduleName
+                );
+
+                if (
+                    namedArgument.Key == "ServiceType"
+                    && namedArgument.Value.Kind == TypedConstantKind.Type
+                    && namedArgument.Value.Value is INamedTypeSymbol namedServiceType
+                )
                 {
-                    case "Order" when namedArgument.Value.Value is int orderValue:
-                        order = orderValue;
-                        break;
-                    case "Group" when namedArgument.Value.Value is int groupValue:
-                        group = groupValue;
-                        break;
-                    case "Key":
-                        keyExpression = BuildTypedConstantExpression(namedArgument.Value);
-                        break;
-                    case "ThreadIsolation":
-                        threadIsolationLifetime = ConvertThreadIsolationPolicyToLifetimeExpression(
-                            namedArgument.Value
-                        );
-                        break;
-                    case "Module" when namedArgument.Value.Value is string moduleValue:
-                        moduleName = moduleValue;
-                        break;
-                    case "ServiceType"
-                        when namedArgument.Value.Kind == TypedConstantKind.Type
-                            && namedArgument.Value.Value is INamedTypeSymbol namedServiceType:
-                        serviceType = namedServiceType.ToDisplayString(
-                            SymbolDisplayFormat.FullyQualifiedFormat
-                        );
-                        hasOpenGenericServiceType = !IsClosedType(namedServiceType);
-                        break;
+                    serviceType = namedServiceType.ToDisplayString(
+                        SymbolDisplayFormat.FullyQualifiedFormat
+                    );
+                    hasOpenGenericServiceType = !IsClosedType(namedServiceType);
                 }
             }
 
@@ -658,26 +650,14 @@ public sealed partial class GenDISourceGenerator
 
             foreach (var namedArgument in attributeData.NamedArguments)
             {
-                switch (namedArgument.Key)
-                {
-                    case "Order" when namedArgument.Value.Value is int orderValue:
-                        order = orderValue;
-                        break;
-                    case "Group" when namedArgument.Value.Value is int groupValue:
-                        group = groupValue;
-                        break;
-                    case "Key":
-                        keyExpression = BuildTypedConstantExpression(namedArgument.Value);
-                        break;
-                    case "ThreadIsolation":
-                        threadIsolationLifetime = ConvertThreadIsolationPolicyToLifetimeExpression(
-                            namedArgument.Value
-                        );
-                        break;
-                    case "Module" when namedArgument.Value.Value is string moduleValue:
-                        moduleName = moduleValue;
-                        break;
-                }
+                ApplyCommonRegistrationNamedArgument(
+                    namedArgument,
+                    ref order,
+                    ref group,
+                    ref keyExpression,
+                    ref threadIsolationLifetime,
+                    ref moduleName
+                );
             }
 
             injectableMetadata = new InjectableMetadata(
@@ -700,6 +680,37 @@ public sealed partial class GenDISourceGenerator
     private static bool HasDecoratorTarget(INamedTypeSymbol symbol)
     {
         return GetDecoratorTargets(symbol).Length > 0;
+    }
+
+    private static void ApplyCommonRegistrationNamedArgument(
+        KeyValuePair<string, TypedConstant> namedArgument,
+        ref int order,
+        ref int group,
+        ref string? keyExpression,
+        ref string? threadIsolationLifetime,
+        ref string? moduleName
+    )
+    {
+        switch (namedArgument.Key)
+        {
+            case "Order" when namedArgument.Value.Value is int orderValue:
+                order = orderValue;
+                break;
+            case "Group" when namedArgument.Value.Value is int groupValue:
+                group = groupValue;
+                break;
+            case "Key":
+                keyExpression = BuildTypedConstantExpression(namedArgument.Value);
+                break;
+            case "ThreadIsolation":
+                threadIsolationLifetime = ConvertThreadIsolationPolicyToLifetimeExpression(
+                    namedArgument.Value
+                );
+                break;
+            case "Module" when namedArgument.Value.Value is string moduleValue:
+                moduleName = moduleValue;
+                break;
+        }
     }
 
     private static IEnumerable<OpenGenericBypassWarning> CollectDecoratorOpenGenericWarnings(

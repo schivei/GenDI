@@ -36,9 +36,11 @@ public sealed class InjectableAttribute : Attribute
     /// Explicit service contract for non-generic usage. Always <see langword="null"/>.
     /// Use <see cref="InjectableAttribute{TService}"/> to define an explicit contract safely.
     /// </summary>
+    #pragma warning disable CA1822 // kept as instance member for API parity with generic variant
     #pragma warning disable S2325 // kept as instance member for API parity with generic variant
     public Type? ServiceType => null;
     #pragma warning restore S2325
+    #pragma warning restore CA1822
 
     /// <summary>
     /// Optional order value inside a group. Defaults to <see cref="DefaultOrderingValue"/> (<see cref="int.MaxValue"/>).

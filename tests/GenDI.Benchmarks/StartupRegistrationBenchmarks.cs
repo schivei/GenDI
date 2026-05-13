@@ -15,7 +15,7 @@ public class StartupRegistrationBenchmarks
     // ------------------------------------------------------------------
 
     [Benchmark(Description = "Manual registration (no GenDI)")]
-    public string ManualRegistrationStartup()
+    public static string ManualRegistrationStartup()
     {
         var services = new ServiceCollection();
         // Register the identical service set that AddGenDIServices() produces
@@ -41,7 +41,7 @@ public class StartupRegistrationBenchmarks
     // ------------------------------------------------------------------
 
     [Benchmark(Description = "GenDI: constructor injection (generated)")]
-    public string GeneratedConstructorInjectionStartup()
+    public static string GeneratedConstructorInjectionStartup()
     {
         var services = new ServiceCollection();
         services.AddGenDIServices();
@@ -56,7 +56,7 @@ public class StartupRegistrationBenchmarks
     // ------------------------------------------------------------------
 
     [Benchmark(Description = "GenDI: property injection (generated)")]
-    public string GeneratedPropertyInjectionStartup()
+    public static string GeneratedPropertyInjectionStartup()
     {
         var services = new ServiceCollection();
         services.AddGenDIServices();
@@ -71,7 +71,7 @@ public class StartupRegistrationBenchmarks
     // ------------------------------------------------------------------
 
     [Benchmark(Description = "Reflection registration (no GenDI, assembly scan)")]
-    public string ReflectionRegistrationStartup()
+    public static string ReflectionRegistrationStartup()
     {
         var services = new ServiceCollection();
         ReflectionRegistration.AddByReflection(

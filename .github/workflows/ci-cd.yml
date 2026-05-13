@@ -87,6 +87,10 @@ jobs:
 
       - name: SonarQube begin analysis (.NET scanner)
         if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork) && env.SONAR_TOKEN != '' }}
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_REF: ${{ github.head_ref }}
+          PR_BASE_REF: ${{ github.base_ref }}
         run: |
           SONAR_ARGS=(
             '/k:schivei_GenDI'
@@ -97,9 +101,9 @@ jobs:
           )
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             SONAR_ARGS+=(
-              "/d:sonar.pullrequest.key=${{ github.event.pull_request.number }}"
-              "/d:sonar.pullrequest.branch=${{ github.head_ref }}"
-              "/d:sonar.pullrequest.base=${{ github.base_ref }}"
+              "/d:sonar.pullrequest.key=${PR_NUMBER}"
+              "/d:sonar.pullrequest.branch=${PR_HEAD_REF}"
+              "/d:sonar.pullrequest.base=${PR_BASE_REF}"
             )
           fi
           dotnet sonarscanner begin "${SONAR_ARGS[@]}"

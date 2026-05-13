@@ -137,7 +137,7 @@ internal static class GeneratorTestHelper
         )!;
         var instance = Activator.CreateInstance(type);
         Assert.NotNull(instance);
-        return Assert.IsAssignableFrom<IIncrementalGenerator>(instance);
+        return Assert.IsType<IIncrementalGenerator>(instance, exactMatch: false);
     }
 
     private static string ResolveGeneratorAssemblyPath()
@@ -180,11 +180,12 @@ internal static class GeneratorTestHelper
         );
     }
 
-    private static IEnumerable<MetadataReference> BuildReferences()
+    private static List<PortableExecutableReference> BuildReferences()
     {
         var tpa = (AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string) ?? string.Empty;
         var references = tpa.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
             .Select(static path => MetadataReference.CreateFromFile(path))
+            .OfType<PortableExecutableReference>()
             .ToList();
 
         references.Add(
