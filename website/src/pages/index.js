@@ -30,36 +30,158 @@ function HomepageHeader() {
   );
 }
 
+const BadgeGroups = [
+  [
+    {
+      alt: 'CI/CD Pipeline',
+      img: 'https://github.com/schivei/GenDI/actions/workflows/ci-cd.yml/badge.svg',
+      href: 'https://github.com/schivei/GenDI/actions/workflows/ci-cd.yml',
+    },
+    {
+      alt: 'Deploy Documentation',
+      img: 'https://github.com/schivei/GenDI/actions/workflows/deploy-docs.yml/badge.svg',
+      href: 'https://github.com/schivei/GenDI/actions/workflows/deploy-docs.yml',
+    },
+    {
+      alt: 'NuGet GenDI',
+      img: 'https://img.shields.io/nuget/v/GenDI.svg',
+      href: 'https://www.nuget.org/packages/GenDI',
+    },
+    {
+      alt: 'NuGet GenDI.SourceGenerator',
+      img: 'https://img.shields.io/nuget/v/GenDI.SourceGenerator.svg',
+      href: 'https://www.nuget.org/packages/GenDI.SourceGenerator',
+    },
+    {
+      alt: 'NuGet GenDI.Analyzers',
+      img: 'https://img.shields.io/nuget/v/GenDI.Analyzers.svg',
+      href: 'https://www.nuget.org/packages/GenDI.Analyzers',
+    },
+  ],
+  [
+    {
+      alt: 'Quality Gate Status',
+      img: 'https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=alert_status',
+      href: 'https://sonarcloud.io/summary/new_code?id=schivei_GenDI',
+    },
+    {
+      alt: 'Bugs',
+      img: 'https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=bugs',
+      href: 'https://sonarcloud.io/summary/new_code?id=schivei_GenDI',
+    },
+    {
+      alt: 'Code Smells',
+      img: 'https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=code_smells',
+      href: 'https://sonarcloud.io/summary/new_code?id=schivei_GenDI',
+    },
+    {
+      alt: 'Coverage',
+      img: 'https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=coverage',
+      href: 'https://sonarcloud.io/summary/new_code?id=schivei_GenDI',
+    },
+    {
+      alt: 'Duplicated Lines (%)',
+      img: 'https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=duplicated_lines_density',
+      href: 'https://sonarcloud.io/summary/new_code?id=schivei_GenDI',
+    },
+    {
+      alt: 'Lines of Code',
+      img: 'https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=ncloc',
+      href: 'https://sonarcloud.io/summary/new_code?id=schivei_GenDI',
+    },
+    {
+      alt: 'Reliability Rating',
+      img: 'https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=reliability_rating',
+      href: 'https://sonarcloud.io/summary/new_code?id=schivei_GenDI',
+    },
+    {
+      alt: 'Security Rating',
+      img: 'https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=security_rating',
+      href: 'https://sonarcloud.io/summary/new_code?id=schivei_GenDI',
+    },
+    {
+      alt: 'Technical Debt',
+      img: 'https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=sqale_index',
+      href: 'https://sonarcloud.io/summary/new_code?id=schivei_GenDI',
+    },
+    {
+      alt: 'Maintainability Rating',
+      img: 'https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=sqale_rating',
+      href: 'https://sonarcloud.io/summary/new_code?id=schivei_GenDI',
+    },
+    {
+      alt: 'Vulnerabilities',
+      img: 'https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=vulnerabilities',
+      href: 'https://sonarcloud.io/summary/new_code?id=schivei_GenDI',
+    },
+  ],
+  [
+    {
+      alt: 'License: MIT',
+      img: 'https://img.shields.io/badge/License-MIT-yellow.svg',
+      href: 'https://github.com/schivei/GenDI/blob/main/LICENSE',
+    },
+    {
+      alt: 'Documentation',
+      img: 'https://img.shields.io/badge/Documentation-Website-blue',
+      href: 'https://elton.schivei.nom.br/GenDI',
+    },
+  ],
+];
+
+const BadgeRows = BadgeGroups.map((badges) => ({
+  key: badges.map((badge) => badge.alt).join('|'),
+  badges,
+}));
+
+function HomepageBadges() {
+  return (
+    <section className={styles.badges}>
+      <div className="container">
+        {BadgeRows.map((group) => (
+          <div key={group.key} className={styles.badgeRow}>
+            {group.badges.map((badge) => (
+              <a key={badge.alt} href={badge.href}>
+                <img src={badge.img} alt={badge.alt} />
+              </a>
+            ))}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 const FeatureList = [
   {
-    title: 'Attribute-Only Registration',
-    emoji: '🏷️',
-    description: 'Register services with [Injectable] and [ServiceInjection] without marker interfaces or runtime reflection.',
+    title: 'Phase 6 Registration Model',
+    emoji: '🚀',
+    description: 'Use RM-01..RM-12 features in one generator flow: optional injection, conditional registration, decorators, options, factories and modules.',
   },
   {
-    title: 'NativeAOT Focus',
-    emoji: '⚡',
-    description: 'Generated constructors and init-property injection are designed for trimming and NativeAOT publish scenarios.',
+    title: 'Factory + Module Paradigm',
+    emoji: '🏗️',
+    description: 'Prefer [InjectableFactory<TService>] for explicit contracts and compose bounded registrations with [InjectableModule].',
   },
   {
-    title: 'Deterministic Ordering',
-    emoji: '📐',
-    description: 'Control precedence with Group and Order, with a stable ordinal service-name fallback for predictable pipelines.',
+    title: 'Open-Generic Guardrails',
+    emoji: '🛡️',
+    description: 'Open-generic generation paths are bypassed by design and surfaced as generator warning GENDISG001 for safe NativeAOT-first behavior.',
   },
   {
-    title: 'Coverage Control',
-    emoji: '🧪',
-    description: 'Use [assembly: GenDICoveration(...)] to include or exclude generated extension code in coverage reports.',
+    title: 'Environment + Decorator Support',
+    emoji: '🌍',
+    description: 'Activate services by environment with [ConditionalInjectable] and wrap contracts with [DecoratorFor<TService>] in generated registrations.',
   },
   {
-    title: 'Generator + Microsoft DI',
+    title: 'Options + Microsoft DI',
     emoji: '🧩',
-    description: 'Generated AddGenDIServices() integrates directly with Microsoft.Extensions.DependencyInjection.',
+    description: 'Bind configuration to IOptions<T> via [OptionConfig] and keep native integration with Microsoft.Extensions.DependencyInjection.',
   },
   {
-    title: 'Validation Projects Included',
+    title: 'Documentation + CI Visibility',
     emoji: '✅',
-    description: 'Repository includes source-generator tests, real integration tests, trim publish tests, and NativeAOT publish tests.',
+    description: 'Website/docs now cover RM-01..RM-12 and CI publishes coverage summary with SonarScanner for .NET in the pipeline.',
   },
 ];
 
@@ -88,8 +210,8 @@ function HomepageFeatures() {
     <section className={styles.features}>
       <div className="container">
         <div className="row">
-          {FeatureList.map((props) => (
-            <Feature key={props.title} {...props} />
+          {FeatureList.map((feature) => (
+            <Feature key={feature.title} {...feature} />
           ))}
         </div>
       </div>
@@ -103,20 +225,31 @@ function QuickExample() {
       <div className="container">
         <Heading as="h2" className="text--center margin-bottom--lg">Quick Example</Heading>
         <pre>
-          <code className="language-csharp">{`[assembly: GenDI.GenDICoveration(true)]
+          <code className="language-csharp">{`[ServiceInjection]
+public interface IOrderService { }
 
-[ServiceInjection]
-public interface IMyService { }
-
-[Injectable<IMyService>(ServiceLifetime.Singleton, Group = 10, Order = 1)]
-public sealed class MyService(IDependency dep) : IMyService
+[Injectable<IOrderService>(ServiceLifetime.Scoped, Module = "sales")]
+[ConditionalInjectable("Production")]
+public sealed partial class OrderService : IOrderService
 {
-    [Inject]
-    public required IOtherService OtherService { get; init; }
+    [InjectOptional]
+    public ILogger<OrderService>? Logger { get; init; }
 }
 
-services.AddGenDIServices();`}</code>
+[OptionConfig("Sales:Api")]
+public sealed class SalesApiOptions;
+
+[InjectableFactory<IClock>(ServiceLifetime.Singleton)]
+public static partial class ClockFactory
+{
+    public static IClock Create() => SystemClock.Instance;
+}
+
+services.AddGenDIServices(modules: "sales");`}</code>
         </pre>
+        <p className="text--center margin-top--md">
+          <Link to="/docs/advanced/registration-model-rm08-rm12">See full RM-01..RM-12 guide</Link>
+        </p>
       </div>
     </section>
   );
@@ -130,6 +263,7 @@ export default function Home() {
       description="Attribute-first DI source generator with NativeAOT and trimming-oriented behavior.">
       <HomepageHeader />
       <main>
+        <HomepageBadges />
         <HomepageFeatures />
         <QuickExample />
       </main>

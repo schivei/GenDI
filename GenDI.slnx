@@ -8,6 +8,7 @@
     <Project Path="tests/GenDI.Analyzers.Tests/GenDI.Analyzers.Tests.csproj" />
     <Project Path="tests/GenDI.Benchmarks/GenDI.Benchmarks.csproj" />
     <Project Path="tests/GenDI.Integration.Tests/GenDI.Integration.Tests.csproj" />
+    <Project Path="tests/GenDI.ReferenceLibrary/GenDI.ReferenceLibrary.csproj" />
     <Project Path="tests/GenDI.Phase3.NativeAotValidation.App/GenDI.Phase3.NativeAotValidation.App.csproj" />
     <Project Path="tests/GenDI.Phase3.TrimValidation.App/GenDI.Phase3.TrimValidation.App.csproj" />
     <Project Path="tests/GenDI.Phase3.Validation.Tests/GenDI.Phase3.Validation.Tests.csproj" />

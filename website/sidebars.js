@@ -1,3 +1,6 @@
+// @ts-check
+
+/** @type {import('@docusaurus/plugin-content-docs').SidebarsConfig} */
 const sidebars = {
   tutorialSidebar: [
     {
@@ -29,6 +32,7 @@ const sidebars = {
         'advanced/benchmarks',
         'advanced/testing-and-validation',
         'advanced/analyzer-diagnostics',
+        'advanced/registration-model-rm08-rm12',
       ],
     },
     {

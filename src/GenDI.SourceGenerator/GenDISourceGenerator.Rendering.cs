@@ -5,6 +5,8 @@ namespace GenDI.SourceGenerator;
 
 public sealed partial class GenDISourceGenerator
 {
+    private const string TransientRegistrationMethod = "Transient";
+
     private static string BuildGeneratedSource(
         ImmutableArray<ServiceRegistration> registrations,
         string projectNamespace,
@@ -34,25 +36,120 @@ public sealed partial class GenDISourceGenerator
         {
             "ServiceLifetime.Singleton" => "Singleton",
             "ServiceLifetime.Scoped" => "Scoped",
-            _ => "Transient",
+            _ => TransientRegistrationMethod,
         };
 
+        if (string.IsNullOrWhiteSpace(registration.ThreadIsolationLifetime))
+        {
+            return BuildStandardRegistrationLine(registration, registrationMethod);
+        }
+
+        var threadIsolationMethod = registration.ThreadIsolationLifetime switch
+        {
+            "ServiceLifetime.Singleton" => "Singleton",
+            "ServiceLifetime.Scoped" => "Scoped",
+            _ => TransientRegistrationMethod,
+        };
+        var cacheKey = string.Format(
+            GenDISourceTemplates.ThreadIsolationCacheKeyTemplate,
+            EscapeStringLiteral(registration.ServiceType),
+            EscapeStringLiteral(registration.ImplementationType),
+            EscapeStringLiteral(registration.KeyExpression ?? "nokey")
+        );
+        var cacheRegistration = string.Format(
+            GenDISourceTemplates.ThreadIsolationCacheTemplate,
+            threadIsolationMethod,
+            registration.ServiceType,
+            cacheKey,
+            registration.FactoryBody
+        );
+
+        var accessRegistration = string.IsNullOrWhiteSpace(registration.KeyExpression)
+            ? string.Format(
+                GenDISourceTemplates.ThreadIsolationUnkeyedAccessTemplate,
+                TransientRegistrationMethod,
+                registration.ServiceType,
+                cacheKey
+            )
+            : string.Format(
+                GenDISourceTemplates.ThreadIsolationKeyedAccessTemplate,
+                TransientRegistrationMethod,
+                registration.ServiceType,
+                registration.KeyExpression,
+                cacheKey
+            );
+
+        var registrationStatement = $"{cacheRegistration}\n{accessRegistration}";
+        registrationStatement = string.IsNullOrWhiteSpace(registration.EnvironmentName)
+            ? registrationStatement
+            : string.Format(
+                GenDISourceTemplates.ConditionalRegistrationTemplate,
+                EscapeStringLiteral(registration.EnvironmentName),
+                registrationStatement
+            );
+
+        return WrapModuleRegistration(registration, registrationStatement);
+    }
+
+    private static string WrapModuleRegistration(
+        ServiceRegistration registration,
+        string registrationStatement
+    )
+    {
+        var moduleCondition = string.IsNullOrWhiteSpace(registration.ModuleName)
+            ? "modules.Length == 0"
+            : $"modules.Length == 0 || IsModuleEnabled(modules, \"{EscapeStringLiteral(registration.ModuleName)}\")";
+
+        return string.Format(
+            GenDISourceTemplates.ModuleRegistrationTemplate,
+            moduleCondition,
+            registrationStatement
+        );
+    }
+
+    private static string WrapEnvironmentRegistration(
+        ServiceRegistration registration,
+        string registrationStatement
+    )
+    {
+        return string.IsNullOrWhiteSpace(registration.EnvironmentName)
+            ? registrationStatement
+            : string.Format(
+                GenDISourceTemplates.ConditionalRegistrationTemplate,
+                EscapeStringLiteral(registration.EnvironmentName),
+                registrationStatement
+            );
+    }
+
+    private static string BuildStandardRegistrationLine(
+        ServiceRegistration registration,
+        string registrationMethod
+    )
+    {
+        var registrationStatement = string.Empty;
         if (string.IsNullOrWhiteSpace(registration.KeyExpression))
         {
-            return string.Format(
+            registrationStatement = string.Format(
                 GenDISourceTemplates.UnkeyedRegistrationTemplate,
                 registrationMethod,
                 registration.ServiceType,
                 registration.FactoryBody
             );
         }
+        else
+        {
+            registrationStatement = string.Format(
+                GenDISourceTemplates.KeyedRegistrationTemplate,
+                registrationMethod,
+                registration.ServiceType,
+                registration.KeyExpression,
+                registration.FactoryBody
+            );
+        }
 
-        return string.Format(
-            GenDISourceTemplates.KeyedRegistrationTemplate,
-            registrationMethod,
-            registration.ServiceType,
-            registration.KeyExpression,
-            registration.FactoryBody
+        return WrapModuleRegistration(
+            registration,
+            WrapEnvironmentRegistration(registration, registrationStatement)
         );
     }
 

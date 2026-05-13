@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+
 namespace GenDI;
 
 /// <summary>
@@ -12,4 +14,26 @@ namespace GenDI;
     Inherited = false,
     AllowMultiple = false
 )]
-public sealed class ServiceInjectionAttribute : Attribute { }
+public sealed class ServiceInjectionAttribute : Attribute
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ServiceInjectionAttribute"/> class.
+    /// </summary>
+    /// <param name="lifetime">
+    /// Optional fallback lifetime used when no explicit lifetime is provided by <c>[Injectable]</c>.
+    /// </param>
+    public ServiceInjectionAttribute(ServiceLifetime lifetime = ServiceLifetime.Transient)
+    {
+        Lifetime = lifetime;
+    }
+
+    /// <summary>
+    /// Gets the fallback service lifetime for registrations targeting this contract.
+    /// </summary>
+    public ServiceLifetime Lifetime { get; }
+
+    /// <summary>
+    /// Optional thread-isolation registration lifetime fallback.
+    /// </summary>
+    public ThreadIsolationPolicy ThreadIsolation { get; set; } = ThreadIsolationPolicy.None;
+}

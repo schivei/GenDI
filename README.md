@@ -6,8 +6,24 @@
 [![Deploy Documentation](https://github.com/schivei/GenDI/actions/workflows/deploy-docs.yml/badge.svg)](https://github.com/schivei/GenDI/actions/workflows/deploy-docs.yml)
 [![NuGet GenDI](https://img.shields.io/nuget/v/GenDI.svg)](https://www.nuget.org/packages/GenDI)
 [![NuGet GenDI.SourceGenerator](https://img.shields.io/nuget/v/GenDI.SourceGenerator.svg)](https://www.nuget.org/packages/GenDI.SourceGenerator)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/schivei/GenDI/blob/main/LICENSE.md)
-[![Documentation](https://img.shields.io/badge/docs-website-blue)](https://elton.schivei.nom.br/GenDI)
+[![NuGet GenDI.Analyzers](https://img.shields.io/nuget/v/GenDI.Analyzers.svg)](https://www.nuget.org/packages/GenDI.Analyzers)
+
+
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=bugs)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=coverage)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
+[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
+[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
+
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/schivei/GenDI/blob/main/LICENSE)
+[![Documentation](https://img.shields.io/badge/Documentation-Website-blue)](https://elton.schivei.nom.br/GenDI)
 
 GenDI is a dependency injection library built on top of C# *source generators*, providing full compatibility with NativeAOT and trimming. It works as an additional module to `Microsoft.Extensions.DependencyInjection`, allowing you to register services automatically at compile time — no reflection required.
 
@@ -67,6 +83,10 @@ No private fields. No constructor ceremony. No manual wiring. Just declare your 
 - **Deterministic registration order**: `Group` + `Order` give you predictable, testable pipeline composition.
 - **Attribute-first contract mapping**: combine `[Injectable]`, `[Injectable<TService>]`, and `[ServiceInjection]` with clear intent.
 - **Keyed services support**: works with both native `[FromKeyedServices]` and GenDI `[Inject(Key = ...)]`.
+- **Factory-first registration**: use `[InjectableFactory<TService>]` on static methods when construction should be centralized.
+- **Module filtering**: group registrations with `[InjectableModule]` / `Module` and load only selected modules.
+- **Options mapping**: `[OptionConfig("Path")]` enables automatic `IOptions<T>` registration from configuration.
+- **Open-generic safety**: open-generic registrations are bypassed and reported as generator warnings (`GENDISG001`).
 - **No runtime scanning cost**: compile-time generation eliminates startup overhead from reflection-based scanning.
 - **AOT/trimming friendly by design**: safe path for teams that need NativeAOT, without forcing this concern for every project.
 
@@ -103,6 +123,26 @@ public class MyService : IMyService
 }
 ```
 
+`ServiceInjectionAttribute` also supports an optional fallback lifetime:
+
+```csharp
+[ServiceInjection(ServiceLifetime.Scoped)]
+public interface IScopedContract
+{
+}
+```
+
+Thread isolation fallback can also be configured at contract level:
+
+```csharp
+[ServiceInjection(ServiceLifetime.Scoped, ThreadIsolation = ThreadIsolationPolicy.Singleton)]
+public interface IThreadIsolatedContract
+{
+}
+```
+
+Fallback precedence is: `Injectable > ServiceInjection > Transient`.
+
 `InjectableAttribute` supports:
 
 - `Lifetime` (constructor argument, default `Transient`)
@@ -112,6 +152,8 @@ public class MyService : IMyService
   - `[Injectable]` -> `null` (no explicit contract)
   - `[Injectable<TService>]` -> `typeof(TService)` as explicit contract (additive with `[ServiceInjection]`)
 - `Key` (optional, default `null`) for keyed service registration generation
+- `ThreadIsolation` (optional) using `ThreadIsolationPolicy.{Singleton|Scoped|Transient}` for thread-local resolution cache
+- `Module` (optional) to associate registration with a module group
 
 Service registration emission order is:
 1. `Group`
@@ -155,6 +197,64 @@ public class OrderProcessor : IOrderProcessor
 ```csharp
 [Inject(Key = "primary")]
 public required IMyService Service { get; init; }
+```
+
+`[Inject]` also supports lifetime override for indirect registration discovery:
+
+```csharp
+[Inject(ServiceLifetime.Scoped)]
+public required IMyService Service { get; init; }
+```
+
+Precedence for indirect registration lifetime is:
+`Inject > Injectable > ServiceInjection > Transient` (tie-break favors `Scoped > Singleton > Transient`).
+
+For optional dependencies that should not throw when unregistered, use `[InjectOptional]`:
+
+```csharp
+[InjectOptional]
+public required IMyService? OptionalService { get; init; }
+```
+
+For environment-conditional registration, combine `[Injectable]` with `[ConditionalInjectable]`:
+
+```csharp
+[Injectable<IMyService>(ServiceLifetime.Singleton)]
+[ConditionalInjectable("Development")]
+public sealed class DevOnlyService : IMyService { }
+```
+
+For decorators, mark the wrapper with `[DecoratorFor<TService>]`:
+
+```csharp
+[Injectable<IMyService>(ServiceLifetime.Singleton)]
+public sealed class CoreService : IMyService { }
+
+[DecoratorFor<IMyService>]
+public sealed class LoggingDecorator(IMyService inner) : IMyService { }
+```
+
+For factory registration, annotate static factory methods:
+
+```csharp
+[InjectableModule("Billing")]
+public static class BillingFactories
+{
+    [InjectableFactory<IMyService>(ServiceLifetime.Singleton)]
+    public static IMyService Create() => new MyService();
+}
+```
+
+> ⚠️ `[InjectableFactory<TService>]` supports only **closed-generic** types. Open-generic return types, parameters, generic factory methods, or generic containing types are ignored and emitted as warnings.
+
+To bind options automatically:
+
+```csharp
+[OptionConfig("Features:MyOptions")]
+public sealed class MyOptions
+{
+    public string? Name { get; init; }
+}
 ```
 
 Constructor injection is also supported and can use the native DI attribute:
@@ -292,9 +392,13 @@ For fresh clones, `src/GenDI/GenDI.csproj` runs a pre-restore target that execut
 | 2     | Attribute model + contract discovery + ordering           | Implemented |
 | 3     | Advanced NativeAOT support (ILLink.xml, trimming, AOT)   | Implemented |
 | 4     | Benchmarks, website/docs, and CI hardening               | Implemented |
-| 5     | Official NuGet publication                                | In Progress |
+| 5     | Official NuGet publication                                | Implemented |
+| 6     | Developer experience and ecosystem expansion              | In Progress |
 
 See the full plan in [ROADMAP.md](ROADMAP.md).
+
+Detailed RM-01..RM-12 documentation:
+- [docs/REGISTRATION_MODEL_RM08_RM12.md](docs/REGISTRATION_MODEL_RM08_RM12.md)
 
 ---
 

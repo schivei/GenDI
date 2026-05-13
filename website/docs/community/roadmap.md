@@ -9,7 +9,7 @@
 | 3 | 🚀 NativeAOT / trimming validation | ✅ Done |
 | 4 | 📈 Benchmarks, Docusaurus website, CI hardening | ✅ Done |
 | 5 | 📦 NuGet publication and announcement | ✅ Done |
-| 6 | 🌟 Developer experience, ecosystem expansion | 📋 Planned |
+| 6 | 🌟 Developer experience, ecosystem expansion | 🚧 In progress |
 
 For the full phase-by-phase checklist, see [`ROADMAP.md`](https://github.com/schivei/GenDI/blob/main/ROADMAP.md) in the repository.
 
@@ -23,11 +23,20 @@ For the full phase-by-phase checklist, see [`ROADMAP.md`](https://github.com/sch
 - Incremental generator optimization to reduce rebuild cost on partial changes
 
 ### 🗂️ Registration model
-- `[InjectOptional]` — optional property injection (skips unregistered services gracefully)
-- `[ConditionalInjectable(environmentName)]` — environment-conditional registration
-- `[DecoratorFor<TService>]` — decorator pattern auto-wiring
-- Open-generic service registration support
-- Module-based grouping with `[InjectableModule]`
+- ✅ `[InjectOptional]` — optional property injection (skips unregistered services gracefully)
+- ✅ `[ConditionalInjectable(environmentName)]` — environment-conditional registration
+- ✅ `[DecoratorFor<TService>]` — decorator pattern auto-wiring
+- ✅ Indirect injection via `[Inject]` with closed-generic-only implementation scanning
+- ✅ `[Inject]` lifetime override precedence (`Inject > Injectable > ServiceInjection > Transient`) and tie-break
+- ✅ Thread-isolation registration policy configurable via `Injectable` / `ServiceInjection`
+- ✅ Dependency scanning across referenced libraries for centralized registration
+- ✅ Closed-generic indirect inference for inferable concrete implementations
+- ✅ `OptionConfigAttribute` for `IOptions<>` registration with required key/path
+- ✅ Static factory registration with `[InjectableFactory]`
+- ✅ Module-based grouping with `[InjectableModule]`
+
+Detailed notes for delivered RM-01..RM-12:
+- [RM-01..RM-12 registration model details](../advanced/registration-model-rm08-rm12)
 
 ### 🌐 Platform support
 - Blazor WebAssembly validated property injection

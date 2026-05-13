@@ -6,17 +6,20 @@ var services = new ServiceCollection();
 services.AddGenDIServices();
 
 var provider = services.BuildServiceProvider();
-var service = provider.GetRequiredService<IMyService>();
+var service = provider.GetRequiredService<GenDI.Phase3.TrimValidation.App.IMyService>();
 service.Execute();
 
-[ServiceInjection]
-public interface IMyService
+namespace GenDI.Phase3.TrimValidation.App
 {
-    void Execute();
-}
+    [ServiceInjection]
+    public interface IMyService
+    {
+        void Execute();
+    }
 
-[Injectable<IMyService>(ServiceLifetime.Singleton)]
-public sealed class MyService : IMyService
-{
-    public void Execute() { }
+    [Injectable<IMyService>(ServiceLifetime.Singleton)]
+    public sealed class MyService : IMyService
+    {
+        public void Execute() { }
+    }
 }

@@ -107,6 +107,25 @@ public class InjectableUsageAnalyzerTests
     }
 
     [Fact]
+    public void Generic_injectable_on_abstract_class_reports_diagnostic()
+    {
+        var diagnostics = AnalyzerTestHelper.Run(
+            """
+            public interface IServiceContract
+            {
+            }
+
+            [Injectable<IServiceContract>]
+            public abstract class AbstractService : IServiceContract
+            {
+            }
+            """
+        );
+
+        Assert.Contains(diagnostics, static diagnostic => diagnostic.Id == "GENDI002");
+    }
+
+    [Fact]
     public void Injectable_constructor_injection_reports_code_fix_hint()
     {
         var diagnostics = AnalyzerTestHelper.Run(
