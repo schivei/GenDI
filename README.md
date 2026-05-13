@@ -67,7 +67,7 @@ No private fields. No constructor ceremony. No manual wiring. Just declare your 
 - **Deterministic registration order**: `Group` + `Order` give you predictable, testable pipeline composition.
 - **Attribute-first contract mapping**: combine `[Injectable]`, `[Injectable<TService>]`, and `[ServiceInjection]` with clear intent.
 - **Keyed services support**: works with both native `[FromKeyedServices]` and GenDI `[Inject(Key = ...)]`.
-- **Factory-first registration**: use `[InjectableFactory]` on static methods when construction should be centralized.
+- **Factory-first registration**: use `[InjectableFactory<TService>]` on static methods when construction should be centralized.
 - **Module filtering**: group registrations with `[InjectableModule]` / `Module` and load only selected modules.
 - **Options mapping**: `[OptionConfig("Path")]` enables automatic `IOptions<T>` registration from configuration.
 - **Open-generic safety**: open-generic registrations are bypassed and reported as generator warnings (`GENDISG001`).
@@ -224,12 +224,12 @@ For factory registration, annotate static factory methods:
 [InjectableModule("Billing")]
 public static class BillingFactories
 {
-    [InjectableFactory(typeof(IMyService), ServiceLifetime.Singleton)]
+    [InjectableFactory<IMyService>(ServiceLifetime.Singleton)]
     public static IMyService Create() => new MyService();
 }
 ```
 
-> ⚠️ `[InjectableFactory]` supports only **closed-generic** types. Open-generic service types, return types, parameters, generic factory methods, or generic containing types are ignored and emitted as warnings.
+> ⚠️ `[InjectableFactory<TService>]` supports only **closed-generic** types. Open-generic return types, parameters, generic factory methods, or generic containing types are ignored and emitted as warnings.
 
 To bind options automatically:
 

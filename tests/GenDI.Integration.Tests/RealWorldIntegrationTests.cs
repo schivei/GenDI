@@ -349,7 +349,7 @@ public sealed class FactoryContract : IFactoryContract
 [InjectableModule("Factories")]
 public static class FactoryModule
 {
-    [InjectableFactory(typeof(IFactoryContract), ServiceLifetime.Singleton)]
+    [InjectableFactory<IFactoryContract>(ServiceLifetime.Singleton)]
     public static IFactoryContract Create() => new FactoryContract();
 }
 

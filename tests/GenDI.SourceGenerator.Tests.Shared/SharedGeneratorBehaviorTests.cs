@@ -669,7 +669,7 @@ public class SharedGeneratorBehaviorTests
             [InjectableModule("factory-module")]
             public static class ServiceFactories
             {
-                [InjectableFactory(typeof(IContract), ServiceLifetime.Singleton)]
+                [InjectableFactory<IContract>(ServiceLifetime.Singleton)]
                 public static IContract Create() => new Contract();
             }
             """,
@@ -728,8 +728,8 @@ public class SharedGeneratorBehaviorTests
 
             public static class FactoryModule
             {
-                [InjectableFactory(typeof(IGenericContract<>), ServiceLifetime.Singleton)]
-                public static object Create() => new object();
+                [InjectableFactory]
+                public static IGenericContract<T> Create<T>() => throw new System.NotImplementedException();
             }
             """,
             TestSettings.IncludeGeneratedCodeInCoverageAttribute
@@ -745,8 +745,8 @@ public class SharedGeneratorBehaviorTests
 
             public static class FactoryModule
             {
-                [InjectableFactory(typeof(IGenericContract<>), ServiceLifetime.Singleton)]
-                public static object Create() => new object();
+                [InjectableFactory]
+                public static IGenericContract<T> Create<T>() => throw new System.NotImplementedException();
             }
             """,
             TestSettings.IncludeGeneratedCodeInCoverageAttribute

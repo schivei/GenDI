@@ -423,8 +423,11 @@ public sealed partial class GenDISourceGenerator
 
         foreach (var attributeData in method.GetAttributes())
         {
+            var attributeClass = attributeData.AttributeClass;
             if (
-                attributeData.AttributeClass?.ToDisplayString() != "GenDI.InjectableFactoryAttribute"
+                attributeClass is null
+                || attributeClass.OriginalDefinition.ToDisplayString()
+                    is not ("GenDI.InjectableFactoryAttribute" or "GenDI.InjectableFactoryAttribute<TService>")
             )
             {
                 continue;
@@ -439,28 +442,23 @@ public sealed partial class GenDISourceGenerator
             var threadIsolationLifetime = default(string);
             var moduleName = default(string);
 
-            if (attributeData.ConstructorArguments.Length > 0)
+            if (
+                attributeClass.Arity == 1
+                && attributeClass.TypeArguments[0] is ITypeSymbol explicitServiceTypeSymbol
+            )
             {
-                var first = attributeData.ConstructorArguments[0];
-                if (first.Kind == TypedConstantKind.Type && first.Value is ITypeSymbol firstTypeSymbol)
+                serviceType = explicitServiceTypeSymbol.ToDisplayString(
+                    SymbolDisplayFormat.FullyQualifiedFormat
+                );
+                if (explicitServiceTypeSymbol is INamedTypeSymbol namedExplicitServiceType)
                 {
-                    serviceType = firstTypeSymbol.ToDisplayString(
-                        SymbolDisplayFormat.FullyQualifiedFormat
-                    );
-                    if (firstTypeSymbol is INamedTypeSymbol namedFirstTypeSymbol)
-                    {
-                        hasOpenGenericServiceType = !IsClosedType(namedFirstTypeSymbol);
-                    }
-                }
-                else
-                {
-                    lifetime = ConvertLifetimeEnumToExpression(first);
+                    hasOpenGenericServiceType = !IsClosedType(namedExplicitServiceType);
                 }
             }
 
-            if (attributeData.ConstructorArguments.Length > 1)
+            if (attributeData.ConstructorArguments.Length > 0)
             {
-                lifetime = ConvertLifetimeEnumToExpression(attributeData.ConstructorArguments[1]);
+                lifetime = ConvertLifetimeEnumToExpression(attributeData.ConstructorArguments[0]);
             }
 
             foreach (var namedArgument in attributeData.NamedArguments)
@@ -483,14 +481,6 @@ public sealed partial class GenDISourceGenerator
                         break;
                     case "Module" when namedArgument.Value.Value is string moduleValue:
                         moduleName = moduleValue;
-                        break;
-                    case "ServiceType"
-                        when namedArgument.Value.Kind == TypedConstantKind.Type
-                            && namedArgument.Value.Value is INamedTypeSymbol namedServiceType:
-                        serviceType = namedServiceType.ToDisplayString(
-                            SymbolDisplayFormat.FullyQualifiedFormat
-                        );
-                        hasOpenGenericServiceType = !IsClosedType(namedServiceType);
                         break;
                 }
             }

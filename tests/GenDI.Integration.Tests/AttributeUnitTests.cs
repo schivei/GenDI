@@ -213,15 +213,14 @@ public class AttributeUnitTests
         var attr = new InjectableFactoryAttribute();
 
         Assert.Equal(ServiceLifetime.Transient, attr.Lifetime);
-        Assert.Null(attr.ServiceType);
         Assert.Equal(ThreadIsolationPolicy.None, attr.ThreadIsolation);
         Assert.Null(attr.Module);
     }
 
     [Fact]
-    public void InjectableFactoryAttribute_serviceType_ctor_stores_values()
+    public void InjectableFactoryAttribute_generic_stores_values()
     {
-        var attr = new InjectableFactoryAttribute(typeof(IServiceContract), ServiceLifetime.Singleton)
+        var attr = new InjectableFactoryAttribute<IServiceContract>(ServiceLifetime.Singleton)
         {
             Group = 2,
             Order = 1,
@@ -231,7 +230,6 @@ public class AttributeUnitTests
         };
 
         Assert.Equal(ServiceLifetime.Singleton, attr.Lifetime);
-        Assert.Equal(typeof(IServiceContract), attr.ServiceType);
         Assert.Equal(2, attr.Group);
         Assert.Equal(1, attr.Order);
         Assert.Equal("k1", attr.Key);

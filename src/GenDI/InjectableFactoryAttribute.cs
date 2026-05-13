@@ -9,23 +9,26 @@ namespace GenDI;
 /// Open-generic service shapes are not supported by generated registration and are ignored by the source generator.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-public sealed class InjectableFactoryAttribute : Attribute
+public class InjectableFactoryAttribute : Attribute
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="InjectableFactoryAttribute"/> class.
     /// </summary>
-    public InjectableFactoryAttribute(ServiceLifetime lifetime = ServiceLifetime.Transient)
+    protected InjectableFactoryAttribute(
+        Type? serviceType,
+        ServiceLifetime lifetime = ServiceLifetime.Transient
+    )
     {
+        ServiceType = serviceType;
         Lifetime = lifetime;
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InjectableFactoryAttribute"/> class.
     /// </summary>
-    public InjectableFactoryAttribute(Type serviceType, ServiceLifetime lifetime = ServiceLifetime.Transient)
+    public InjectableFactoryAttribute(ServiceLifetime lifetime = ServiceLifetime.Transient)
+        : this(serviceType: null, lifetime)
     {
-        ServiceType = serviceType;
-        Lifetime = lifetime;
     }
 
     /// <summary>
@@ -36,7 +39,7 @@ public sealed class InjectableFactoryAttribute : Attribute
     /// <summary>
     /// Gets the explicit service contract for the factory registration.
     /// </summary>
-    public Type? ServiceType { get; }
+    internal Type? ServiceType { get; }
 
     /// <summary>
     /// Optional order value inside a group.
@@ -62,4 +65,17 @@ public sealed class InjectableFactoryAttribute : Attribute
     /// Optional registration module name used for grouped registration.
     /// </summary>
     public string? Module { get; set; }
+}
+
+/// <summary>
+/// Marks a static factory method for source-generated registration with an explicit service contract.
+/// </summary>
+[AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
+public sealed class InjectableFactoryAttribute<TService> : InjectableFactoryAttribute
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="InjectableFactoryAttribute{TService}"/> class.
+    /// </summary>
+    public InjectableFactoryAttribute(ServiceLifetime lifetime = ServiceLifetime.Transient)
+        : base(typeof(TService), lifetime) { }
 }
