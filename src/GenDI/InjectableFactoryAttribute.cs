@@ -25,7 +25,7 @@ public sealed class InjectableFactoryAttribute : Attribute
 #pragma warning disable S1133 // kept intentionally for compatibility while guiding migration to the generic attribute
     [Obsolete(
         "Use InjectableFactoryAttribute<TService> instead of typeof-based service selection.",
-        error: true
+        error: false
     )]
 #pragma warning restore S1133
     public InjectableFactoryAttribute(Type serviceType, ServiceLifetime lifetime = ServiceLifetime.Transient)

@@ -21,7 +21,7 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
     {
         var classSymbols = context
             .SyntaxProvider.CreateSyntaxProvider(
-                static (node, _) => node is ClassDeclarationSyntax,
+                static (node, _) => IsCandidateClassDeclaration(node),
                 static (generatorContext, _) =>
                     generatorContext.SemanticModel.GetDeclaredSymbol(
                         (ClassDeclarationSyntax)generatorContext.Node
@@ -88,6 +88,82 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
                 );
             }
         );
+    }
+
+    private static bool IsCandidateClassDeclaration(SyntaxNode node)
+    {
+        if (node is not ClassDeclarationSyntax classDeclaration)
+        {
+            return false;
+        }
+
+        if (HasCandidateAttributeName(classDeclaration.AttributeLists))
+        {
+            return true;
+        }
+
+        if (classDeclaration.BaseList is not null)
+        {
+            return true;
+        }
+
+        foreach (var member in classDeclaration.Members)
+        {
+            if (
+                member is MethodDeclarationSyntax method
+                && HasCandidateAttributeName(method.AttributeLists)
+            )
+            {
+                return true;
+            }
+
+            if (
+                member is PropertyDeclarationSyntax property
+                && HasCandidateAttributeName(property.AttributeLists)
+            )
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasCandidateAttributeName(
+        SyntaxList<AttributeListSyntax> attributeLists
+    )
+    {
+        if (attributeLists.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (var attributeList in attributeLists)
+        {
+            foreach (var attribute in attributeList.Attributes)
+            {
+                var attributeName = attribute.Name.ToString();
+                if (IsCandidateAttributeName(attributeName))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsCandidateAttributeName(string attributeName)
+    {
+        return attributeName.Contains("Injectable", StringComparison.Ordinal)
+            || attributeName.Contains("ServiceInjection", StringComparison.Ordinal)
+            || attributeName.Contains("DecoratorFor", StringComparison.Ordinal)
+            || attributeName.Contains("Inject", StringComparison.Ordinal)
+            || attributeName.Contains("OptionConfig", StringComparison.Ordinal)
+            || attributeName.Contains("ConditionalInjectable", StringComparison.Ordinal)
+            || attributeName.Contains("InjectableModule", StringComparison.Ordinal)
+            || attributeName.Contains("InjectableFactory", StringComparison.Ordinal)
+            || attributeName.Contains("GenDICoveration", StringComparison.Ordinal);
     }
 
     private static bool IsInjectableAttribute(INamedTypeSymbol attributeClass)
