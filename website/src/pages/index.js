@@ -133,8 +133,8 @@ function HomepageBadges() {
   return (
     <section className={styles.badges}>
       <div className="container">
-        {BadgeGroups.map((group, groupIndex) => (
-          <div key={`badge-group-${groupIndex}`} className={styles.badgeRow}>
+        {BadgeGroups.map((group) => (
+          <div key={group.map((badge) => badge.alt).join('|')} className={styles.badgeRow}>
             {group.map((badge) => (
               <a key={badge.alt} href={badge.href}>
                 <img src={badge.img} alt={badge.alt} />
