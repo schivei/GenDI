@@ -734,13 +734,9 @@ public sealed partial class GenDISourceGenerator
 
     private static string ConvertLifetimeEnumToExpression(TypedConstant argument)
     {
-        if (argument.Value is null)
-        {
-            return "ServiceLifetime.Transient";
-        }
-
         var enumValue = argument.Value switch
         {
+            null => 2,
             int i => i,
             byte b => b,
             sbyte sb => sb,
@@ -761,13 +757,9 @@ public sealed partial class GenDISourceGenerator
 
     private static string? ConvertThreadIsolationPolicyToLifetimeExpression(TypedConstant argument)
     {
-        if (argument.Value is null)
-        {
-            return null;
-        }
-
         var enumValue = argument.Value switch
         {
+            null => -1,
             int i => i,
             byte b => b,
             sbyte sb => sb,
@@ -1072,7 +1064,7 @@ public sealed partial class GenDISourceGenerator
         }
 
         return candidates
-            .OrderByDescending(static candidate => LifetimeMagnitude(candidate.Lifetime))
+            .OrderByDescending(static candidate => LifetimePriority(candidate.Lifetime))
             .ThenBy(static candidate => candidate.Group)
             .ThenBy(static candidate => candidate.Order)
             .ThenBy(static candidate => candidate.ImplementationType, StringComparer.Ordinal)
@@ -1132,8 +1124,10 @@ public sealed partial class GenDISourceGenerator
         return true;
     }
 
-    private static int LifetimeMagnitude(string lifetimeExpression)
+    private static int LifetimePriority(string lifetimeExpression)
     {
+        // RM-06 tie-break rule: Scoped > Singleton > Transient.
+        // Higher numeric value means higher selection priority.
         return lifetimeExpression switch
         {
             "ServiceLifetime.Scoped" => 3,

@@ -48,7 +48,12 @@ public sealed partial class GenDISourceGenerator
             "ServiceLifetime.Scoped" => "Scoped",
             _ => "Transient",
         };
-        var cacheKey = $"\"gendi:thread:{EscapeStringLiteral(registration.ServiceType)}:{EscapeStringLiteral(registration.ImplementationType)}:{EscapeStringLiteral(registration.KeyExpression ?? "nokey")}\"";
+        var cacheKey = string.Format(
+            GenDISourceTemplates.ThreadIsolationCacheKeyTemplate,
+            EscapeStringLiteral(registration.ServiceType),
+            EscapeStringLiteral(registration.ImplementationType),
+            EscapeStringLiteral(registration.KeyExpression ?? "nokey")
+        );
         var cacheRegistration = string.Format(
             GenDISourceTemplates.ThreadIsolationCacheTemplate,
             threadIsolationMethod,

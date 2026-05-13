@@ -25,6 +25,8 @@ internal static class GenDISourceTemplates
     internal const string ThreadIsolationKeyedAccessTemplate =
         "        services.AddKeyed{0}<{1}>({2}, static (serviceProvider, _) => serviceProvider.GetRequiredKeyedService<ThreadLocal<{1}>>({3}).Value!);";
 
+    internal const string ThreadIsolationCacheKeyTemplate = "\"gendi:thread:{0}:{1}:{2}\"";
+
     internal const string ConditionalRegistrationTemplate = """
                 if (
                     string.Equals(Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"), "{0}", StringComparison.OrdinalIgnoreCase)
