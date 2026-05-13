@@ -73,9 +73,12 @@ public sealed partial class GenDISourceGenerator
             warnings
                 .Where(static warning => warning.Location is { IsInSource: true })
                 .GroupBy(
-                    static warning =>
-                        $"{warning.Location.GetLineSpan().Path}:{warning.Location.SourceSpan.Start}:{warning.Context}:{warning.TypeDisplay}",
-                    StringComparer.Ordinal
+                    static warning => (
+                        warning.Location.GetLineSpan().Path,
+                        warning.Location.SourceSpan.Start,
+                        warning.Context,
+                        warning.TypeDisplay
+                    )
                 )
                 .Select(static group => group.First())
                 .ToImmutableArray()
@@ -483,14 +486,11 @@ public sealed partial class GenDISourceGenerator
                         break;
                     case "ServiceType"
                         when namedArgument.Value.Kind == TypedConstantKind.Type
-                            && namedArgument.Value.Value is ITypeSymbol namedServiceType:
+                            && namedArgument.Value.Value is INamedTypeSymbol namedServiceType:
                         serviceType = namedServiceType.ToDisplayString(
                             SymbolDisplayFormat.FullyQualifiedFormat
                         );
-                        if (namedServiceType is INamedTypeSymbol namedFactoryServiceType)
-                        {
-                            hasOpenGenericServiceType = !IsClosedType(namedFactoryServiceType);
-                        }
+                        hasOpenGenericServiceType = !IsClosedType(namedServiceType);
                         break;
                 }
             }
