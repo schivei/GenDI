@@ -172,7 +172,8 @@ public class AttributeUnitTests
     [Fact]
     public void ThreadIsolationPolicy_values_map_to_expected_service_lifetimes()
     {
-        Assert.Equal(-1, (int)ThreadIsolationPolicy.None);
+        const int disabledThreadIsolationValue = -1;
+        Assert.Equal(disabledThreadIsolationValue, (int)ThreadIsolationPolicy.None);
         Assert.Equal((int)ServiceLifetime.Singleton, (int)ThreadIsolationPolicy.Singleton);
         Assert.Equal((int)ServiceLifetime.Scoped, (int)ThreadIsolationPolicy.Scoped);
         Assert.Equal((int)ServiceLifetime.Transient, (int)ThreadIsolationPolicy.Transient);
