@@ -218,7 +218,7 @@ public class AttributeUnitTests
     }
 
     [Fact]
-    public void InjectableFactoryAttribute_generic_stores_values()
+    public void InjectableFactoryAttribute_with_generic_type_parameter_stores_values()
     {
         var attr = new InjectableFactoryAttribute<IServiceContract>(ServiceLifetime.Singleton)
         {
@@ -230,6 +230,7 @@ public class AttributeUnitTests
         };
 
         Assert.Equal(ServiceLifetime.Singleton, attr.Lifetime);
+        Assert.Equal(typeof(IServiceContract), attr.ServiceType);
         Assert.Equal(2, attr.Group);
         Assert.Equal(1, attr.Order);
         Assert.Equal("k1", attr.Key);

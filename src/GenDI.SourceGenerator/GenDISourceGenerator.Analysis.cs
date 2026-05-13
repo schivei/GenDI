@@ -458,7 +458,26 @@ public sealed partial class GenDISourceGenerator
 
             if (attributeData.ConstructorArguments.Length > 0)
             {
-                lifetime = ConvertLifetimeEnumToExpression(attributeData.ConstructorArguments[0]);
+                var first = attributeData.ConstructorArguments[0];
+                if (first.Kind == TypedConstantKind.Type && first.Value is ITypeSymbol firstTypeSymbol)
+                {
+                    serviceType = firstTypeSymbol.ToDisplayString(
+                        SymbolDisplayFormat.FullyQualifiedFormat
+                    );
+                    if (firstTypeSymbol is INamedTypeSymbol namedFirstTypeSymbol)
+                    {
+                        hasOpenGenericServiceType = !IsClosedType(namedFirstTypeSymbol);
+                    }
+                }
+                else
+                {
+                    lifetime = ConvertLifetimeEnumToExpression(first);
+                }
+            }
+
+            if (attributeData.ConstructorArguments.Length > 1)
+            {
+                lifetime = ConvertLifetimeEnumToExpression(attributeData.ConstructorArguments[1]);
             }
 
             foreach (var namedArgument in attributeData.NamedArguments)
@@ -481,6 +500,14 @@ public sealed partial class GenDISourceGenerator
                         break;
                     case "Module" when namedArgument.Value.Value is string moduleValue:
                         moduleName = moduleValue;
+                        break;
+                    case "ServiceType"
+                        when namedArgument.Value.Kind == TypedConstantKind.Type
+                            && namedArgument.Value.Value is INamedTypeSymbol namedServiceType:
+                        serviceType = namedServiceType.ToDisplayString(
+                            SymbolDisplayFormat.FullyQualifiedFormat
+                        );
+                        hasOpenGenericServiceType = !IsClosedType(namedServiceType);
                         break;
                 }
             }
