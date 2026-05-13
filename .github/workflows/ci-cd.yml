@@ -35,7 +35,7 @@ jobs:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       # Temporary PR gate aligned with current baseline.
       # Target is to move back to 95.0 as suites gain coverage in upcoming iterations.
-      COVERAGE_THRESHOLD: "88.0"
+      COVERAGE_THRESHOLD: "90.0"
     permissions:
       contents: read
       pull-requests: write

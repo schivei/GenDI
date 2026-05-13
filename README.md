@@ -381,7 +381,7 @@ For fresh clones, `src/GenDI/GenDI.csproj` runs a pre-restore target that execut
 
 See the full plan in [ROADMAP.md](ROADMAP.md).
 
-Detailed RM-08..RM-12 documentation:
+Detailed RM-01..RM-12 documentation:
 - [docs/REGISTRATION_MODEL_RM08_RM12.md](docs/REGISTRATION_MODEL_RM08_RM12.md)
 
 ---

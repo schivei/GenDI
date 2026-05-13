@@ -716,6 +716,134 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
+    public void InjectableFactory_typeof_overload_with_parameters_generates_expected_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            using Microsoft.Extensions.DependencyInjection;
+
+            namespace FactoryTypeofCase;
+
+            public interface IDependency
+            {
+            }
+
+            public interface IKeyedDependency
+            {
+            }
+
+            public interface IContract
+            {
+            }
+
+            public sealed class Contract : IContract
+            {
+                public Contract(IDependency dependency, IKeyedDependency keyedDependency)
+                {
+                }
+            }
+
+            public static class Factories
+            {
+            #pragma warning disable CS0619
+                [InjectableFactory(typeof(IContract), ServiceLifetime.Scoped, Group = 2, Order = 3, Key = "factory-key", ThreadIsolation = ThreadIsolationPolicy.Transient, Module = "Factories")]
+            #pragma warning restore CS0619
+                public static IContract Create(
+                    IDependency dependency,
+                    [FromKeyedServices("dep-key")] IKeyedDependency keyedDependency) =>
+                    new Contract(dependency, keyedDependency);
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.Add",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "global::FactoryTypeofCase.Factories.Create(",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "\"factory-key\"",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "IsModuleEnabled(modules, \"Factories\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Indirect_closed_generic_inference_from_base_contract_constructs_implementation()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace BaseInferenceCase;
+
+            public abstract class GenericBase<T>
+            {
+            }
+
+            public sealed class GenericImpl<T> : GenericBase<T>
+            {
+            }
+
+            [Injectable]
+            public sealed class Consumer
+            {
+                [Inject]
+                public required GenericBase<int> Service { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddTransient<global::BaseInferenceCase.GenericBase<int>>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "new global::BaseInferenceCase.GenericImpl<int>()",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Duplicate_registration_paths_are_deduplicated_for_same_contract_and_implementation()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace DuplicateCase;
+
+            [ServiceInjection]
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>]
+            public sealed class Impl : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        var registrationLine = "services.AddTransient<global::DuplicateCase.IContract>";
+        Assert.Equal(
+            1,
+            generatedSource.Split(registrationLine, StringSplitOptions.None).Length - 1
+        );
+    }
+
+    [Fact]
     public void Open_generic_injectable_factory_is_bypassed_with_warning()
     {
         GeneratorTestHelper.AssertNoSourceGenerated(

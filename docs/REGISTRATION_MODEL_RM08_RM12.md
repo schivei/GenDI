@@ -1,41 +1,183 @@
-# Registration Model — RM-08 to RM-12 (Detailed)
+# Registration Model — RM-01 to RM-12 (Detailed)
 
-This document details the Phase 6 registration-model items delivered in RM-08 through RM-12.
+This document consolidates **all delivered registration-model items (RM-01..RM-12)** with practical usage-oriented examples.
 
-## RM-08 — Dependency scanning across referenced libraries
+## RM-01 — `[InjectOptional]` (optional property injection)
 
-- GenDI now scans referenced assemblies (excluding framework/test assemblies) for injectable candidates.
-- This enables centralized registration even when implementations are defined in referenced solution libraries.
-- Behavior is covered by integration tests using `tests/GenDI.ReferenceLibrary`.
+Use `[InjectOptional]` when missing registration must not throw:
 
-## RM-09 — Inferable closed-generic indirect resolution
+```csharp
+[Injectable]
+public sealed class UsesOptional
+{
+    [InjectOptional]
+    public required IAuditService? Audit { get; init; }
+}
+```
 
-- Indirect registration via `[Inject]` now supports inferable closed-generic implementations.
-- Example: `IGenericRepository<Order>` can resolve from an inferable `GenericRepository<T>` as `GenericRepository<Order>`.
-- Open generics are still out-of-scope for registration output and are bypassed when not inferable.
+Generated resolution uses `GetService(...)` / `GetKeyedService(...)` semantics.
+
+## RM-02 — `[ConditionalInjectable("Environment")]`
+
+Register only in matching runtime environment (`DOTNET_ENVIRONMENT` / `ASPNETCORE_ENVIRONMENT`):
+
+```csharp
+[Injectable<IMyService>(ServiceLifetime.Singleton)]
+[ConditionalInjectable("Development")]
+public sealed class DevService : IMyService { }
+```
+
+## RM-03 — `[DecoratorFor<TService>]`
+
+Wrap a previously registered contract:
+
+```csharp
+[Injectable<IMyService>]
+public sealed class CoreService : IMyService { }
+
+[DecoratorFor<IMyService>]
+public sealed class LoggingDecorator(IMyService inner) : IMyService { }
+```
+
+GenDI rewrites registration to resolve `CoreService` and return `LoggingDecorator`.
+
+## RM-04 — `ServiceInjectionAttribute` lifetime fallback
+
+Contract-level fallback is used when implementation does not define a stronger lifetime:
+
+```csharp
+[ServiceInjection(ServiceLifetime.Scoped)]
+public interface IContract { }
+
+[Injectable]
+public sealed class Implementation : IContract { }
+```
+
+Precedence: `Injectable > ServiceInjection > Transient`.
+
+## RM-05 — indirect registration via `[Inject]`
+
+Implementation can be discovered from requested dependency even without `[Injectable]`:
+
+```csharp
+public interface IContract { }
+public sealed class ContractImpl : IContract { }
+
+[Injectable]
+public sealed class Consumer
+{
+    [Inject]
+    public required IContract Contract { get; init; }
+}
+```
+
+## RM-06 — lifetime override in `[Inject]` + tie-break
+
+Dependency request can force indirect registration lifetime:
+
+```csharp
+[Inject(ServiceLifetime.Scoped)]
+public required IContract Contract { get; init; }
+```
+
+Precedence: `Inject > Injectable > ServiceInjection > Transient`  
+Tie-break when competing registrations exist: `Scoped > Singleton > Transient`.
+
+## RM-07 — thread-isolation registration policy
+
+Configure thread-local resolution cache:
+
+```csharp
+[Injectable<IContract>(ServiceLifetime.Singleton, ThreadIsolation = ThreadIsolationPolicy.Scoped)]
+public sealed class ThreadAwareService : IContract { }
+```
+
+Supported policies map to singleton/scoped/transient registration strategies.
+
+## RM-08 — dependency scanning across referenced libraries
+
+GenDI scans referenced solution assemblies (excluding framework/test assemblies), enabling centralized registration even when implementations live in other projects.
+
+Practical scenario:
+- `WebApp` references `Domain.Services`
+- `Domain.Services` contains `[Injectable]` types
+- `WebApp` still calls only `services.AddGenDIServices()`
+
+## RM-09 — inferable closed-generic indirect resolution
+
+Closed contracts are inferred from open implementations when mapping is unambiguous:
+
+```csharp
+public interface IRepository<T> { }
+public sealed class Repository<T> : IRepository<T> { }
+
+[Injectable]
+public sealed class UsesRepo
+{
+    [Inject]
+    public required IRepository<Order> Repository { get; init; }
+}
+```
+
+GenDI builds registration for `IRepository<Order> -> Repository<Order>`.
 
 ## RM-10 — `OptionConfigAttribute` for `IOptions<>`
 
-- `[OptionConfig("Section:Path")]` marks options types for generated `IOptions<T>` registration.
-- Generator emits binding through `IConfiguration.GetSection(path)` + `ConfigurationBinder.Get<T>()`.
-- Generated binding throws if section binding resolves to `null` to avoid silent misconfiguration.
+Bind options via configuration path:
 
-## RM-11 — `[InjectableFactory]` on static methods
+```csharp
+[OptionConfig("Features:MyFeature")]
+public sealed class MyFeatureOptions
+{
+    public bool Enabled { get; init; }
+}
 
-- Static factory methods can now be used as generated registrations.
-- Supports lifetime, key, group/order, module, and thread-isolation metadata.
-- Explicit contract can be provided via constructor/type metadata.
+[Injectable]
+public sealed class UsesOptions
+{
+    [Inject]
+    public required IOptions<MyFeatureOptions> Options { get; init; }
+}
+```
 
-## RM-12 — `[InjectableModule]` grouped registration
+Generated code uses `GetSection(...)` + `ConfigurationBinder.Get<T>()`.
 
-- Registrations can be grouped by module with `[InjectableModule("...")]` and `Injectable/InjectableFactory` `Module`.
-- Generated API now supports:
-  - `AddGenDIServices(IServiceCollection services)`
-  - `AddGenDIServices(IServiceCollection services, params string[] modules)`
-- Passing no modules keeps default behavior (all modules).
+## RM-11 — static factory registration (`[InjectableFactory]` / `[InjectableFactory<TService>]`)
 
-## Open-generic guardrails and warnings
+Preferred explicit contract style:
 
-- Open-generic candidates are bypassed (not registered) in generator output.
-- Generator emits warning `GENDISG001` for skipped open-generic generation paths.
-- Applies to injectable classes/contracts/decorators, indirect `[Inject]` contract discovery, and factory registration paths.
+```csharp
+public static class BillingFactories
+{
+    [InjectableFactory<IPaymentGateway>(ServiceLifetime.Singleton)]
+    public static IPaymentGateway Create() => new StripePaymentGateway();
+}
+```
+
+Supported metadata: `Lifetime`, `Group`, `Order`, `Key`, `ThreadIsolation`, `Module`.
+
+## RM-12 — module grouping/filtering (`[InjectableModule]` + `Module`)
+
+Group registrations and load selectively:
+
+```csharp
+[InjectableModule("Billing")]
+public static class BillingFactories
+{
+    [InjectableFactory<IPaymentGateway>(Module = "Billing")]
+    public static IPaymentGateway Create() => new StripePaymentGateway();
+}
+```
+
+Generated APIs:
+- `AddGenDIServices(IServiceCollection services)`
+- `AddGenDIServices(IServiceCollection services, params string[] modules)`
+
+## Open-generic guardrails (`GENDISG001`)
+
+Open-generic paths are intentionally bypassed and warned:
+- injectable classes/contracts/decorators
+- indirect `[Inject]` discovery
+- factory registration flows
+
+This follows the Phase 6 NativeAOT constraint: registration output must remain closed-generic.

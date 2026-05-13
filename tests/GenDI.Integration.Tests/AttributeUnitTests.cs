@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -236,6 +237,25 @@ public class AttributeUnitTests
         Assert.Equal("k1", attr.Key);
         Assert.Equal(ThreadIsolationPolicy.Scoped, attr.ThreadIsolation);
         Assert.Equal("M1", attr.Module);
+    }
+
+    [Fact]
+    public void InjectableFactoryAttribute_typeof_ctor_stores_service_type_and_lifetime()
+    {
+        var ctor = typeof(InjectableFactoryAttribute).GetConstructor(
+            new[] { typeof(Type), typeof(ServiceLifetime) }
+        );
+        Assert.NotNull(ctor);
+
+        var attr = Assert.IsType<InjectableFactoryAttribute>(
+            ctor!.Invoke(new object[] { typeof(IServiceContract), ServiceLifetime.Scoped })
+        );
+
+        Assert.Equal(typeof(IServiceContract), attr.ServiceType);
+        Assert.Equal(ServiceLifetime.Scoped, attr.Lifetime);
+        Assert.Equal(InjectableAttribute.DefaultOrderingValue, attr.Group);
+        Assert.Equal(InjectableAttribute.DefaultOrderingValue, attr.Order);
+        Assert.Equal(ThreadIsolationPolicy.None, attr.ThreadIsolation);
     }
 
     // ─── GenDICoverationAttribute ─────────────────────────────────────────────
