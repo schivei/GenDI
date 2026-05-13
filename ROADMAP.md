@@ -82,7 +82,7 @@ This document outlines the planned phases of development for GenDI.
 ### 🗂️ Registration model
 
 - [x] `[InjectOptional]` — nullable/optional property injection (skips unregistered services gracefully)
-- [ ] `[ConditionalInjectable(environmentName)]` — environment-conditional registration
+- [x] `[ConditionalInjectable(environmentName)]` — environment-conditional registration
 - [ ] `[DecoratorFor<TService>]` — decorator pattern auto-wiring
 - [x] `ServiceInjectionAttribute` lifetime override as fallback (`Injectable > ServiceInjection > Transient`)
 - [ ] Indirect injection (`[Inject]`) with implementation scanning and closed-generic-only support

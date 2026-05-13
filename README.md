@@ -175,6 +175,14 @@ For optional dependencies that should not throw when unregistered, use `[InjectO
 public required IMyService? OptionalService { get; init; }
 ```
 
+For environment-conditional registration, combine `[Injectable]` with `[ConditionalInjectable]`:
+
+```csharp
+[Injectable<IMyService>(ServiceLifetime.Singleton)]
+[ConditionalInjectable("Development")]
+public sealed class DevOnlyService : IMyService { }
+```
+
 Constructor injection is also supported and can use the native DI attribute:
 
 ```csharp

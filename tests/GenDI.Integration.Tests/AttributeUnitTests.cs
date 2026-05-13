@@ -122,6 +122,16 @@ public class AttributeUnitTests
         Assert.Equal("optionalKey", attr.Key);
     }
 
+    // ─── ConditionalInjectableAttribute ───────────────────────────────────────
+
+    [Fact]
+    public void ConditionalInjectableAttribute_ctor_stores_environment_name()
+    {
+        var attr = new ConditionalInjectableAttribute("Development");
+
+        Assert.Equal("Development", attr.EnvironmentName);
+    }
+
     // ─── ServiceInjectionAttribute ───────────────────────────────────────────
 
     [Fact]

@@ -38,6 +38,7 @@ public sealed partial class GenDISourceGenerator
 
         var serviceTypes = GetServiceTypes(symbol, implementationType, explicitServiceType);
         var factoryBody = BuildFactoryBody(symbol, implementationType, constructor);
+        var environmentName = GetConditionalEnvironmentName(symbol);
 
         return serviceTypes.Select(serviceType => new ServiceRegistration(
             serviceType.ServiceType,
@@ -46,7 +47,8 @@ public sealed partial class GenDISourceGenerator
             factoryBody,
             order,
             group,
-            keyExpression
+            keyExpression,
+            environmentName
         ));
     }
 
@@ -216,6 +218,31 @@ public sealed partial class GenDISourceGenerator
             }
 
             return "ServiceLifetime.Transient";
+        }
+
+        return null;
+    }
+
+    private static string? GetConditionalEnvironmentName(INamedTypeSymbol symbol)
+    {
+        foreach (var attributeData in symbol.GetAttributes())
+        {
+            if (
+                attributeData.AttributeClass?.ToDisplayString()
+                != "GenDI.ConditionalInjectableAttribute"
+            )
+            {
+                continue;
+            }
+
+            if (
+                attributeData.ConstructorArguments.Length > 0
+                && attributeData.ConstructorArguments[0].Value is string environmentName
+                && !string.IsNullOrWhiteSpace(environmentName)
+            )
+            {
+                return environmentName;
+            }
         }
 
         return null;

@@ -37,22 +37,37 @@ public sealed partial class GenDISourceGenerator
             _ => "Transient",
         };
 
+        var registrationStatement = string.Empty;
+
         if (string.IsNullOrWhiteSpace(registration.KeyExpression))
         {
-            return string.Format(
+            registrationStatement = string.Format(
                 GenDISourceTemplates.UnkeyedRegistrationTemplate,
                 registrationMethod,
                 registration.ServiceType,
                 registration.FactoryBody
             );
         }
+        else
+        {
+            registrationStatement = string.Format(
+                GenDISourceTemplates.KeyedRegistrationTemplate,
+                registrationMethod,
+                registration.ServiceType,
+                registration.KeyExpression,
+                registration.FactoryBody
+            );
+        }
+
+        if (string.IsNullOrWhiteSpace(registration.EnvironmentName))
+        {
+            return registrationStatement;
+        }
 
         return string.Format(
-            GenDISourceTemplates.KeyedRegistrationTemplate,
-            registrationMethod,
-            registration.ServiceType,
-            registration.KeyExpression,
-            registration.FactoryBody
+            GenDISourceTemplates.ConditionalRegistrationTemplate,
+            EscapeStringLiteral(registration.EnvironmentName),
+            registrationStatement
         );
     }
 

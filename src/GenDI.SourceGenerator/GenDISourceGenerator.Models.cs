@@ -11,7 +11,8 @@ public sealed partial class GenDISourceGenerator
             string factoryBody,
             int order,
             int group,
-            string? keyExpression
+            string? keyExpression,
+            string? environmentName
         )
         {
             ServiceType = serviceType;
@@ -21,6 +22,7 @@ public sealed partial class GenDISourceGenerator
             Order = order;
             Group = group;
             KeyExpression = keyExpression;
+            EnvironmentName = environmentName;
         }
 
         public string ServiceType { get; }
@@ -36,6 +38,8 @@ public sealed partial class GenDISourceGenerator
         public int Group { get; }
 
         public string? KeyExpression { get; }
+
+        public string? EnvironmentName { get; }
     }
 
     private sealed class ServiceContractTarget
@@ -59,7 +63,8 @@ public sealed partial class GenDISourceGenerator
         {
             return x?.ServiceType == y?.ServiceType
                 && x?.ImplementationType == y?.ImplementationType
-                && x?.KeyExpression == y?.KeyExpression;
+                && x?.KeyExpression == y?.KeyExpression
+                && x?.EnvironmentName == y?.EnvironmentName;
         }
 
         public int GetHashCode(ServiceRegistration obj)
@@ -69,7 +74,8 @@ public sealed partial class GenDISourceGenerator
                 var hashCode =
                     ((obj.ServiceType?.GetHashCode() ?? 0) * 397)
                     ^ (obj.ImplementationType?.GetHashCode() ?? 0);
-                return (hashCode * 397) ^ (obj.KeyExpression?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (obj.KeyExpression?.GetHashCode() ?? 0);
+                return (hashCode * 397) ^ (obj.EnvironmentName?.GetHashCode() ?? 0);
             }
         }
     }

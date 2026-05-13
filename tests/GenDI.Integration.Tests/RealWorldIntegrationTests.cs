@@ -1,3 +1,4 @@
+using System;
 using GenDI;
 using GenDI.Integration.Tests.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,6 +8,8 @@ namespace GenDI.Integration.Tests;
 
 public class RealWorldIntegrationTests
 {
+    private static readonly object EnvironmentLock = new();
+
     [Fact]
     public void Generated_and_non_generated_services_resolve_together()
     {
@@ -69,6 +72,49 @@ public class RealWorldIntegrationTests
         Assert.NotNull(service);
         Assert.Null(service.MissingDependency);
     }
+
+    [Fact]
+    public void ConditionalInjectable_registers_only_for_matching_environment()
+    {
+        lock (EnvironmentLock)
+        {
+            var originalDotnetEnvironment = Environment.GetEnvironmentVariable(
+                "DOTNET_ENVIRONMENT"
+            );
+            var originalAspnetEnvironment = Environment.GetEnvironmentVariable(
+                "ASPNETCORE_ENVIRONMENT"
+            );
+
+            try
+            {
+                Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", "Production");
+                Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Production");
+
+                var nonMatchingServices = new ServiceCollection();
+                nonMatchingServices.AddGenDIServices();
+                using var nonMatchingProvider = nonMatchingServices.BuildServiceProvider();
+
+                Assert.Null(nonMatchingProvider.GetService<IConditionalGeneratedContract>());
+
+                Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", "Development");
+                Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", null);
+
+                var matchingServices = new ServiceCollection();
+                matchingServices.AddGenDIServices();
+                using var matchingProvider = matchingServices.BuildServiceProvider();
+
+                Assert.NotNull(matchingProvider.GetService<IConditionalGeneratedContract>());
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", originalDotnetEnvironment);
+                Environment.SetEnvironmentVariable(
+                    "ASPNETCORE_ENVIRONMENT",
+                    originalAspnetEnvironment
+                );
+            }
+        }
+    }
 }
 
 public sealed class Order;
@@ -115,6 +161,9 @@ public interface IOptionalGeneratedContract
 }
 
 [ServiceInjection]
+public interface IConditionalGeneratedContract;
+
+[ServiceInjection]
 public interface IKeyedGeneratedContract
 {
     IRepository<Order> OrderRepository { get; }
@@ -151,5 +200,9 @@ public sealed class OptionalGeneratedService : IOptionalGeneratedContract
     [InjectOptional]
     public required IMissingDependency? MissingDependency { get; init; }
 }
+
+[Injectable<IConditionalGeneratedContract>(ServiceLifetime.Singleton)]
+[ConditionalInjectable("Development")]
+public sealed class ConditionalGeneratedService : IConditionalGeneratedContract;
 
 public sealed class NotGeneratedService;

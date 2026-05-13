@@ -440,4 +440,42 @@ public class SharedGeneratorBehaviorTests
             StringComparison.Ordinal
         );
     }
+
+    [Fact]
+    public void ConditionalInjectable_wraps_registration_with_environment_guard()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace Conditional;
+
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>(ServiceLifetime.Singleton)]
+            [ConditionalInjectable("Development")]
+            public sealed class ConditionalService : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "Environment.GetEnvironmentVariable(\"DOTNET_ENVIRONMENT\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "Environment.GetEnvironmentVariable(\"ASPNETCORE_ENVIRONMENT\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("\"Development\"", generatedSource, StringComparison.Ordinal);
+        Assert.Contains(
+            "services.AddSingleton<global::Conditional.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
 }
