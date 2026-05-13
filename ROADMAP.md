@@ -83,11 +83,11 @@ This document outlines the planned phases of development for GenDI.
 
 - [x] `[InjectOptional]` — nullable/optional property injection (skips unregistered services gracefully)
 - [x] `[ConditionalInjectable(environmentName)]` — environment-conditional registration
-- [ ] `[DecoratorFor<TService>]` — decorator pattern auto-wiring
+- [x] `[DecoratorFor<TService>]` — decorator pattern auto-wiring
 - [x] `ServiceInjectionAttribute` lifetime override as fallback (`Injectable > ServiceInjection > Transient`)
-- [ ] Indirect injection (`[Inject]`) with implementation scanning and closed-generic-only support
-- [ ] `[Inject]` lifetime override precedence (`Inject > Injectable > ServiceInjection > Transient`) with registration tie-break (`Scoped > Singleton > Transient`)
-- [ ] Thread isolation registration policy configurable via `Injectable` / `ServiceInjection`
+- [x] Indirect injection (`[Inject]`) with implementation scanning and closed-generic-only support
+- [x] `[Inject]` lifetime override precedence (`Inject > Injectable > ServiceInjection > Transient`) with registration tie-break (`Scoped > Singleton > Transient`)
+- [x] Thread isolation registration policy configurable via `Injectable` / `ServiceInjection`
 - [ ] Dependency scanning across referenced solution libraries for centralized registration
 - [ ] `OptionConfigAttribute` to bind concrete option types into `IOptions<>` using required configuration key/path
 - [ ] Factory registration: `[InjectableFactory]` on static factory methods

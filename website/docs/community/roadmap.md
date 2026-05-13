@@ -23,10 +23,12 @@ For the full phase-by-phase checklist, see [`ROADMAP.md`](https://github.com/sch
 - Incremental generator optimization to reduce rebuild cost on partial changes
 
 ### 🗂️ Registration model
-- `[InjectOptional]` — optional property injection (skips unregistered services gracefully)
-- `[ConditionalInjectable(environmentName)]` — environment-conditional registration
-- `[DecoratorFor<TService>]` — decorator pattern auto-wiring
-- Open-generic service registration support
+- ✅ `[InjectOptional]` — optional property injection (skips unregistered services gracefully)
+- ✅ `[ConditionalInjectable(environmentName)]` — environment-conditional registration
+- ✅ `[DecoratorFor<TService>]` — decorator pattern auto-wiring
+- ✅ Indirect injection via `[Inject]` with closed-generic-only implementation scanning
+- ✅ `[Inject]` lifetime override precedence (`Inject > Injectable > ServiceInjection > Transient`) and tie-break
+- ✅ Thread-isolation registration policy configurable via `Injectable` / `ServiceInjection`
 - Module-based grouping with `[InjectableModule]`
 
 ### 🌐 Platform support

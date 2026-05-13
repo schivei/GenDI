@@ -112,6 +112,15 @@ public interface IScopedContract
 }
 ```
 
+Thread isolation fallback can also be configured at contract level:
+
+```csharp
+[ServiceInjection(ServiceLifetime.Scoped, ThreadIsolation = ThreadIsolationPolicy.Singleton)]
+public interface IThreadIsolatedContract
+{
+}
+```
+
 Fallback precedence is: `Injectable > ServiceInjection > Transient`.
 
 `InjectableAttribute` supports:
@@ -123,6 +132,7 @@ Fallback precedence is: `Injectable > ServiceInjection > Transient`.
   - `[Injectable]` -> `null` (no explicit contract)
   - `[Injectable<TService>]` -> `typeof(TService)` as explicit contract (additive with `[ServiceInjection]`)
 - `Key` (optional, default `null`) for keyed service registration generation
+- `ThreadIsolation` (optional) using `ThreadIsolationPolicy.{Singleton|Scoped|Transient}` for thread-local resolution cache
 
 Service registration emission order is:
 1. `Group`
@@ -168,6 +178,16 @@ public class OrderProcessor : IOrderProcessor
 public required IMyService Service { get; init; }
 ```
 
+`[Inject]` also supports lifetime override for indirect registration discovery:
+
+```csharp
+[Inject(ServiceLifetime.Scoped)]
+public required IMyService Service { get; init; }
+```
+
+Precedence for indirect registration lifetime is:
+`Inject > Injectable > ServiceInjection > Transient` (tie-break favors `Scoped > Singleton > Transient`).
+
 For optional dependencies that should not throw when unregistered, use `[InjectOptional]`:
 
 ```csharp
@@ -181,6 +201,16 @@ For environment-conditional registration, combine `[Injectable]` with `[Conditio
 [Injectable<IMyService>(ServiceLifetime.Singleton)]
 [ConditionalInjectable("Development")]
 public sealed class DevOnlyService : IMyService { }
+```
+
+For decorators, mark the wrapper with `[DecoratorFor<TService>]`:
+
+```csharp
+[Injectable<IMyService>(ServiceLifetime.Singleton)]
+public sealed class CoreService : IMyService { }
+
+[DecoratorFor<IMyService>]
+public sealed class LoggingDecorator(IMyService inner) : IMyService { }
 ```
 
 Constructor injection is also supported and can use the native DI attribute:

@@ -53,6 +53,12 @@ public sealed class InjectableAttribute : Attribute
     /// Defaults to <see langword="null"/> (non-keyed registration).
     /// </summary>
     public object? Key { get; set; }
+
+    /// <summary>
+    /// Optional thread-isolation registration lifetime override.
+    /// When set, generated registration resolves through a thread-local cache.
+    /// </summary>
+    public ThreadIsolationPolicy ThreadIsolation { get; set; } = ThreadIsolationPolicy.None;
 }
 
 /// <summary>
@@ -96,4 +102,10 @@ public sealed class InjectableAttribute<TService> : Attribute
     /// Defaults to <see langword="null"/> (non-keyed registration).
     /// </summary>
     public object? Key { get; set; }
+
+    /// <summary>
+    /// Optional thread-isolation registration lifetime override.
+    /// When set, generated registration resolves through a thread-local cache.
+    /// </summary>
+    public ThreadIsolationPolicy ThreadIsolation { get; set; } = ThreadIsolationPolicy.None;
 }

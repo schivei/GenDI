@@ -31,4 +31,9 @@ public sealed class ServiceInjectionAttribute : Attribute
     /// Gets the fallback service lifetime for registrations targeting this contract.
     /// </summary>
     public ServiceLifetime Lifetime { get; }
+
+    /// <summary>
+    /// Optional thread-isolation registration lifetime fallback.
+    /// </summary>
+    public ThreadIsolationPolicy ThreadIsolation { get; set; } = ThreadIsolationPolicy.None;
 }

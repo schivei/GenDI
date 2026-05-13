@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using GenDI;
 using GenDI.Integration.Tests.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
@@ -115,6 +116,55 @@ public class RealWorldIntegrationTests
             }
         }
     }
+
+    [Fact]
+    public void Indirect_inject_registration_resolves_concrete_implementation()
+    {
+        var services = new ServiceCollection();
+        services.AddGenDIServices();
+
+        using var provider = services.BuildServiceProvider();
+        var consumer = provider.GetRequiredService<IndirectConsumer>();
+
+        Assert.NotNull(consumer);
+        Assert.IsType<IndirectImplementation>(consumer.Indirect);
+    }
+
+    [Fact]
+    public void DecoratorFor_wraps_registered_contract()
+    {
+        var services = new ServiceCollection();
+        services.AddGenDIServices();
+
+        using var provider = services.BuildServiceProvider();
+        var decorated = provider.GetRequiredService<IDecoratedContract>();
+
+        var outer = Assert.IsType<DecoratedContractLogger>(decorated);
+        Assert.IsType<DecoratedContractCore>(outer.Inner);
+    }
+
+    [Fact]
+    public void ThreadIsolation_registration_returns_per_thread_instances()
+    {
+        var services = new ServiceCollection();
+        services.AddGenDIServices();
+
+        using var provider = services.BuildServiceProvider();
+        var mainThreadInstance = provider.GetRequiredService<IThreadIsolatedContract>();
+        var mainThreadInstanceAgain = provider.GetRequiredService<IThreadIsolatedContract>();
+        IThreadIsolatedContract? workerThreadInstance = null;
+
+        var workerThread = new Thread(() =>
+        {
+            workerThreadInstance = provider.GetRequiredService<IThreadIsolatedContract>();
+        });
+        workerThread.Start();
+        workerThread.Join();
+
+        Assert.Same(mainThreadInstance, mainThreadInstanceAgain);
+        Assert.NotNull(workerThreadInstance);
+        Assert.NotSame(mainThreadInstance, workerThreadInstance);
+    }
 }
 
 public sealed class Order;
@@ -206,3 +256,38 @@ public sealed class OptionalGeneratedService : IOptionalGeneratedContract
 public sealed class ConditionalGeneratedService : IConditionalGeneratedContract;
 
 public sealed class NotGeneratedService;
+
+public interface IIndirectContract;
+
+public sealed class IndirectImplementation : IIndirectContract;
+
+[Injectable]
+public sealed class IndirectConsumer
+{
+    [Inject(ServiceLifetime.Scoped)]
+    public required IIndirectContract Indirect { get; init; }
+}
+
+[ServiceInjection]
+public interface IDecoratedContract;
+
+[Injectable<IDecoratedContract>(ServiceLifetime.Singleton)]
+public sealed class DecoratedContractCore : IDecoratedContract;
+
+[DecoratorFor<IDecoratedContract>]
+public sealed class DecoratedContractLogger(IDecoratedContract inner) : IDecoratedContract
+{
+    public IDecoratedContract Inner { get; } = inner;
+}
+
+[ServiceInjection(ThreadIsolation = ThreadIsolationPolicy.Singleton)]
+public interface IThreadIsolatedContract
+{
+    Guid InstanceId { get; }
+}
+
+[Injectable<IThreadIsolatedContract>(ServiceLifetime.Singleton)]
+public sealed class ThreadIsolatedService : IThreadIsolatedContract
+{
+    public Guid InstanceId { get; } = Guid.NewGuid();
+}

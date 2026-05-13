@@ -11,18 +11,15 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var registrations = context
+        var classSymbols = context
             .SyntaxProvider.CreateSyntaxProvider(
-                static (node, _) =>
-                    node is ClassDeclarationSyntax classDeclaration
-                    && HasInjectableAttributeSyntax(classDeclaration),
+                static (node, _) => node is ClassDeclarationSyntax,
                 static (generatorContext, _) =>
                     generatorContext.SemanticModel.GetDeclaredSymbol(
                         (ClassDeclarationSyntax)generatorContext.Node
                     ) as INamedTypeSymbol
             )
             .Where(static symbol => symbol is not null)
-            .SelectMany(static (symbol, _) => BuildRegistrations(symbol!))
             .Collect();
 
         var generationOptions = context.CompilationProvider.Select(
@@ -33,13 +30,18 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
                 )
         );
 
-        var generationInput = registrations.Combine(generationOptions);
+        var generationInput = classSymbols.Combine(generationOptions);
 
         context.RegisterSourceOutput(
             generationInput,
             static (sourceProductionContext, source) =>
             {
-                var (registrationCandidates, options) = source;
+                var (discoveredTypes, options) = source;
+                var allTypes = discoveredTypes
+                    .Distinct(SymbolEqualityComparer.Default)
+                    .Cast<INamedTypeSymbol>()
+                    .ToImmutableArray();
+                var registrationCandidates = BuildRegistrations(allTypes);
                 var normalizedRegistrations = registrationCandidates
                     .Distinct(ServiceRegistrationComparer.Instance)
                     .OrderBy(static registration => registration.Group)
@@ -62,39 +64,6 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
                 );
             }
         );
-    }
-
-    private static bool HasInjectableAttributeSyntax(ClassDeclarationSyntax classDeclaration)
-    {
-        foreach (var attributeList in classDeclaration.AttributeLists)
-        {
-            foreach (var attribute in attributeList.Attributes)
-            {
-                var attributeName = attribute.Name.ToString();
-                var normalizedName = attributeName.StartsWith("global::", StringComparison.Ordinal)
-                    ? attributeName.Substring("global::".Length)
-                    : attributeName;
-                if (
-                    normalizedName
-                        is "Injectable"
-                            or "InjectableAttribute"
-                            or "GenDI.Injectable"
-                            or "GenDI.InjectableAttribute"
-                    || normalizedName.StartsWith("Injectable<", StringComparison.Ordinal)
-                    || normalizedName.StartsWith("InjectableAttribute<", StringComparison.Ordinal)
-                    || normalizedName.StartsWith("GenDI.Injectable<", StringComparison.Ordinal)
-                    || normalizedName.StartsWith(
-                        "GenDI.InjectableAttribute<",
-                        StringComparison.Ordinal
-                    )
-                )
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 
     private static bool IsInjectableAttribute(INamedTypeSymbol attributeClass)

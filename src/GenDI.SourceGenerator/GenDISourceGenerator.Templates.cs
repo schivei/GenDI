@@ -3,10 +3,10 @@ namespace GenDI.SourceGenerator;
 internal static class GenDISourceTemplates
 {
     internal const string UsingsWithoutCoverage =
-        "using System;\nusing Microsoft.Extensions.DependencyInjection;\n";
+        "using System;\nusing System.Threading;\nusing Microsoft.Extensions.DependencyInjection;\n";
 
     internal const string UsingsWithCoverage =
-        "using System;\nusing System.Diagnostics.CodeAnalysis;\nusing Microsoft.Extensions.DependencyInjection;\n";
+        "using System;\nusing System.Diagnostics.CodeAnalysis;\nusing System.Threading;\nusing Microsoft.Extensions.DependencyInjection;\n";
 
     internal const string ExcludeFromCodeCoverageAttribute = "[ExcludeFromCodeCoverage]";
 
@@ -15,6 +15,15 @@ internal static class GenDISourceTemplates
 
     internal const string KeyedRegistrationTemplate =
         "        services.AddKeyed{0}<{1}>({2}, static (serviceProvider, _) => {3});";
+
+    internal const string ThreadIsolationCacheTemplate =
+        "        services.AddKeyed{0}<ThreadLocal<{1}>>({2}, static (serviceProvider, _) => new ThreadLocal<{1}>(() => {3}, trackAllValues: false));";
+
+    internal const string ThreadIsolationUnkeyedAccessTemplate =
+        "        services.Add{0}<{1}>(static serviceProvider => serviceProvider.GetRequiredKeyedService<ThreadLocal<{1}>>({2}).Value!);";
+
+    internal const string ThreadIsolationKeyedAccessTemplate =
+        "        services.AddKeyed{0}<{1}>({2}, static (serviceProvider, _) => serviceProvider.GetRequiredKeyedService<ThreadLocal<{1}>>({3}).Value!);";
 
     internal const string ConditionalRegistrationTemplate = """
                 if (

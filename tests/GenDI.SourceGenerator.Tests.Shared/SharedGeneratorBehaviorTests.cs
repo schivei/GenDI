@@ -478,4 +478,98 @@ public class SharedGeneratorBehaviorTests
             StringComparison.Ordinal
         );
     }
+
+    [Fact]
+    public void DecoratorFor_rewrites_service_registration_with_decorator_factory()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace DecoratorCase;
+
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>(ServiceLifetime.Singleton)]
+            public sealed class BaseContract : IContract
+            {
+            }
+
+            [DecoratorFor<IContract>]
+            public sealed class LoggingDecorator(IContract inner) : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "new global::DecoratorCase.LoggingDecorator((new global::DecoratorCase.BaseContract()))",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Inject_lifetime_override_is_used_for_indirect_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace IndirectLifetime;
+
+            public interface IContract
+            {
+            }
+
+            [Injectable]
+            public sealed class Consumer
+            {
+                [Inject(ServiceLifetime.Scoped)]
+                public required IContract Contract { get; init; }
+            }
+
+            public sealed class ContractImplementation : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddScoped<global::IndirectLifetime.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void ThreadIsolation_lifetime_generates_thread_local_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ThreadIsolationCase;
+
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>(ServiceLifetime.Singleton, ThreadIsolation = ThreadIsolationPolicy.Scoped)]
+            public sealed class Service : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddKeyedScoped<ThreadLocal<global::ThreadIsolationCase.IContract>>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "serviceProvider.GetRequiredKeyedService<ThreadLocal<global::ThreadIsolationCase.IContract>>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
 }

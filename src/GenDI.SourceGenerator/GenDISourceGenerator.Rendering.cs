@@ -37,8 +37,60 @@ public sealed partial class GenDISourceGenerator
             _ => "Transient",
         };
 
-        var registrationStatement = string.Empty;
+        if (string.IsNullOrWhiteSpace(registration.ThreadIsolationLifetime))
+        {
+            return BuildStandardRegistrationLine(registration, registrationMethod);
+        }
 
+        var threadIsolationMethod = registration.ThreadIsolationLifetime switch
+        {
+            "ServiceLifetime.Singleton" => "Singleton",
+            "ServiceLifetime.Scoped" => "Scoped",
+            _ => "Transient",
+        };
+        var cacheKey = $"\"gendi:thread:{EscapeStringLiteral(registration.ServiceType)}:{EscapeStringLiteral(registration.ImplementationType)}:{EscapeStringLiteral(registration.KeyExpression ?? "nokey")}\"";
+        var cacheRegistration = string.Format(
+            GenDISourceTemplates.ThreadIsolationCacheTemplate,
+            threadIsolationMethod,
+            registration.ServiceType,
+            cacheKey,
+            registration.FactoryBody
+        );
+
+        var accessRegistration = string.IsNullOrWhiteSpace(registration.KeyExpression)
+            ? string.Format(
+                GenDISourceTemplates.ThreadIsolationUnkeyedAccessTemplate,
+                "Transient",
+                registration.ServiceType,
+                cacheKey
+            )
+            : string.Format(
+                GenDISourceTemplates.ThreadIsolationKeyedAccessTemplate,
+                "Transient",
+                registration.ServiceType,
+                registration.KeyExpression,
+                cacheKey
+            );
+
+        var registrationStatement = $"{cacheRegistration}\n{accessRegistration}";
+        if (string.IsNullOrWhiteSpace(registration.EnvironmentName))
+        {
+            return registrationStatement;
+        }
+
+        return string.Format(
+            GenDISourceTemplates.ConditionalRegistrationTemplate,
+            EscapeStringLiteral(registration.EnvironmentName),
+            registrationStatement
+        );
+    }
+
+    private static string BuildStandardRegistrationLine(
+        ServiceRegistration registration,
+        string registrationMethod
+    )
+    {
+        var registrationStatement = string.Empty;
         if (string.IsNullOrWhiteSpace(registration.KeyExpression))
         {
             registrationStatement = string.Format(

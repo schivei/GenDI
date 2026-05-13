@@ -7,27 +7,45 @@ namespace GenDI.SourceGenerator;
 
 public sealed partial class GenDISourceGenerator
 {
-    private static IEnumerable<ServiceRegistration> BuildRegistrations(INamedTypeSymbol symbol)
+    private static IEnumerable<ServiceRegistration> BuildRegistrations(
+        ImmutableArray<INamedTypeSymbol> allTypes
+    )
     {
-        if (symbol.TypeKind != TypeKind.Class || symbol.IsAbstract)
+        var concreteTypes = allTypes
+            .Where(static typeSymbol => typeSymbol.TypeKind == TypeKind.Class && !typeSymbol.IsAbstract)
+            .ToImmutableArray();
+        var registrations = new List<ServiceRegistration>();
+        var injectableTypes = new Dictionary<INamedTypeSymbol, InjectableMetadata>(
+            SymbolEqualityComparer.Default
+        );
+
+        foreach (var concreteType in concreteTypes)
         {
-            return Enumerable.Empty<ServiceRegistration>();
+            if (HasDecoratorTarget(concreteType))
+            {
+                continue;
+            }
+
+            if (!TryGetInjectableAttribute(concreteType, out var injectableMetadata))
+            {
+                continue;
+            }
+
+            injectableTypes[concreteType] = injectableMetadata;
+            registrations.AddRange(BuildDirectRegistrations(concreteType, injectableMetadata));
         }
 
-        if (
-            !TryGetInjectableAttribute(
-                symbol,
-                out var lifetime,
-                out var explicitServiceType,
-                out var order,
-                out var group,
-                out var keyExpression
-            )
-        )
-        {
-            return Enumerable.Empty<ServiceRegistration>();
-        }
+        registrations.AddRange(BuildIndirectRegistrations(concreteTypes, injectableTypes, registrations));
+        ApplyDecorators(concreteTypes, registrations);
 
+        return registrations;
+    }
+
+    private static IEnumerable<ServiceRegistration> BuildDirectRegistrations(
+        INamedTypeSymbol symbol,
+        InjectableMetadata injectableMetadata
+    )
+    {
         var implementationType = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         var constructor = symbol
             .InstanceConstructors.Where(static constructorSymbol =>
@@ -35,37 +53,215 @@ public sealed partial class GenDISourceGenerator
             )
             .OrderByDescending(static constructorSymbol => constructorSymbol.Parameters.Length)
             .FirstOrDefault();
-
-        var serviceTypes = GetServiceTypes(symbol, implementationType, explicitServiceType);
-        var factoryBody = BuildFactoryBody(symbol, implementationType, constructor);
+        var serviceTypes = GetServiceTypes(symbol, implementationType, injectableMetadata.ExplicitServiceType);
+        var factoryBody = BuildFactoryBody(symbol, implementationType, constructor, null, null);
         var environmentName = GetConditionalEnvironmentName(symbol);
 
         return serviceTypes.Select(serviceType => new ServiceRegistration(
             serviceType.ServiceType,
             implementationType,
-            ResolveRegistrationLifetime(lifetime, serviceType.FallbackLifetime),
+            ResolveRegistrationLifetime(injectableMetadata.Lifetime, serviceType.FallbackLifetime),
+            ResolveThreadIsolationLifetime(
+                injectableMetadata.ThreadIsolationLifetime,
+                serviceType.FallbackThreadIsolationLifetime
+            ),
             factoryBody,
-            order,
-            group,
-            keyExpression,
+            injectableMetadata.Order,
+            injectableMetadata.Group,
+            injectableMetadata.KeyExpression,
             environmentName
         ));
     }
 
-    private static bool TryGetInjectableAttribute(
-        INamedTypeSymbol symbol,
-        out string lifetime,
-        out string? explicitServiceType,
-        out int order,
-        out int group,
-        out string? keyExpression
+    private static IEnumerable<ServiceRegistration> BuildIndirectRegistrations(
+        ImmutableArray<INamedTypeSymbol> concreteTypes,
+        IDictionary<INamedTypeSymbol, InjectableMetadata> injectableTypes,
+        IReadOnlyCollection<ServiceRegistration> existingRegistrations
     )
     {
-        lifetime = "ServiceLifetime.Transient";
-        explicitServiceType = null;
-        order = DefaultOrderingValue;
-        group = DefaultOrderingValue;
-        keyExpression = null;
+        var registrations = new List<ServiceRegistration>();
+        var existingKeys = new HashSet<string>(
+            existingRegistrations.Select(BuildRegistrationIdentity),
+            StringComparer.Ordinal
+        );
+        var injectRequests = injectableTypes
+            .Keys.SelectMany(static symbol => GetInjectContractRequests(symbol))
+            .ToImmutableArray();
+
+        foreach (var injectRequest in injectRequests)
+        {
+            if (!IsClosedType(injectRequest.ContractSymbol))
+            {
+                continue;
+            }
+
+            var registrationIdentity = BuildRegistrationIdentity(
+                injectRequest.ServiceType,
+                injectRequest.KeyExpression,
+                environmentName: null
+            );
+            if (existingKeys.Contains(registrationIdentity))
+            {
+                continue;
+            }
+
+            var contractFallbackLifetime = TryGetServiceInjectionLifetime(injectRequest.ContractSymbol);
+            var contractFallbackThreadIsolation = TryGetServiceInjectionThreadIsolationLifetime(
+                injectRequest.ContractSymbol
+            );
+            var bestCandidate = FindIndirectImplementationCandidate(
+                injectRequest.ContractSymbol,
+                injectRequest.ServiceType,
+                concreteTypes,
+                injectableTypes,
+                contractFallbackLifetime,
+                contractFallbackThreadIsolation
+            );
+
+            if (bestCandidate is null)
+            {
+                continue;
+            }
+
+            var constructor = bestCandidate.Symbol
+                .InstanceConstructors.Where(static constructorSymbol =>
+                    constructorSymbol.DeclaredAccessibility == Accessibility.Public
+                )
+                .OrderByDescending(static constructorSymbol => constructorSymbol.Parameters.Length)
+                .FirstOrDefault();
+            var factoryBody = BuildFactoryBody(
+                bestCandidate.Symbol,
+                bestCandidate.ImplementationType,
+                constructor,
+                null,
+                null
+            );
+            var finalLifetime = injectRequest.LifetimeOverride ?? bestCandidate.Lifetime;
+            var environmentName = GetConditionalEnvironmentName(bestCandidate.Symbol);
+
+            registrations.Add(
+                new ServiceRegistration(
+                    injectRequest.ServiceType,
+                    bestCandidate.ImplementationType,
+                    finalLifetime,
+                    bestCandidate.ThreadIsolationLifetime,
+                    factoryBody,
+                    bestCandidate.Order,
+                    bestCandidate.Group,
+                    injectRequest.KeyExpression,
+                    environmentName
+                )
+            );
+            existingKeys.Add(registrationIdentity);
+        }
+
+        return registrations;
+    }
+
+    private static void ApplyDecorators(
+        ImmutableArray<INamedTypeSymbol> concreteTypes,
+        IList<ServiceRegistration> registrations
+    )
+    {
+        var decorators = concreteTypes
+            .Select(typeSymbol =>
+                (
+                    Symbol: typeSymbol,
+                    Targets: GetDecoratorTargets(typeSymbol),
+                    Metadata: TryGetInjectableAttribute(typeSymbol, out var injectableMetadata)
+                        ? injectableMetadata
+                        : null
+                )
+            )
+            .Where(static decorator => decorator.Targets.Length > 0)
+            .OrderBy(static decorator => decorator.Metadata?.Group ?? DefaultOrderingValue)
+            .ThenBy(static decorator => decorator.Metadata?.Order ?? DefaultOrderingValue)
+            .ThenBy(
+                static decorator => decorator.Symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                StringComparer.Ordinal
+            )
+            .ToImmutableArray();
+
+        foreach (var decorator in decorators)
+        {
+            var implementationType = decorator.Symbol.ToDisplayString(
+                SymbolDisplayFormat.FullyQualifiedFormat
+            );
+            var constructor = decorator.Symbol
+                .InstanceConstructors.Where(static constructorSymbol =>
+                    constructorSymbol.DeclaredAccessibility == Accessibility.Public
+                )
+                .OrderByDescending(static constructorSymbol => constructorSymbol.Parameters.Length)
+                .FirstOrDefault();
+
+            foreach (var target in decorator.Targets)
+            {
+                for (var i = registrations.Count - 1; i >= 0; i--)
+                {
+                    var existingRegistration = registrations[i];
+                    if (
+                        existingRegistration.ServiceType != target.DisplayName
+                        || !string.IsNullOrWhiteSpace(existingRegistration.KeyExpression)
+                    )
+                    {
+                        continue;
+                    }
+
+                    var factoryBody = BuildFactoryBody(
+                        decorator.Symbol,
+                        implementationType,
+                        constructor,
+                        target.DisplayName,
+                        existingRegistration.FactoryBody
+                    );
+                    registrations[i] = new ServiceRegistration(
+                        existingRegistration.ServiceType,
+                        implementationType,
+                        existingRegistration.Lifetime,
+                        existingRegistration.ThreadIsolationLifetime,
+                        factoryBody,
+                        existingRegistration.Order,
+                        existingRegistration.Group,
+                        existingRegistration.KeyExpression,
+                        existingRegistration.EnvironmentName
+                    );
+                    break;
+                }
+            }
+        }
+    }
+
+    private static string BuildRegistrationIdentity(ServiceRegistration registration)
+    {
+        return BuildRegistrationIdentity(
+            registration.ServiceType,
+            registration.KeyExpression,
+            registration.EnvironmentName
+        );
+    }
+
+    private static string BuildRegistrationIdentity(
+        string serviceType,
+        string? keyExpression,
+        string? environmentName
+    )
+    {
+        return $"{serviceType}|{keyExpression ?? string.Empty}|{environmentName ?? string.Empty}";
+    }
+
+    private static bool TryGetInjectableAttribute(
+        INamedTypeSymbol symbol,
+        out InjectableMetadata injectableMetadata
+    )
+    {
+        injectableMetadata = new InjectableMetadata(
+            "ServiceLifetime.Transient",
+            explicitServiceType: null,
+            order: DefaultOrderingValue,
+            group: DefaultOrderingValue,
+            keyExpression: null,
+            threadIsolationLifetime: null
+        );
 
         foreach (var attributeData in symbol.GetAttributes())
         {
@@ -74,6 +270,13 @@ public sealed partial class GenDISourceGenerator
             {
                 continue;
             }
+
+            var lifetime = "ServiceLifetime.Transient";
+            var explicitServiceType = default(string);
+            var order = DefaultOrderingValue;
+            var group = DefaultOrderingValue;
+            var keyExpression = default(string);
+            var threadIsolationLifetime = default(string);
 
             if (attributeData.ConstructorArguments.Length > 0)
             {
@@ -103,13 +306,63 @@ public sealed partial class GenDISourceGenerator
                     case "Key":
                         keyExpression = BuildTypedConstantExpression(namedArgument.Value);
                         break;
+                    case "ThreadIsolation":
+                        threadIsolationLifetime = ConvertThreadIsolationPolicyToLifetimeExpression(
+                            namedArgument.Value
+                        );
+                        break;
                 }
             }
 
+            injectableMetadata = new InjectableMetadata(
+                lifetime,
+                explicitServiceType,
+                order,
+                group,
+                keyExpression,
+                threadIsolationLifetime
+            );
             return true;
         }
 
         return false;
+    }
+
+    private static bool HasDecoratorTarget(INamedTypeSymbol symbol)
+    {
+        return GetDecoratorTargets(symbol).Length > 0;
+    }
+
+    private static ImmutableArray<DecoratorTarget> GetDecoratorTargets(INamedTypeSymbol symbol)
+    {
+        var targets = ImmutableArray.CreateBuilder<DecoratorTarget>();
+        foreach (var attributeData in symbol.GetAttributes())
+        {
+            var attributeClass = attributeData.AttributeClass;
+            if (
+                attributeClass?.OriginalDefinition.ToDisplayString()
+                != "GenDI.DecoratorForAttribute<TService>"
+                || attributeClass.TypeArguments.Length != 1
+                || attributeClass.TypeArguments[0] is not INamedTypeSymbol serviceType
+            )
+            {
+                continue;
+            }
+
+            if (!IsClosedType(serviceType))
+            {
+                continue;
+            }
+
+            targets.Add(
+                new DecoratorTarget(
+                    serviceType,
+                    serviceType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+                )
+            );
+        }
+
+        return targets.ToImmutable();
     }
 
     private static ImmutableArray<ServiceContractTarget> GetServiceTypes(
@@ -126,7 +379,7 @@ public sealed partial class GenDISourceGenerator
             var nonNullExplicitServiceType = explicitServiceType;
             if (nonNullExplicitServiceType is not null)
             {
-                serviceTypes.Add(new ServiceContractTarget(nonNullExplicitServiceType, null));
+                serviceTypes.Add(new ServiceContractTarget(nonNullExplicitServiceType, null, null));
                 hasAnyContract = true;
             }
         }
@@ -142,7 +395,8 @@ public sealed partial class GenDISourceGenerator
             serviceTypes.Add(
                 new ServiceContractTarget(
                     interfaceSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                    TryGetServiceInjectionLifetime(interfaceSymbol)
+                    TryGetServiceInjectionLifetime(interfaceSymbol),
+                    TryGetServiceInjectionThreadIsolationLifetime(interfaceSymbol)
                 )
             );
         }
@@ -156,7 +410,8 @@ public sealed partial class GenDISourceGenerator
                 serviceTypes.Add(
                     new ServiceContractTarget(
                         baseType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                        TryGetServiceInjectionLifetime(baseType)
+                        TryGetServiceInjectionLifetime(baseType),
+                        TryGetServiceInjectionThreadIsolationLifetime(baseType)
                     )
                 );
             }
@@ -166,7 +421,7 @@ public sealed partial class GenDISourceGenerator
 
         if (!hasAnyContract)
         {
-            serviceTypes.Add(new ServiceContractTarget(implementationType, null));
+            serviceTypes.Add(new ServiceContractTarget(implementationType, null, null));
         }
 
         return serviceTypes
@@ -174,6 +429,7 @@ public sealed partial class GenDISourceGenerator
             .Select(static group =>
                 group.FirstOrDefault(static target =>
                     !string.IsNullOrWhiteSpace(target.FallbackLifetime)
+                    || !string.IsNullOrWhiteSpace(target.FallbackThreadIsolationLifetime)
                 ) ?? group.First()
             )
             .ToImmutableArray();
@@ -201,6 +457,16 @@ public sealed partial class GenDISourceGenerator
         return string.IsNullOrWhiteSpace(fallbackLifetime) ? injectableLifetime : fallbackLifetime;
     }
 
+    private static string? ResolveThreadIsolationLifetime(
+        string? injectableThreadIsolationLifetime,
+        string? fallbackThreadIsolationLifetime
+    )
+    {
+        return string.IsNullOrWhiteSpace(injectableThreadIsolationLifetime)
+            ? fallbackThreadIsolationLifetime
+            : injectableThreadIsolationLifetime;
+    }
+
     private static string? TryGetServiceInjectionLifetime(ITypeSymbol symbol)
     {
         foreach (var attributeData in symbol.GetAttributes())
@@ -218,6 +484,31 @@ public sealed partial class GenDISourceGenerator
             }
 
             return "ServiceLifetime.Transient";
+        }
+
+        return null;
+    }
+
+    private static string? TryGetServiceInjectionThreadIsolationLifetime(ITypeSymbol symbol)
+    {
+        foreach (var attributeData in symbol.GetAttributes())
+        {
+            if (
+                attributeData.AttributeClass?.ToDisplayString() != "GenDI.ServiceInjectionAttribute"
+            )
+            {
+                continue;
+            }
+
+            foreach (var namedArgument in attributeData.NamedArguments)
+            {
+                if (namedArgument.Key == "ThreadIsolation")
+                {
+                    return ConvertThreadIsolationPolicyToLifetimeExpression(namedArgument.Value);
+                }
+            }
+
+            return null;
         }
 
         return null;
@@ -251,10 +542,16 @@ public sealed partial class GenDISourceGenerator
     private static string BuildFactoryBody(
         INamedTypeSymbol symbol,
         string implementationType,
-        IMethodSymbol? constructor
+        IMethodSymbol? constructor,
+        string? decoratedServiceType,
+        string? decoratedFactoryBody
     )
     {
-        var parameters = BuildConstructorParameters(constructor);
+        var parameters = BuildConstructorParameters(
+            constructor,
+            decoratedServiceType,
+            decoratedFactoryBody
+        );
         var injectableProperties = GetInjectableProperties(symbol);
 
         if (injectableProperties.Length == 0)
@@ -265,14 +562,30 @@ public sealed partial class GenDISourceGenerator
         var initializers = string.Join(
             "\n",
             injectableProperties.Select(property =>
-                $"                @{property.Name} = {BuildResolutionExpression(property.Type, property.KeyExpression, property.UseOptionalResolution)},"
-            )
+            {
+                var specialResolution = TryBuildDecoratorResolution(
+                    property.TypeSymbol,
+                    decoratedServiceType,
+                    decoratedFactoryBody
+                );
+                var resolution = specialResolution
+                    ?? BuildResolutionExpression(
+                        property.Type,
+                        property.KeyExpression,
+                        property.UseOptionalResolution
+                    );
+                return $"                @{property.Name} = {resolution},";
+            })
         );
 
         return $"new {implementationType}({parameters})\n            {{\n{initializers}\n            }}";
     }
 
-    private static string BuildConstructorParameters(IMethodSymbol? constructor)
+    private static string BuildConstructorParameters(
+        IMethodSymbol? constructor,
+        string? decoratedServiceType,
+        string? decoratedFactoryBody
+    )
     {
         if (constructor is null || constructor.Parameters.Length == 0)
         {
@@ -283,6 +596,16 @@ public sealed partial class GenDISourceGenerator
             ", ",
             constructor.Parameters.Select(parameter =>
             {
+                var specialResolution = TryBuildDecoratorResolution(
+                    parameter.Type,
+                    decoratedServiceType,
+                    decoratedFactoryBody
+                );
+                if (!string.IsNullOrWhiteSpace(specialResolution))
+                {
+                    return specialResolution;
+                }
+
                 var parameterType = parameter.Type.ToDisplayString(
                     SymbolDisplayFormat.FullyQualifiedFormat
                 );
@@ -294,6 +617,29 @@ public sealed partial class GenDISourceGenerator
                 );
             })
         );
+    }
+
+    private static string? TryBuildDecoratorResolution(
+        ITypeSymbol typeSymbol,
+        string? decoratedServiceType,
+        string? decoratedFactoryBody
+    )
+    {
+        if (
+            string.IsNullOrWhiteSpace(decoratedServiceType)
+            || string.IsNullOrWhiteSpace(decoratedFactoryBody)
+        )
+        {
+            return null;
+        }
+
+        var typeDisplay = typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        if (!string.Equals(typeDisplay, decoratedServiceType, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        return $"({decoratedFactoryBody})";
     }
 
     private static ImmutableArray<InjectablePropertyInfo> GetInjectableProperties(
@@ -316,11 +662,37 @@ public sealed partial class GenDISourceGenerator
                 return new InjectablePropertyInfo(
                     property.Name,
                     propertyType,
+                    property.Type,
                     keyExpression,
                     injectMetadata.HasInjectOptionalAttribute
-                        || ShouldUseOptionalResolution(property.Type)
+                        || ShouldUseOptionalResolution(property.Type),
+                    injectMetadata.HasInjectAttribute,
+                    injectMetadata.LifetimeExpression
                 );
             })
+            .ToImmutableArray();
+    }
+
+    private static ImmutableArray<InjectContractRequest> GetInjectContractRequests(
+        INamedTypeSymbol symbol
+    )
+    {
+        return GetInjectableProperties(symbol)
+            .Where(static property => property.HasInjectAttribute)
+            .Where(static property => property.TypeSymbol is INamedTypeSymbol)
+            .Select(static property =>
+                new InjectContractRequest(
+                    (INamedTypeSymbol)property.TypeSymbol,
+                    property.Type,
+                    property.KeyExpression,
+                    property.LifetimeExpression
+                )
+            )
+            .GroupBy(
+                static request => $"{request.ServiceType}|{request.KeyExpression ?? string.Empty}",
+                StringComparer.Ordinal
+            )
+            .Select(static group => group.Last())
             .ToImmutableArray();
     }
 
@@ -362,9 +734,53 @@ public sealed partial class GenDISourceGenerator
 
     private static string ConvertLifetimeEnumToExpression(TypedConstant argument)
     {
-        if (argument.Value is not int enumValue)
+        if (argument.Value is null)
         {
             return "ServiceLifetime.Transient";
+        }
+
+        var enumValue = argument.Value switch
+        {
+            int i => i,
+            byte b => b,
+            sbyte sb => sb,
+            short s => s,
+            ushort us => us,
+            long l => checked((int)l),
+            ulong ul => checked((int)ul),
+            _ => Convert.ToInt32(argument.Value, CultureInfo.InvariantCulture),
+        };
+
+        return enumValue switch
+        {
+            0 => "ServiceLifetime.Singleton",
+            1 => "ServiceLifetime.Scoped",
+            _ => "ServiceLifetime.Transient",
+        };
+    }
+
+    private static string? ConvertThreadIsolationPolicyToLifetimeExpression(TypedConstant argument)
+    {
+        if (argument.Value is null)
+        {
+            return null;
+        }
+
+        var enumValue = argument.Value switch
+        {
+            int i => i,
+            byte b => b,
+            sbyte sb => sb,
+            short s => s,
+            ushort us => us,
+            long l => checked((int)l),
+            ulong ul => checked((int)ul),
+            _ => Convert.ToInt32(argument.Value, CultureInfo.InvariantCulture),
+        };
+
+        if (enumValue < 0)
+        {
+            return null;
         }
 
         return enumValue switch
@@ -407,6 +823,8 @@ public sealed partial class GenDISourceGenerator
     {
         var keyExpression = default(string);
         var hasInjectOptionalAttribute = false;
+        var hasInjectAttribute = false;
+        var lifetimeExpression = default(string);
 
         foreach (var attributeData in property.GetAttributes())
         {
@@ -423,6 +841,16 @@ public sealed partial class GenDISourceGenerator
             {
                 hasInjectOptionalAttribute = true;
             }
+            else if (attributeDisplayName == "GenDI.InjectAttribute")
+            {
+                hasInjectAttribute = true;
+                if (attributeData.ConstructorArguments.Length > 0)
+                {
+                    lifetimeExpression = ConvertLifetimeEnumToExpression(
+                        attributeData.ConstructorArguments[0]
+                    );
+                }
+            }
 
             foreach (var namedArgument in attributeData.NamedArguments)
             {
@@ -433,7 +861,12 @@ public sealed partial class GenDISourceGenerator
             }
         }
 
-        return new InjectPropertyMetadata(keyExpression, hasInjectOptionalAttribute);
+        return new InjectPropertyMetadata(
+            keyExpression,
+            hasInjectOptionalAttribute,
+            hasInjectAttribute,
+            lifetimeExpression
+        );
     }
 
     private static string? GetFromKeyedServicesKey(ISymbol symbol)
@@ -571,40 +1004,201 @@ public sealed partial class GenDISourceGenerator
         };
     }
 
+    private static ImplementationCandidate? FindIndirectImplementationCandidate(
+        INamedTypeSymbol contractSymbol,
+        string contractDisplayName,
+        ImmutableArray<INamedTypeSymbol> concreteTypes,
+        IDictionary<INamedTypeSymbol, InjectableMetadata> injectableTypes,
+        string? contractFallbackLifetime,
+        string? contractFallbackThreadIsolationLifetime
+    )
+    {
+        var candidates = new List<ImplementationCandidate>();
+        foreach (var concreteType in concreteTypes)
+        {
+            if (HasDecoratorTarget(concreteType) || !IsClosedType(concreteType))
+            {
+                continue;
+            }
+
+            if (!ImplementsOrInherits(concreteType, contractSymbol))
+            {
+                continue;
+            }
+
+            InjectableMetadata? injectableMetadata = null;
+            if (injectableTypes.TryGetValue(concreteType, out var existingInjectableMetadata))
+            {
+                injectableMetadata = existingInjectableMetadata;
+            }
+            else if (TryGetInjectableAttribute(concreteType, out var scannedInjectableMetadata))
+            {
+                injectableMetadata = scannedInjectableMetadata;
+            }
+
+            if (
+                injectableMetadata is not null
+                && !string.IsNullOrWhiteSpace(injectableMetadata.ExplicitServiceType)
+                && !string.Equals(
+                    injectableMetadata.ExplicitServiceType,
+                    contractDisplayName,
+                    StringComparison.Ordinal
+                )
+            )
+            {
+                continue;
+            }
+
+            var resolvedLifetime = ResolveRegistrationLifetime(
+                injectableMetadata?.Lifetime ?? "ServiceLifetime.Transient",
+                contractFallbackLifetime
+            );
+            var implementationType = concreteType.ToDisplayString(
+                SymbolDisplayFormat.FullyQualifiedFormat
+            );
+            candidates.Add(
+                new ImplementationCandidate(
+                    concreteType,
+                    implementationType,
+                    resolvedLifetime,
+                    ResolveThreadIsolationLifetime(
+                        injectableMetadata?.ThreadIsolationLifetime,
+                        contractFallbackThreadIsolationLifetime
+                    ),
+                    injectableMetadata?.Order ?? DefaultOrderingValue,
+                    injectableMetadata?.Group ?? DefaultOrderingValue
+                )
+            );
+        }
+
+        return candidates
+            .OrderByDescending(static candidate => LifetimeMagnitude(candidate.Lifetime))
+            .ThenBy(static candidate => candidate.Group)
+            .ThenBy(static candidate => candidate.Order)
+            .ThenBy(static candidate => candidate.ImplementationType, StringComparer.Ordinal)
+            .FirstOrDefault();
+    }
+
+    private static bool ImplementsOrInherits(
+        INamedTypeSymbol implementationType,
+        INamedTypeSymbol contractType
+    )
+    {
+        if (SymbolEqualityComparer.Default.Equals(implementationType, contractType))
+        {
+            return true;
+        }
+
+        if (contractType.TypeKind == TypeKind.Interface)
+        {
+            return implementationType.AllInterfaces.Any(interfaceType =>
+                SymbolEqualityComparer.Default.Equals(interfaceType, contractType)
+            );
+        }
+
+        var baseType = implementationType.BaseType;
+        while (baseType is not null)
+        {
+            if (SymbolEqualityComparer.Default.Equals(baseType, contractType))
+            {
+                return true;
+            }
+
+            baseType = baseType.BaseType;
+        }
+
+        return false;
+    }
+
+    private static bool IsClosedType(INamedTypeSymbol symbol)
+    {
+        return !symbol.IsUnboundGenericType
+            && symbol.TypeParameters.Length == 0
+            && symbol.TypeArguments.All(IsClosedTypeArgument);
+    }
+
+    private static bool IsClosedTypeArgument(ITypeSymbol typeSymbol)
+    {
+        if (typeSymbol.TypeKind == TypeKind.TypeParameter)
+        {
+            return false;
+        }
+
+        if (typeSymbol is INamedTypeSymbol namedType && namedType.IsGenericType)
+        {
+            return namedType.TypeArguments.All(IsClosedTypeArgument);
+        }
+
+        return true;
+    }
+
+    private static int LifetimeMagnitude(string lifetimeExpression)
+    {
+        return lifetimeExpression switch
+        {
+            "ServiceLifetime.Scoped" => 3,
+            "ServiceLifetime.Singleton" => 2,
+            _ => 1,
+        };
+    }
+
     private sealed class InjectablePropertyInfo
     {
         public InjectablePropertyInfo(
             string name,
             string type,
+            ITypeSymbol typeSymbol,
             string? keyExpression,
-            bool useOptionalResolution
+            bool useOptionalResolution,
+            bool hasInjectAttribute,
+            string? lifetimeExpression
         )
         {
             Name = name;
             Type = type;
+            TypeSymbol = typeSymbol;
             KeyExpression = keyExpression;
             UseOptionalResolution = useOptionalResolution;
+            HasInjectAttribute = hasInjectAttribute;
+            LifetimeExpression = lifetimeExpression;
         }
 
         public string Name { get; }
 
         public string Type { get; }
 
+        public ITypeSymbol TypeSymbol { get; }
+
         public string? KeyExpression { get; }
 
         public bool UseOptionalResolution { get; }
+
+        public bool HasInjectAttribute { get; }
+
+        public string? LifetimeExpression { get; }
     }
 
     private sealed class InjectPropertyMetadata
     {
-        public InjectPropertyMetadata(string? keyExpression, bool hasInjectOptionalAttribute)
+        public InjectPropertyMetadata(
+            string? keyExpression,
+            bool hasInjectOptionalAttribute,
+            bool hasInjectAttribute,
+            string? lifetimeExpression
+        )
         {
             KeyExpression = keyExpression;
             HasInjectOptionalAttribute = hasInjectOptionalAttribute;
+            HasInjectAttribute = hasInjectAttribute;
+            LifetimeExpression = lifetimeExpression;
         }
 
         public string? KeyExpression { get; }
 
         public bool HasInjectOptionalAttribute { get; }
+
+        public bool HasInjectAttribute { get; }
+
+        public string? LifetimeExpression { get; }
     }
 }

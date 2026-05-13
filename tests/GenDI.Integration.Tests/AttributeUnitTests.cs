@@ -17,6 +17,7 @@ public class AttributeUnitTests
         Assert.Equal(int.MaxValue, attr.Order);
         Assert.Equal(int.MaxValue, attr.Group);
         Assert.Null(attr.Key);
+        Assert.Equal(ThreadIsolationPolicy.None, attr.ThreadIsolation);
         Assert.Equal(int.MaxValue, InjectableAttribute.DefaultOrderingValue);
     }
 
@@ -39,11 +40,13 @@ public class AttributeUnitTests
             Order = 5,
             Group = 3,
             Key = "myKey",
+            ThreadIsolation = ThreadIsolationPolicy.Scoped,
         };
 
         Assert.Equal(5, attr.Order);
         Assert.Equal(3, attr.Group);
         Assert.Equal("myKey", attr.Key);
+        Assert.Equal(ThreadIsolationPolicy.Scoped, attr.ThreadIsolation);
     }
 
     // ─── InjectableAttribute<T> ───────────────────────────────────────────────
@@ -58,6 +61,7 @@ public class AttributeUnitTests
         Assert.Equal(InjectableAttribute.DefaultOrderingValue, attr.Order);
         Assert.Equal(InjectableAttribute.DefaultOrderingValue, attr.Group);
         Assert.Null(attr.Key);
+        Assert.Equal(ThreadIsolationPolicy.None, attr.ThreadIsolation);
     }
 
     [Theory]
@@ -79,11 +83,13 @@ public class AttributeUnitTests
             Order = 10,
             Group = 2,
             Key = 42,
+            ThreadIsolation = ThreadIsolationPolicy.Singleton,
         };
 
         Assert.Equal(10, attr.Order);
         Assert.Equal(2, attr.Group);
         Assert.Equal(42, attr.Key);
+        Assert.Equal(ThreadIsolationPolicy.Singleton, attr.ThreadIsolation);
     }
 
     // ─── InjectAttribute ──────────────────────────────────────────────────────
@@ -99,9 +105,21 @@ public class AttributeUnitTests
     [Fact]
     public void InjectAttribute_key_round_trips()
     {
-        var attr = new InjectAttribute { Key = "injectionKey" };
+        var attr = new InjectAttribute
+        {
+            Key = "injectionKey",
+        };
 
         Assert.Equal("injectionKey", attr.Key);
+        Assert.Equal(ServiceLifetime.Transient, attr.Lifetime);
+    }
+
+    [Fact]
+    public void InjectAttribute_lifetime_ctor_stores_lifetime()
+    {
+        var attr = new InjectAttribute(ServiceLifetime.Scoped);
+
+        Assert.Equal(ServiceLifetime.Scoped, attr.Lifetime);
     }
 
     // ─── InjectOptionalAttribute ──────────────────────────────────────────────
@@ -141,6 +159,7 @@ public class AttributeUnitTests
 
         Assert.NotNull(attr);
         Assert.Equal(ServiceLifetime.Transient, attr.Lifetime);
+        Assert.Equal(ThreadIsolationPolicy.None, attr.ThreadIsolation);
     }
 
     [Theory]
@@ -149,9 +168,21 @@ public class AttributeUnitTests
     [InlineData(ServiceLifetime.Transient)]
     public void ServiceInjectionAttribute_lifetime_ctor_stores_lifetime(ServiceLifetime lifetime)
     {
-        var attr = new ServiceInjectionAttribute(lifetime);
+        var attr = new ServiceInjectionAttribute(lifetime)
+        {
+            ThreadIsolation = ThreadIsolationPolicy.Singleton,
+        };
 
         Assert.Equal(lifetime, attr.Lifetime);
+        Assert.Equal(ThreadIsolationPolicy.Singleton, attr.ThreadIsolation);
+    }
+
+    [Fact]
+    public void DecoratorForAttribute_type_argument_is_reflected_in_runtime_type()
+    {
+        var attrType = typeof(DecoratorForAttribute<IServiceContract>);
+
+        Assert.Equal("DecoratorForAttribute`1", attrType.Name);
     }
 
     // ─── GenDICoverationAttribute ─────────────────────────────────────────────
