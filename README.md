@@ -6,8 +6,24 @@
 [![Deploy Documentation](https://github.com/schivei/GenDI/actions/workflows/deploy-docs.yml/badge.svg)](https://github.com/schivei/GenDI/actions/workflows/deploy-docs.yml)
 [![NuGet GenDI](https://img.shields.io/nuget/v/GenDI.svg)](https://www.nuget.org/packages/GenDI)
 [![NuGet GenDI.SourceGenerator](https://img.shields.io/nuget/v/GenDI.SourceGenerator.svg)](https://www.nuget.org/packages/GenDI.SourceGenerator)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/schivei/GenDI/blob/main/LICENSE.md)
-[![Documentation](https://img.shields.io/badge/docs-website-blue)](https://elton.schivei.nom.br/GenDI)
+[![NuGet GenDI.Analyzers](https://img.shields.io/nuget/v/GenDI.Analyzers.svg)](https://www.nuget.org/packages/GenDI.Analyzers)
+
+
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=bugs)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=coverage)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
+[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
+[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
+
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/schivei/GenDI/blob/main/LICENSE)
+[![Documentation](https://img.shields.io/badge/Documentation-Website-blue)](https://elton.schivei.nom.br/GenDI)
 
 GenDI is a dependency injection library built on top of C# *source generators*, providing full compatibility with NativeAOT and trimming. It works as an additional module to `Microsoft.Extensions.DependencyInjection`, allowing you to register services automatically at compile time — no reflection required.
 
