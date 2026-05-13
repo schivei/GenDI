@@ -22,10 +22,12 @@ public sealed class InjectableFactoryAttribute : Attribute
     /// <summary>
     /// Initializes a new instance of the <see cref="InjectableFactoryAttribute"/> class.
     /// </summary>
+#pragma warning disable S1133 // kept intentionally for compatibility while guiding migration to the generic attribute
     [Obsolete(
         "Use InjectableFactoryAttribute<TService> instead of typeof-based service selection.",
         error: true
     )]
+#pragma warning restore S1133
     public InjectableFactoryAttribute(Type serviceType, ServiceLifetime lifetime = ServiceLifetime.Transient)
     {
         ServiceType = serviceType;

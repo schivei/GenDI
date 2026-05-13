@@ -7,4 +7,8 @@ namespace GenDI;
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
 public sealed class DecoratorForAttribute<TService> : Attribute
 {
+    /// <summary>
+    /// Gets the decorated service contract type.
+    /// </summary>
+    public Type ServiceType => typeof(TService);
 }

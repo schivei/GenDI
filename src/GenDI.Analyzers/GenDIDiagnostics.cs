@@ -4,8 +4,10 @@ namespace GenDI.Analyzers;
 
 internal static class GenDIDiagnostics
 {
+    #pragma warning disable S1075 // external diagnostics documentation URL is intentionally fixed
     private const string AnalyzerDiagnosticsDocBaseUrl =
         "https://github.com/schivei/GenDI/blob/main/docs/ANALYZER_DIAGNOSTICS.md";
+    #pragma warning restore S1075
 
     public static readonly DiagnosticDescriptor InjectRequiresInitOnlyProperty = new(
         id: "GENDI001",

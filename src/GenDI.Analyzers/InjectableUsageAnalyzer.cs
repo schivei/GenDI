@@ -95,25 +95,15 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
 
     private static bool HasInjectableAttribute(INamedTypeSymbol typeSymbol)
     {
-        foreach (var attributeData in typeSymbol.GetAttributes())
-        {
-            var attributeClass = attributeData.AttributeClass;
-            if (attributeClass is null)
+        return typeSymbol
+            .GetAttributes()
+            .Select(static attributeData => attributeData.AttributeClass)
+            .OfType<INamedTypeSymbol>()
+            .Any(attributeClass =>
             {
-                continue;
-            }
-
-            var definitionName = attributeClass.OriginalDefinition.ToDisplayString();
-            if (
-                definitionName == "GenDI.InjectableAttribute"
-                || definitionName == "GenDI.InjectableAttribute<TService>"
-            )
-            {
-                return true;
-            }
-        }
-
-        return false;
+                var definitionName = attributeClass.OriginalDefinition.ToDisplayString();
+                return definitionName is "GenDI.InjectableAttribute" or "GenDI.InjectableAttribute<TService>";
+            });
     }
 
     private static void AnalyzeConstructorDeclaration(SyntaxNodeAnalysisContext context)

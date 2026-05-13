@@ -193,6 +193,14 @@ public class AttributeUnitTests
     }
 
     [Fact]
+    public void DecoratorForAttribute_service_type_returns_generic_contract()
+    {
+        var attr = new DecoratorForAttribute<IServiceContract>();
+
+        Assert.Equal(typeof(IServiceContract), attr.ServiceType);
+    }
+
+    [Fact]
     public void OptionConfigAttribute_ctor_stores_path()
     {
         var attr = new OptionConfigAttribute("App:Feature");

@@ -10,7 +10,6 @@ on:
       - '.github/workflows/ci-cd.yml'
       - 'pack.props'
       - 'versions.props'
-      - 'sonar-project.properties'
   pull_request:
     branches: [ '*' ]
   workflow_dispatch:

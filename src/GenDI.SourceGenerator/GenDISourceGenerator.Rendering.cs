@@ -5,6 +5,8 @@ namespace GenDI.SourceGenerator;
 
 public sealed partial class GenDISourceGenerator
 {
+    private const string TransientRegistrationMethod = "Transient";
+
     private static string BuildGeneratedSource(
         ImmutableArray<ServiceRegistration> registrations,
         string projectNamespace,
@@ -34,7 +36,7 @@ public sealed partial class GenDISourceGenerator
         {
             "ServiceLifetime.Singleton" => "Singleton",
             "ServiceLifetime.Scoped" => "Scoped",
-            _ => "Transient",
+            _ => TransientRegistrationMethod,
         };
 
         if (string.IsNullOrWhiteSpace(registration.ThreadIsolationLifetime))
@@ -46,7 +48,7 @@ public sealed partial class GenDISourceGenerator
         {
             "ServiceLifetime.Singleton" => "Singleton",
             "ServiceLifetime.Scoped" => "Scoped",
-            _ => "Transient",
+            _ => TransientRegistrationMethod,
         };
         var cacheKey = string.Format(
             GenDISourceTemplates.ThreadIsolationCacheKeyTemplate,
@@ -65,13 +67,13 @@ public sealed partial class GenDISourceGenerator
         var accessRegistration = string.IsNullOrWhiteSpace(registration.KeyExpression)
             ? string.Format(
                 GenDISourceTemplates.ThreadIsolationUnkeyedAccessTemplate,
-                "Transient",
+                TransientRegistrationMethod,
                 registration.ServiceType,
                 cacheKey
             )
             : string.Format(
                 GenDISourceTemplates.ThreadIsolationKeyedAccessTemplate,
-                "Transient",
+                TransientRegistrationMethod,
                 registration.ServiceType,
                 registration.KeyExpression,
                 cacheKey

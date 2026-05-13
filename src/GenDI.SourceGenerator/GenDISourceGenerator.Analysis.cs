@@ -7,6 +7,9 @@ namespace GenDI.SourceGenerator;
 
 public sealed partial class GenDISourceGenerator
 {
+    private const string TransientLifetimeExpression = "ServiceLifetime.Transient";
+    private const string SingletonLifetimeExpression = "ServiceLifetime.Singleton";
+
     private static RegistrationBuildResult BuildRegistrations(
         ImmutableArray<INamedTypeSymbol> allTypes
     )
@@ -276,13 +279,13 @@ public sealed partial class GenDISourceGenerator
                 .OrderByDescending(static constructorSymbol => constructorSymbol.Parameters.Length)
                 .FirstOrDefault();
 
-            foreach (var target in decorator.Targets)
+            foreach (var targetDisplayName in decorator.Targets.Select(static target => target.DisplayName))
             {
                 for (var i = registrations.Count - 1; i >= 0; i--)
                 {
                     var existingRegistration = registrations[i];
                     if (
-                        existingRegistration.ServiceType != target.DisplayName
+                        existingRegistration.ServiceType != targetDisplayName
                         || !string.IsNullOrWhiteSpace(existingRegistration.KeyExpression)
                     )
                     {
@@ -293,7 +296,7 @@ public sealed partial class GenDISourceGenerator
                         decorator.Symbol,
                         implementationType,
                         constructor,
-                        target.DisplayName,
+                        targetDisplayName,
                         existingRegistration.FactoryBody
                     );
                     registrations[i] = new ServiceRegistration(
@@ -405,13 +408,14 @@ public sealed partial class GenDISourceGenerator
         );
     }
 
+    #pragma warning disable S3776 // registration extraction logic is intentionally centralized
     private static bool TryGetInjectableFactoryAttribute(
         IMethodSymbol method,
         out InjectableFactoryMetadata metadata
     )
     {
         metadata = new InjectableFactoryMetadata(
-            lifetime: "ServiceLifetime.Transient",
+            lifetime: TransientLifetimeExpression,
             serviceType: null,
             hasOpenGenericServiceType: false,
             order: DefaultOrderingValue,
@@ -433,7 +437,7 @@ public sealed partial class GenDISourceGenerator
                 continue;
             }
 
-            var lifetime = "ServiceLifetime.Transient";
+            var lifetime = TransientLifetimeExpression;
             var serviceType = default(string);
             var hasOpenGenericServiceType = false;
             var order = DefaultOrderingValue;
@@ -527,6 +531,7 @@ public sealed partial class GenDISourceGenerator
 
         return false;
     }
+    #pragma warning restore S3776
 
     private static bool TryBuildOptionsRegistration(
         InjectContractRequest injectRequest,
@@ -566,7 +571,7 @@ public sealed partial class GenDISourceGenerator
         registration = new ServiceRegistration(
             optionsContractType,
             optionsTypeDisplay,
-            injectRequest.LifetimeOverride ?? "ServiceLifetime.Singleton",
+            injectRequest.LifetimeOverride ?? SingletonLifetimeExpression,
             threadIsolationLifetime: null,
             factoryBody,
             order: DefaultOrderingValue,
@@ -598,13 +603,14 @@ public sealed partial class GenDISourceGenerator
         return $"{serviceType}|{keyExpression ?? string.Empty}|{environmentName ?? string.Empty}|{moduleName ?? string.Empty}";
     }
 
+    #pragma warning disable S3776 // registration extraction logic is intentionally centralized
     private static bool TryGetInjectableAttribute(
         INamedTypeSymbol symbol,
         out InjectableMetadata injectableMetadata
     )
     {
         injectableMetadata = new InjectableMetadata(
-            "ServiceLifetime.Transient",
+            TransientLifetimeExpression,
             explicitServiceType: null,
             hasOpenGenericExplicitServiceType: false,
             order: DefaultOrderingValue,
@@ -622,7 +628,7 @@ public sealed partial class GenDISourceGenerator
                 continue;
             }
 
-            var lifetime = "ServiceLifetime.Transient";
+            var lifetime = TransientLifetimeExpression;
             var explicitServiceType = default(string);
             var hasOpenGenericExplicitServiceType = false;
             var order = DefaultOrderingValue;
@@ -689,6 +695,7 @@ public sealed partial class GenDISourceGenerator
 
         return false;
     }
+    #pragma warning restore S3776
 
     private static bool HasDecoratorTarget(INamedTypeSymbol symbol)
     {
@@ -701,9 +708,13 @@ public sealed partial class GenDISourceGenerator
     {
         foreach (var concreteType in concreteTypes)
         {
-            foreach (var attributeData in concreteType.GetAttributes())
+            foreach (
+                var attributeClass in concreteType
+                    .GetAttributes()
+                    .Select(static attributeData => attributeData.AttributeClass)
+                    .OfType<INamedTypeSymbol>()
+            )
             {
-                var attributeClass = attributeData.AttributeClass;
                 if (
                     attributeClass?.OriginalDefinition.ToDisplayString()
                         != "GenDI.DecoratorForAttribute<TService>"
@@ -726,9 +737,13 @@ public sealed partial class GenDISourceGenerator
     private static ImmutableArray<DecoratorTarget> GetDecoratorTargets(INamedTypeSymbol symbol)
     {
         var targets = ImmutableArray.CreateBuilder<DecoratorTarget>();
-        foreach (var attributeData in symbol.GetAttributes())
+        foreach (
+            var attributeClass in symbol
+                .GetAttributes()
+                .Select(static attributeData => attributeData.AttributeClass)
+                .OfType<INamedTypeSymbol>()
+        )
         {
-            var attributeClass = attributeData.AttributeClass;
             if (
                 attributeClass?.OriginalDefinition.ToDisplayString()
                 != "GenDI.DecoratorForAttribute<TService>"
@@ -755,6 +770,7 @@ public sealed partial class GenDISourceGenerator
         return targets.ToImmutable();
     }
 
+    #pragma warning disable S3776 // contract resolution intentionally handles multiple precedence branches
     private static ImmutableArray<ServiceContractTarget> GetServiceTypes(
         INamedTypeSymbol symbol,
         string implementationType,
@@ -767,12 +783,8 @@ public sealed partial class GenDISourceGenerator
 
         if (!string.IsNullOrWhiteSpace(explicitServiceType))
         {
-            var nonNullExplicitServiceType = explicitServiceType;
-            if (nonNullExplicitServiceType is not null)
-            {
-                serviceTypes.Add(new ServiceContractTarget(nonNullExplicitServiceType, null, null));
-                hasAnyContract = true;
-            }
+            serviceTypes.Add(new ServiceContractTarget(explicitServiceType, null, null));
+            hasAnyContract = true;
         }
 
         foreach (var interfaceSymbol in symbol.AllInterfaces)
@@ -848,6 +860,7 @@ public sealed partial class GenDISourceGenerator
             )
             .ToImmutableArray();
     }
+    #pragma warning restore S3776
 
     private static bool HasServiceInjectionAttribute(ITypeSymbol symbol)
     {
@@ -863,7 +876,7 @@ public sealed partial class GenDISourceGenerator
         string? fallbackLifetime
     )
     {
-        if (injectableLifetime != "ServiceLifetime.Transient")
+        if (injectableLifetime != TransientLifetimeExpression)
         {
             return injectableLifetime;
         }
@@ -897,7 +910,7 @@ public sealed partial class GenDISourceGenerator
                 return ConvertLifetimeEnumToExpression(attributeData.ConstructorArguments[0]);
             }
 
-            return "ServiceLifetime.Transient";
+            return TransientLifetimeExpression;
         }
 
         return null;
@@ -1222,9 +1235,9 @@ public sealed partial class GenDISourceGenerator
 
         return enumValue switch
         {
-            0 => "ServiceLifetime.Singleton",
+            0 => SingletonLifetimeExpression,
             1 => "ServiceLifetime.Scoped",
-            _ => "ServiceLifetime.Transient",
+            _ => TransientLifetimeExpression,
         };
     }
 
@@ -1250,9 +1263,9 @@ public sealed partial class GenDISourceGenerator
 
         return enumValue switch
         {
-            0 => "ServiceLifetime.Singleton",
+            0 => SingletonLifetimeExpression,
             1 => "ServiceLifetime.Scoped",
-            _ => "ServiceLifetime.Transient",
+            _ => TransientLifetimeExpression,
         };
     }
 
@@ -1514,6 +1527,7 @@ public sealed partial class GenDISourceGenerator
         };
     }
 
+    #pragma warning disable S3776 // indirect candidate resolution intentionally evaluates multiple contract scenarios
     private static ImplementationCandidate? FindIndirectImplementationCandidate(
         INamedTypeSymbol contractSymbol,
         string contractDisplayName,
@@ -1570,7 +1584,7 @@ public sealed partial class GenDISourceGenerator
             }
 
             var resolvedLifetime = ResolveRegistrationLifetime(
-                injectableMetadata?.Lifetime ?? "ServiceLifetime.Transient",
+                injectableMetadata?.Lifetime ?? TransientLifetimeExpression,
                 contractFallbackLifetime
             );
             var implementationType = candidateType.ToDisplayString(
@@ -1599,6 +1613,7 @@ public sealed partial class GenDISourceGenerator
             .ThenBy(static candidate => candidate.ImplementationType, StringComparer.Ordinal)
             .FirstOrDefault();
     }
+    #pragma warning restore S3776
 
     private static bool ImplementsOrInherits(
         INamedTypeSymbol implementationType,
@@ -1864,7 +1879,7 @@ public sealed partial class GenDISourceGenerator
         return lifetimeExpression switch
         {
             "ServiceLifetime.Scoped" => 3,
-            "ServiceLifetime.Singleton" => 2,
+            SingletonLifetimeExpression => 2,
             _ => 1,
         };
     }

@@ -87,6 +87,7 @@ public class StartupRegistrationBenchmarks
 
 internal static class ReflectionRegistration
 {
+    #pragma warning disable S3776 // benchmark baseline keeps full reflection flow in one method for readability/comparison
     public static void AddByReflection(IServiceCollection services, Assembly assembly)
     {
         foreach (var implementationType in assembly.GetTypes().Where(IsInjectableImplementation))
@@ -111,12 +112,9 @@ internal static class ReflectionRegistration
                 contracts.Add(explicitServiceType);
             }
 
-            foreach (var interfaceType in implementationType.GetInterfaces())
+            foreach (var interfaceType in implementationType.GetInterfaces().Where(HasServiceInjectionAttribute))
             {
-                if (HasServiceInjectionAttribute(interfaceType))
-                {
-                    contracts.Add(interfaceType);
-                }
+                contracts.Add(interfaceType);
             }
 
             var currentBase = implementationType.BaseType;
@@ -141,6 +139,7 @@ internal static class ReflectionRegistration
             }
         }
     }
+    #pragma warning restore S3776
 
     private static bool IsInjectableImplementation(Type type)
     {
