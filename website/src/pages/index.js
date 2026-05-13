@@ -30,6 +30,123 @@ function HomepageHeader() {
   );
 }
 
+const BadgeGroups = [
+  [
+    {
+      alt: 'CI/CD Pipeline',
+      img: 'https://github.com/schivei/GenDI/actions/workflows/ci-cd.yml/badge.svg',
+      href: 'https://github.com/schivei/GenDI/actions/workflows/ci-cd.yml',
+    },
+    {
+      alt: 'Deploy Documentation',
+      img: 'https://github.com/schivei/GenDI/actions/workflows/deploy-docs.yml/badge.svg',
+      href: 'https://github.com/schivei/GenDI/actions/workflows/deploy-docs.yml',
+    },
+    {
+      alt: 'NuGet GenDI',
+      img: 'https://img.shields.io/nuget/v/GenDI.svg',
+      href: 'https://www.nuget.org/packages/GenDI',
+    },
+    {
+      alt: 'NuGet GenDI.SourceGenerator',
+      img: 'https://img.shields.io/nuget/v/GenDI.SourceGenerator.svg',
+      href: 'https://www.nuget.org/packages/GenDI.SourceGenerator',
+    },
+    {
+      alt: 'NuGet GenDI.Analyzers',
+      img: 'https://img.shields.io/nuget/v/GenDI.Analyzers.svg',
+      href: 'https://www.nuget.org/packages/GenDI.Analyzers',
+    },
+  ],
+  [
+    {
+      alt: 'Quality Gate Status',
+      img: 'https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=alert_status',
+      href: 'https://sonarcloud.io/summary/new_code?id=schivei_GenDI',
+    },
+    {
+      alt: 'Bugs',
+      img: 'https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=bugs',
+      href: 'https://sonarcloud.io/summary/new_code?id=schivei_GenDI',
+    },
+    {
+      alt: 'Code Smells',
+      img: 'https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=code_smells',
+      href: 'https://sonarcloud.io/summary/new_code?id=schivei_GenDI',
+    },
+    {
+      alt: 'Coverage',
+      img: 'https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=coverage',
+      href: 'https://sonarcloud.io/summary/new_code?id=schivei_GenDI',
+    },
+    {
+      alt: 'Duplicated Lines (%)',
+      img: 'https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=duplicated_lines_density',
+      href: 'https://sonarcloud.io/summary/new_code?id=schivei_GenDI',
+    },
+    {
+      alt: 'Lines of Code',
+      img: 'https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=ncloc',
+      href: 'https://sonarcloud.io/summary/new_code?id=schivei_GenDI',
+    },
+    {
+      alt: 'Reliability Rating',
+      img: 'https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=reliability_rating',
+      href: 'https://sonarcloud.io/summary/new_code?id=schivei_GenDI',
+    },
+    {
+      alt: 'Security Rating',
+      img: 'https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=security_rating',
+      href: 'https://sonarcloud.io/summary/new_code?id=schivei_GenDI',
+    },
+    {
+      alt: 'Technical Debt',
+      img: 'https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=sqale_index',
+      href: 'https://sonarcloud.io/summary/new_code?id=schivei_GenDI',
+    },
+    {
+      alt: 'Maintainability Rating',
+      img: 'https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=sqale_rating',
+      href: 'https://sonarcloud.io/summary/new_code?id=schivei_GenDI',
+    },
+    {
+      alt: 'Vulnerabilities',
+      img: 'https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=vulnerabilities',
+      href: 'https://sonarcloud.io/summary/new_code?id=schivei_GenDI',
+    },
+  ],
+  [
+    {
+      alt: 'License: MIT',
+      img: 'https://img.shields.io/badge/License-MIT-yellow.svg',
+      href: 'https://github.com/schivei/GenDI/blob/main/LICENSE',
+    },
+    {
+      alt: 'Documentation',
+      img: 'https://img.shields.io/badge/Documentation-Website-blue',
+      href: 'https://elton.schivei.nom.br/GenDI',
+    },
+  ],
+];
+
+function HomepageBadges() {
+  return (
+    <section className={styles.badges}>
+      <div className="container">
+        {BadgeGroups.map((group, groupIndex) => (
+          <div key={`badge-group-${groupIndex}`} className={styles.badgeRow}>
+            {group.map((badge) => (
+              <a key={badge.alt} href={badge.href}>
+                <img src={badge.img} alt={badge.alt} />
+              </a>
+            ))}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 const FeatureList = [
   {
     title: 'Phase 6 Registration Model',
@@ -141,6 +258,7 @@ export default function Home() {
       description="Attribute-first DI source generator with NativeAOT and trimming-oriented behavior.">
       <HomepageHeader />
       <main>
+        <HomepageBadges />
         <HomepageFeatures />
         <QuickExample />
       </main>

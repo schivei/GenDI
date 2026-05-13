@@ -25,6 +25,24 @@
   background-color: var(--ifm-background-surface-color);
 }
 
+.badges {
+  padding: 2rem 0;
+  background-color: var(--ifm-background-color);
+}
+
+.badgeRow {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.badgeRow:last-child {
+  margin-bottom: 0;
+}
+
 .featureEmoji {
   font-size: 4rem;
   margin-bottom: 1rem;
