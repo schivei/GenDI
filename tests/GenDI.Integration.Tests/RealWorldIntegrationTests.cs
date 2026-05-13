@@ -97,7 +97,7 @@ public class RealWorldIntegrationTests
                 Assert.Null(nonMatchingProvider.GetService<IConditionalGeneratedContract>());
 
                 Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", "Development");
-                Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", null);
+                Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", string.Empty);
 
                 var matchingServices = new ServiceCollection();
                 matchingServices.AddGenDIServices();

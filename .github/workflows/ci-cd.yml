@@ -123,10 +123,6 @@ jobs:
             -assemblyfilters:"+GenDI;+GenDI.SourceGenerator"
           cat coverage-report/Summary.txt
           LINE_COV=$(grep 'Line coverage:' coverage-report/Summary.txt | sed 's/.*Line coverage: \([0-9.]*\).*/\1/')
-          if [ -z "${LINE_COV}" ]; then
-            echo "Failed to parse line coverage from summary."
-            exit 1
-          fi
           echo "Line coverage: ${LINE_COV}%"
           echo "line_coverage=${LINE_COV}" >> "$GITHUB_OUTPUT"
           {
@@ -148,6 +144,9 @@ jobs:
           LINE_COV="${{ steps.coverage.outputs.line_coverage }}"
           python3 -c "
           import sys
+          if not '${LINE_COV}':
+              print('Failed to parse line coverage from summary.')
+              sys.exit(1)
           try:
               cov = float('${LINE_COV}')
           except ValueError:
