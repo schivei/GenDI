@@ -98,6 +98,7 @@ jobs:
             "/d:sonar.token=${SONAR_TOKEN}"
             '/d:sonar.host.url=https://sonarcloud.io'
             '/d:sonar.cs.vscoveragexml.reportsPaths=coverage-merged.xml'
+            '/d:sonar.coverage.exclusions=tests/**'
           )
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             SONAR_ARGS+=(
@@ -135,6 +136,9 @@ jobs:
           dotnet-coverage collect \
             "tests/GenDI.Integration.Tests/bin/Release/net10.0/GenDI.Integration.Tests" \
             --output coverage-results/cov_integration.xml --output-format xml
+          dotnet-coverage collect \
+            "tests/GenDI.Analyzers.Tests/bin/Release/net10.0/GenDI.Analyzers.Tests" \
+            --output coverage-results/cov_analyzers.xml --output-format xml
           # Run Phase3 publish-validation tests (spawn dotnet publish internally)
           dotnet test tests/GenDI.Phase3.Validation.Tests --configuration Release --no-build --verbosity normal
 
