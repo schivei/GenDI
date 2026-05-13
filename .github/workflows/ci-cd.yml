@@ -49,6 +49,12 @@ jobs:
         with:
           dotnet-version: '10.x'
 
+      - name: Install SonarScanner for .NET
+        if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork) && env.SONAR_TOKEN != '' }}
+        run: |
+          dotnet tool install --global dotnet-sonarscanner --version "9.*"
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
       - name: Cache NuGet packages
         uses: actions/cache@v4
         with:
@@ -56,6 +62,25 @@ jobs:
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
+
+      - name: SonarQube begin analysis (.NET scanner)
+        if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork) && env.SONAR_TOKEN != '' }}
+        run: |
+          SONAR_ARGS=(
+            '/k:schivei_GenDI'
+            '/o:schivei'
+            "/d:sonar.token=${SONAR_TOKEN}"
+            '/d:sonar.host.url=https://sonarcloud.io'
+            '/d:sonar.cs.vscoveragexml.reportsPaths=coverage-merged.xml'
+          )
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            SONAR_ARGS+=(
+              "/d:sonar.pullrequest.key=${{ github.event.pull_request.number }}"
+              "/d:sonar.pullrequest.branch=${{ github.head_ref }}"
+              "/d:sonar.pullrequest.base=${{ github.base_ref }}"
+            )
+          fi
+          dotnet sonarscanner begin "${SONAR_ARGS[@]}"
 
       - name: Restore dependencies
         run: dotnet restore GenDI.slnx
@@ -210,15 +235,9 @@ jobs:
           path: BenchmarkDotNet.Artifacts/results/*
           retention-days: 14
 
-      - name: SonarQube analysis
+      - name: SonarQube end analysis (.NET scanner)
         if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork) && env.SONAR_TOKEN != '' }}
-        uses: SonarSource/sonarqube-scan-action@v6
-        with:
-          args: >
-            -Dsonar.cs.vscoveragexml.reportsPaths=coverage-merged.xml
-        env:
-          SONAR_HOST_URL: https://sonarcloud.io
-          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+        run: dotnet sonarscanner end /d:sonar.token="${SONAR_TOKEN}"
 
   package:
     name: Build and Package
