@@ -32,34 +32,34 @@ function HomepageHeader() {
 
 const FeatureList = [
   {
-    title: 'Attribute-Only Registration',
-    emoji: '🏷️',
-    description: 'Register services with [Injectable] and [ServiceInjection] without marker interfaces or runtime reflection.',
+    title: 'Phase 6 Registration Model',
+    emoji: '🚀',
+    description: 'Use RM-01..RM-12 features in one generator flow: optional injection, conditional registration, decorators, options, factories and modules.',
   },
   {
-    title: 'NativeAOT Focus',
-    emoji: '⚡',
-    description: 'Generated constructors and init-property injection are designed for trimming and NativeAOT publish scenarios.',
+    title: 'Factory + Module Paradigm',
+    emoji: '🏗️',
+    description: 'Prefer [InjectableFactory<TService>] for explicit contracts and compose bounded registrations with [InjectableModule].',
   },
   {
-    title: 'Deterministic Ordering',
-    emoji: '📐',
-    description: 'Control precedence with Group and Order, with a stable ordinal service-name fallback for predictable pipelines.',
+    title: 'Open-Generic Guardrails',
+    emoji: '🛡️',
+    description: 'Open-generic generation paths are bypassed by design and surfaced as generator warning GENDISG001 for safe NativeAOT-first behavior.',
   },
   {
-    title: 'Coverage Control',
-    emoji: '🧪',
-    description: 'Use [assembly: GenDICoveration(...)] to include or exclude generated extension code in coverage reports.',
+    title: 'Environment + Decorator Support',
+    emoji: '🌍',
+    description: 'Activate services by environment with [ConditionalInjectable] and wrap contracts with [DecoratorFor<TService>] in generated registrations.',
   },
   {
-    title: 'Generator + Microsoft DI',
+    title: 'Options + Microsoft DI',
     emoji: '🧩',
-    description: 'Generated AddGenDIServices() integrates directly with Microsoft.Extensions.DependencyInjection.',
+    description: 'Bind configuration to IOptions<T> via [OptionConfig] and keep native integration with Microsoft.Extensions.DependencyInjection.',
   },
   {
-    title: 'Validation Projects Included',
+    title: 'Documentation + CI Visibility',
     emoji: '✅',
-    description: 'Repository includes source-generator tests, real integration tests, trim publish tests, and NativeAOT publish tests.',
+    description: 'Website/docs now cover RM-01..RM-12 and CI publishes coverage summary with SonarScanner for .NET in the pipeline.',
   },
 ];
 
@@ -103,20 +103,31 @@ function QuickExample() {
       <div className="container">
         <Heading as="h2" className="text--center margin-bottom--lg">Quick Example</Heading>
         <pre>
-          <code className="language-csharp">{`[assembly: GenDI.GenDICoveration(true)]
+          <code className="language-csharp">{`[ServiceInjection]
+public interface IOrderService { }
 
-[ServiceInjection]
-public interface IMyService { }
-
-[Injectable<IMyService>(ServiceLifetime.Singleton, Group = 10, Order = 1)]
-public sealed class MyService(IDependency dep) : IMyService
+[Injectable<IOrderService>(ServiceLifetime.Scoped, Module = "sales")]
+[ConditionalInjectable("Production")]
+public sealed partial class OrderService : IOrderService
 {
-    [Inject]
-    public required IOtherService OtherService { get; init; }
+    [InjectOptional]
+    public ILogger<OrderService>? Logger { get; init; }
 }
 
-services.AddGenDIServices();`}</code>
+[OptionConfig("Sales:Api")]
+public sealed class SalesApiOptions;
+
+[InjectableFactory<IClock>(ServiceLifetime.Singleton)]
+public static partial class ClockFactory
+{
+    public static IClock Create() => SystemClock.Instance;
+}
+
+services.AddGenDIServices(modules: "sales");`}</code>
         </pre>
+        <p className="text--center margin-top--md">
+          <Link to="/docs/advanced/registration-model-rm08-rm12">See full RM-01..RM-12 guide</Link>
+        </p>
       </div>
     </section>
   );
