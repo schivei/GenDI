@@ -6,7 +6,6 @@
 [![Deploy Documentation](https://github.com/schivei/GenDI/actions/workflows/deploy-docs.yml/badge.svg)](https://github.com/schivei/GenDI/actions/workflows/deploy-docs.yml)
 [![NuGet GenDI](https://img.shields.io/nuget/v/GenDI.svg)](https://www.nuget.org/packages/GenDI)
 [![NuGet GenDI.SourceGenerator](https://img.shields.io/nuget/v/GenDI.SourceGenerator.svg)](https://www.nuget.org/packages/GenDI.SourceGenerator)
-[![NuGet GenDI.Analyzers](https://img.shields.io/nuget/v/GenDI.Analyzers.svg)](https://www.nuget.org/packages/GenDI.Analyzers)
 
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
