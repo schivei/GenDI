@@ -1130,4 +1130,80 @@ public class SharedGeneratorBehaviorTests
                 && diagnostic.GetMessage().Contains("Decorator target contract discovery", StringComparison.Ordinal)
         );
     }
+
+    [Fact]
+    public void Open_generic_explicit_decorator_contract_is_bypassed_with_warning()
+    {
+        GeneratorTestHelper.AssertNoSourceGenerated(
+            """
+            namespace OpenExplicitDecoratorCase;
+
+            public interface IContract<T>
+            {
+            }
+
+            [DecoratorFor<IContract<T>>]
+            public sealed class OpenDecorator<T>(IContract<T> inner) : IContract<T>
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        var diagnostics = GeneratorTestHelper.GetGeneratorDiagnostics(
+            """
+            namespace OpenExplicitDecoratorCase;
+
+            public interface IContract<T>
+            {
+            }
+
+            [DecoratorFor<IContract<T>>]
+            public sealed class OpenDecorator<T>(IContract<T> inner) : IContract<T>
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            diagnostics,
+            static diagnostic =>
+                diagnostic.Id == "GENDISG001"
+                && diagnostic.Severity == DiagnosticSeverity.Warning
+                && diagnostic.GetMessage().Contains("Decorator target contract discovery", StringComparison.Ordinal)
+        );
+    }
+
+    [Fact]
+    public void Non_generic_decorator_infers_closed_service_injection_base_contract()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace BaseDecoratorContractCase;
+
+            [ServiceInjection]
+            public abstract class ContractBase
+            {
+            }
+
+            [Injectable(ServiceLifetime.Singleton)]
+            public sealed class ConcreteContract : ContractBase
+            {
+            }
+
+            [DecoratorFor]
+            public sealed class LoggingDecorator(ContractBase inner) : ContractBase
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "new global::BaseDecoratorContractCase.LoggingDecorator((new global::BaseDecoratorContractCase.ConcreteContract()))",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
 }
