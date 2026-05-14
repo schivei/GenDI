@@ -108,6 +108,8 @@ That single call includes all services discovered by GenDI (including referenced
 
 ## ▶️ Step 4: Consume in endpoint/controller
 
+Assumindo que `var app = builder.Build();` já foi executado antes deste trecho:
+
 ```csharp
 app.MapPost("/orders/{id:guid}", async (Guid id, IOrderService orders, CancellationToken ct) =>
 {
@@ -151,6 +153,9 @@ Use when you need selective registration by bounded context:
 ```csharp
 builder.Services.AddGenDIServices("Billing", "Orders");
 ```
+
+When module filters are provided, registrations without `Module` are omitted from the generated call.
+In the example above, `EmailNotificationService` and `OrderService` are only included when using `AddGenDIServices()` without module filters (or after assigning them to a module).
 
 ## 📝 Common decisions
 
