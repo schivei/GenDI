@@ -297,6 +297,69 @@ public class InjectableUsageAnalyzerTests
     }
 
     [Fact]
+    public void Non_generic_decorator_can_infer_closed_service_injection_base_contract()
+    {
+        var diagnostics = AnalyzerTestHelper.Run(
+            """
+            [ServiceInjection]
+            public abstract class ServiceContractBase
+            {
+            }
+
+            [DecoratorFor]
+            public sealed class ValidDecorator(ServiceContractBase inner) : ServiceContractBase
+            {
+            }
+            """
+        );
+
+        Assert.DoesNotContain(diagnostics, static diagnostic => diagnostic.Id == "GENDI004");
+        Assert.DoesNotContain(diagnostics, static diagnostic => diagnostic.Id == "GENDI005");
+    }
+
+    [Fact]
+    public void Decorator_with_matching_inject_init_property_does_not_report_error()
+    {
+        var diagnostics = AnalyzerTestHelper.Run(
+            """
+            [ServiceInjection]
+            public interface IServiceContract
+            {
+            }
+
+            [DecoratorFor<IServiceContract>]
+            public sealed class ValidDecorator : IServiceContract
+            {
+                [Inject]
+                public required IServiceContract Inner { get; init; }
+            }
+            """
+        );
+
+        Assert.DoesNotContain(diagnostics, static diagnostic => diagnostic.Id == "GENDI005");
+    }
+
+    [Fact]
+    public void Non_generic_decorator_with_only_open_generic_contract_reports_resolvable_contract_error()
+    {
+        var diagnostics = AnalyzerTestHelper.Run(
+            """
+            [ServiceInjection]
+            public interface IServiceContract<T>
+            {
+            }
+
+            [DecoratorFor]
+            public sealed class InvalidDecorator<T>(IServiceContract<T> inner) : IServiceContract<T>
+            {
+            }
+            """
+        );
+
+        Assert.Contains(diagnostics, static diagnostic => diagnostic.Id == "GENDI004");
+    }
+
+    [Fact]
     public void Decorator_inner_dependency_must_match_generator_selected_constructor()
     {
         var diagnostics = AnalyzerTestHelper.Run(
