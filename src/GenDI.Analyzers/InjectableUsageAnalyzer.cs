@@ -295,12 +295,11 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
         INamedTypeSymbol serviceType
     )
     {
-        return decoratorType
-                .InstanceConstructors.Where(static constructor =>
-                    constructor.DeclaredAccessibility == Accessibility.Public
-                )
-                .SelectMany(static constructor => constructor.Parameters)
-                .Any(parameter => SymbolEqualityComparer.Default.Equals(parameter.Type, serviceType))
+        var constructor = GetPreferredPublicConstructor(decoratorType);
+        return (constructor is not null
+                && constructor.Parameters.Any(parameter =>
+                    SymbolEqualityComparer.Default.Equals(parameter.Type, serviceType)
+                ))
             || decoratorType
                 .GetMembers()
                 .OfType<IPropertySymbol>()
@@ -313,6 +312,16 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
                     && SymbolEqualityComparer.Default.Equals(property.Type, serviceType)
                     && HasInjectAttribute(property)
                 );
+    }
+
+    private static IMethodSymbol? GetPreferredPublicConstructor(INamedTypeSymbol decoratorType)
+    {
+        return decoratorType
+            .InstanceConstructors.Where(static constructor =>
+                constructor.DeclaredAccessibility == Accessibility.Public
+            )
+            .OrderByDescending(static constructor => constructor.Parameters.Length)
+            .FirstOrDefault();
     }
 
     private static bool IsOpenGeneric(INamedTypeSymbol symbol)

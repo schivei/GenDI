@@ -556,6 +556,93 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
+    public void DecoratorFor_applies_pipeline_only_to_final_unkeyed_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace DecoratorMulti;
+
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>(ServiceLifetime.Singleton)]
+            public sealed class FirstImplementation : IContract
+            {
+            }
+
+            [Injectable<IContract>(ServiceLifetime.Singleton)]
+            public sealed class SecondImplementation : IContract
+            {
+            }
+
+            [DecoratorFor<IContract>]
+            public sealed class LoggingDecorator(IContract inner) : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "new global::DecoratorMulti.FirstImplementation()",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "new global::DecoratorMulti.LoggingDecorator((new global::DecoratorMulti.SecondImplementation()))",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Equal(
+            1,
+            generatedSource.Split(
+                    "new global::DecoratorMulti.LoggingDecorator(",
+                    StringSplitOptions.None
+                )
+                .Length - 1
+        );
+    }
+
+    [Fact]
+    public void DecoratorFor_uses_injectable_order_as_fallback_when_decorator_order_is_omitted()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace DecoratorOrderFallback;
+
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>(ServiceLifetime.Singleton)]
+            public sealed class BaseContract : IContract
+            {
+            }
+
+            [Injectable(Order = 1)]
+            [DecoratorFor<IContract>]
+            public sealed class LoggingDecorator(IContract inner) : IContract
+            {
+            }
+
+            [Injectable(Order = 2)]
+            [DecoratorFor<IContract>]
+            public sealed class ValidationDecorator(IContract inner) : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "new global::DecoratorOrderFallback.ValidationDecorator((new global::DecoratorOrderFallback.LoggingDecorator((new global::DecoratorOrderFallback.BaseContract()))))",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
     public void Inject_lifetime_override_is_used_for_indirect_registration()
     {
         var generatedSource = GeneratorTestHelper.GenerateSource(
@@ -978,6 +1065,52 @@ public class SharedGeneratorBehaviorTests
                 diagnostic.Id == "GENDISG001"
                 && diagnostic.Severity == DiagnosticSeverity.Warning
                 && diagnostic.GetMessage().Contains("Injectable class registration", StringComparison.Ordinal)
+        );
+    }
+
+    [Fact]
+    public void Open_generic_inferred_decorator_contract_is_bypassed_with_warning()
+    {
+        GeneratorTestHelper.AssertNoSourceGenerated(
+            """
+            namespace OpenDecoratorCase;
+
+            [ServiceInjection]
+            public interface IContract<T>
+            {
+            }
+
+            [DecoratorFor]
+            public sealed class OpenDecorator<T>(IContract<T> inner) : IContract<T>
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        var diagnostics = GeneratorTestHelper.GetGeneratorDiagnostics(
+            """
+            namespace OpenDecoratorCase;
+
+            [ServiceInjection]
+            public interface IContract<T>
+            {
+            }
+
+            [DecoratorFor]
+            public sealed class OpenDecorator<T>(IContract<T> inner) : IContract<T>
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            diagnostics,
+            static diagnostic =>
+                diagnostic.Id == "GENDISG001"
+                && diagnostic.Severity == DiagnosticSeverity.Warning
+                && diagnostic.GetMessage().Contains("Decorator target contract discovery", StringComparison.Ordinal)
         );
     }
 }

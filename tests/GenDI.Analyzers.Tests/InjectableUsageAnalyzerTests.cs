@@ -297,6 +297,33 @@ public class InjectableUsageAnalyzerTests
     }
 
     [Fact]
+    public void Decorator_inner_dependency_must_match_generator_selected_constructor()
+    {
+        var diagnostics = AnalyzerTestHelper.Run(
+            """
+            [ServiceInjection]
+            public interface IServiceContract
+            {
+            }
+
+            [DecoratorFor<IServiceContract>]
+            public sealed class InvalidDecorator : IServiceContract
+            {
+                public InvalidDecorator(IServiceContract inner)
+                {
+                }
+
+                public InvalidDecorator(IServiceProvider serviceProvider, IDisposable dependency)
+                {
+                }
+            }
+            """
+        );
+
+        Assert.Contains(diagnostics, static diagnostic => diagnostic.Id == "GENDI005");
+    }
+
+    [Fact]
     public void Constructor_with_logic_does_not_report_code_fix_hint()
     {
         var diagnostics = AnalyzerTestHelper.Run(

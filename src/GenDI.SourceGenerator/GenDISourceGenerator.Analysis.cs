@@ -301,6 +301,7 @@ public sealed partial class GenDISourceGenerator
                     existingRegistration.EnvironmentName,
                     existingRegistration.ModuleName
                 );
+                break;
             }
         }
     }
@@ -707,9 +708,15 @@ public sealed partial class GenDISourceGenerator
     {
         foreach (var concreteType in concreteTypes)
         {
+            var hasInferredDecoratorTarget = false;
             foreach (var attributeData in concreteType.GetAttributes())
             {
                 var attributeClass = attributeData.AttributeClass;
+                if (attributeClass?.ToDisplayString() == "GenDI.DecoratorForAttribute")
+                {
+                    hasInferredDecoratorTarget = true;
+                }
+
                 if (
                     attributeClass?.OriginalDefinition.ToDisplayString()
                         != "GenDI.DecoratorForAttribute<TService>"
@@ -721,6 +728,23 @@ public sealed partial class GenDISourceGenerator
                     continue;
                 }
 
+                yield return BuildOpenGenericBypassWarning(
+                    concreteType,
+                    "Decorator target contract discovery"
+                );
+            }
+
+            if (!hasInferredDecoratorTarget)
+            {
+                continue;
+            }
+
+            var inferredContracts = GetServiceInjectionContracts(concreteType);
+            if (
+                inferredContracts.Any(static contract => !IsClosedType(contract))
+                && !inferredContracts.Any(IsClosedType)
+            )
+            {
                 yield return BuildOpenGenericBypassWarning(
                     concreteType,
                     "Decorator target contract discovery"
@@ -753,7 +777,7 @@ public sealed partial class GenDISourceGenerator
                     new DecoratorTarget(
                         serviceType,
                         serviceType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                        GetDecoratorOrder(attributeData)
+                        GetDecoratorOrder(symbol, attributeData)
                     )
                 );
                 continue;
@@ -775,7 +799,7 @@ public sealed partial class GenDISourceGenerator
                 new DecoratorTarget(
                     inferredTarget,
                     inferredTarget.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                    GetDecoratorOrder(attributeData)
+                    GetDecoratorOrder(symbol, attributeData)
                 )
             );
         }
@@ -887,14 +911,14 @@ public sealed partial class GenDISourceGenerator
             );
     }
 
-    private static ImmutableArray<INamedTypeSymbol> GetClosedServiceInjectionContracts(
+    private static ImmutableArray<INamedTypeSymbol> GetServiceInjectionContracts(
         INamedTypeSymbol symbol
     )
     {
         var serviceTypes = ImmutableArray.CreateBuilder<INamedTypeSymbol>();
         foreach (var interfaceSymbol in symbol.AllInterfaces)
         {
-            if (HasServiceInjectionAttribute(interfaceSymbol) && IsClosedType(interfaceSymbol))
+            if (HasServiceInjectionAttribute(interfaceSymbol))
             {
                 serviceTypes.Add(interfaceSymbol);
             }
@@ -903,7 +927,7 @@ public sealed partial class GenDISourceGenerator
         var baseType = symbol.BaseType;
         while (baseType is not null && baseType.SpecialType != SpecialType.System_Object)
         {
-            if (HasServiceInjectionAttribute(baseType) && IsClosedType(baseType))
+            if (HasServiceInjectionAttribute(baseType))
             {
                 serviceTypes.Add(baseType);
             }
@@ -917,7 +941,16 @@ public sealed partial class GenDISourceGenerator
             .ToImmutableArray();
     }
 
-    private static int GetDecoratorOrder(AttributeData attributeData)
+    private static ImmutableArray<INamedTypeSymbol> GetClosedServiceInjectionContracts(
+        INamedTypeSymbol symbol
+    )
+    {
+        return GetServiceInjectionContracts(symbol)
+            .Where(IsClosedType)
+            .ToImmutableArray();
+    }
+
+    private static int GetDecoratorOrder(INamedTypeSymbol symbol, AttributeData attributeData)
     {
         foreach (var namedArgument in attributeData.NamedArguments)
         {
@@ -927,7 +960,9 @@ public sealed partial class GenDISourceGenerator
             }
         }
 
-        return DefaultOrderingValue;
+        return TryGetInjectableAttribute(symbol, out var injectableMetadata)
+            ? injectableMetadata.Order
+            : DefaultOrderingValue;
     }
 
     private static string ResolveRegistrationLifetime(

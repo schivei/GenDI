@@ -113,7 +113,10 @@ Cross-cutting behavior should not pollute core service logic.
 
 ```csharp
 [ServiceInjection]
-public interface IInventoryService;
+public interface IInventoryService
+{
+    Task ReserveAsync(Guid orderId, CancellationToken ct = default);
+}
 
 [Injectable(ServiceLifetime.Scoped)]
 public sealed class InventoryService : IInventoryService
@@ -138,6 +141,9 @@ public sealed class InventoryLoggingDecorator(
 public sealed class InventoryValidationDecorator : IInventoryService
 {
     [Inject] public required IInventoryService Inner { get; init; }
+
+    public Task ReserveAsync(Guid orderId, CancellationToken ct = default) =>
+        Inner.ReserveAsync(orderId, ct);
 }
 ```
 
