@@ -713,8 +713,8 @@ public sealed partial class GenDISourceGenerator
             foreach (
                 var attributeClass in concreteType
                     .GetAttributes()
-                    .Select(static attributeData => attributeData.AttributeClass)
-                    .OfType<INamedTypeSymbol>()
+                    .Where(static attributeData => attributeData.AttributeClass is not null)
+                    .Select(static attributeData => attributeData.AttributeClass!)
             )
             {
                 if (attributeClass.ToDisplayString() == "GenDI.DecoratorForAttribute")

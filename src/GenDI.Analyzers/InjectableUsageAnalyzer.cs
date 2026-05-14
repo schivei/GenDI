@@ -224,8 +224,8 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
         foreach (
             var attributeClass in typeSymbol
                 .GetAttributes()
-                .Select(static attributeData => attributeData.AttributeClass)
-                .OfType<INamedTypeSymbol>()
+                .Where(static attributeData => attributeData.AttributeClass is not null)
+                .Select(static attributeData => attributeData.AttributeClass!)
         )
         {
             if (
@@ -259,7 +259,7 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
         IEnumerable<INamedTypeSymbol> decoratedContracts
     )
     {
-        return decoratedContracts.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>();
+        return decoratedContracts.Distinct<INamedTypeSymbol>(SymbolEqualityComparer.Default);
     }
 
     private static ImmutableArray<INamedTypeSymbol> GetClosedServiceInjectionContracts(
