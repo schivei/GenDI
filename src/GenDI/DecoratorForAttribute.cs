@@ -8,7 +8,7 @@ namespace GenDI;
 public sealed class DecoratorForAttribute : Attribute
 {
     /// <summary>
-    /// Explicit service contract for non-generic usage. Always <see langword="null"/>.
+    /// Explicit service contract for non-generic usage. Always returns <see langword="null"/>.
     /// Use <see cref="DecoratorForAttribute{TService}"/> to define an explicit contract safely.
     /// </summary>
     #pragma warning disable CA1822 // kept as instance member for API parity with generic variant

@@ -211,10 +211,10 @@ public class InjectableUsageAnalyzerTests
         var diagnostic003 = Assert.Single(
             constructorDiagnostics.Where(static diagnostic => diagnostic.Id == "GENDI003")
         );
-        var diagnostic004 = Assert.Single(
+        var inferredDecoratorInnerDiagnostic = Assert.Single(
             inferredDecoratorDiagnostics.Where(static diagnostic => diagnostic.Id == "GENDI005")
         );
-        var diagnostic005 = Assert.Single(
+        var explicitDecoratorInnerDiagnostic = Assert.Single(
             unresolvedDecoratorDiagnostics.Where(static diagnostic => diagnostic.Id == "GENDI005")
         );
 
@@ -232,11 +232,11 @@ public class InjectableUsageAnalyzerTests
         );
         Assert.Equal(
             "https://github.com/schivei/GenDI/blob/main/docs/ANALYZER_DIAGNOSTICS.md#gendi005---decorator-requires-an-inner-dependency",
-            diagnostic004.Descriptor.HelpLinkUri
+            inferredDecoratorInnerDiagnostic.Descriptor.HelpLinkUri
         );
         Assert.Equal(
             "https://github.com/schivei/GenDI/blob/main/docs/ANALYZER_DIAGNOSTICS.md#gendi005---decorator-requires-an-inner-dependency",
-            diagnostic005.Descriptor.HelpLinkUri
+            explicitDecoratorInnerDiagnostic.Descriptor.HelpLinkUri
         );
     }
 

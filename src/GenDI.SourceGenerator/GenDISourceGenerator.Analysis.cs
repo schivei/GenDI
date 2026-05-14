@@ -271,7 +271,7 @@ public sealed partial class GenDISourceGenerator
                 .OrderByDescending(static constructorSymbol => constructorSymbol.Parameters.Length)
                 .FirstOrDefault();
 
-            for (var i = 0; i < registrations.Count; i++)
+            for (var i = registrations.Count - 1; i >= 0; i--)
             {
                 var existingRegistration = registrations[i];
                 if (
