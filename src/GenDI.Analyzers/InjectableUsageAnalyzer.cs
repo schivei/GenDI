@@ -256,7 +256,7 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
     }
 
     private static IEnumerable<INamedTypeSymbol> GetDistinctDecoratorContracts(
-        ImmutableArray<INamedTypeSymbol>.Builder decoratedContracts
+        IEnumerable<INamedTypeSymbol> decoratedContracts
     )
     {
         return decoratedContracts.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>();
@@ -269,8 +269,8 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
         var serviceContracts = ImmutableArray.CreateBuilder<INamedTypeSymbol>();
 
         foreach (
-            var interfaceSymbol in symbol.AllInterfaces.Where(interfaceSymbol =>
-                HasServiceInjectionAttribute(interfaceSymbol) && !IsOpenGeneric(interfaceSymbol)
+            var interfaceSymbol in symbol.AllInterfaces.Where(iface =>
+                HasServiceInjectionAttribute(iface) && !IsOpenGeneric(iface)
             )
         )
         {
