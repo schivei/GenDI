@@ -36,7 +36,7 @@ For the full phase-by-phase checklist, see [`ROADMAP.md`](https://github.com/sch
 - ✅ Module-based grouping with `[InjectableModule]`
 
 Detailed notes for delivered RM-01..RM-12:
-- [RM-01..RM-12 registration model details](../advanced/registration-model-rm08-rm12)
+- [RM-01..RM-12 registration model details](../advanced/registration-model-rm01-rm12)
 
 ### 🌐 Platform support
 - Blazor WebAssembly validated property injection

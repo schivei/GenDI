@@ -161,4 +161,4 @@ builder.Services.AddGenDIServices("Billing", "Orders");
 
 For detailed advanced behavior (RM-01..RM-12), see:
 
-- [RM-01 to RM-12 — Detailed registration model notes](../advanced/registration-model-rm08-rm12)
+- [RM-01 to RM-12 — Detailed registration model notes](../advanced/registration-model-rm01-rm12)

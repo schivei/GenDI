@@ -172,5 +172,5 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
 
 ## 8) Referência detalhada das entregas RM-01..RM-12
 
-- Documentação técnica detalhada: [REGISTRATION_MODEL_RM08_RM12.md](./REGISTRATION_MODEL_RM08_RM12.md) (consolidado RM-01..RM-12)
-- Website (documentação pública): `website/docs/advanced/registration-model-rm08-rm12.md`
+- Documentação técnica detalhada: [REGISTRATION_MODEL_RM01_RM12.md](./REGISTRATION_MODEL_RM01_RM12.md) (consolidado RM-01..RM-12)
+- Website (documentação pública): `website/docs/advanced/registration-model-rm01-rm12.md`
