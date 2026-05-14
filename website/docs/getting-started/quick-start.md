@@ -108,7 +108,7 @@ That single call includes all services discovered by GenDI (including referenced
 
 ## ▶️ Step 4: Consume in endpoint/controller
 
-Assumindo que `var app = builder.Build();` já foi executado antes deste trecho:
+Assuming that `var app = builder.Build();` has already been executed before this snippet:
 
 ```csharp
 app.MapPost("/orders/{id:guid}", async (Guid id, IOrderService orders, CancellationToken ct) =>
