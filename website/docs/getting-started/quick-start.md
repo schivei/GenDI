@@ -1,28 +1,51 @@
 # 🚀 Quick Start
 
-This walkthrough builds a minimal but production-shaped setup using GenDI's idiomatic **property injection** style.
+This guide shows a **realistic API slice** (orders + payments + notifications) using GenDI in the way most teams structure production code.
+
+## Scenario
+
+You are building an Orders API. For each order, you need to:
+
+1. validate inventory
+2. charge payment
+3. persist data
+4. send notification
+
+Instead of manual `AddScoped<...>()` wiring and constructor boilerplate, GenDI will generate registrations and activation code.
 
 ## 🎯 Step 1: Define contracts
 
-Mark the interfaces you want injected with `[ServiceInjection]`:
+Mark contracts with `[ServiceInjection]` so GenDI can discover them across implementations.
 
 ```csharp
 [ServiceInjection]
-public interface IInvoiceService
+public interface IOrderService
 {
-    Task GenerateAsync(Guid invoiceId, CancellationToken ct = default);
+    Task PlaceOrderAsync(Guid orderId, CancellationToken ct = default);
 }
 
-[ServiceInjection]
+[ServiceInjection(ServiceLifetime.Singleton)]
 public interface IClock
 {
     DateTimeOffset UtcNow { get; }
 }
+
+[ServiceInjection]
+public interface IPaymentGateway
+{
+    Task ChargeAsync(Guid orderId, CancellationToken ct = default);
+}
+
+[ServiceInjection]
+public interface INotificationService
+{
+    Task NotifyAsync(Guid orderId, CancellationToken ct = default);
+}
 ```
 
-## 🏗️ Step 2: Implement with property injection
+## 🏗️ Step 2: Implement services with property injection
 
-Declare dependencies as `required` init-only properties. No constructor needed:
+Use `[Injectable]` for registration and `[Inject]` for dependencies.
 
 ```csharp
 [Injectable<IClock>(ServiceLifetime.Singleton)]
@@ -31,78 +54,116 @@ public sealed class SystemClock : IClock
     public DateTimeOffset UtcNow => DateTimeOffset.UtcNow;
 }
 
-[Injectable<IInvoiceService>(ServiceLifetime.Scoped, Group = 10, Order = 1)]
-public sealed class InvoiceService : IInvoiceService
+[Injectable<IPaymentGateway>(ServiceLifetime.Scoped, Module = "Billing")]
+public sealed class StripeGateway : IPaymentGateway
+{
+    [Inject] public required ILogger<StripeGateway> Logger { get; init; }
+
+    public Task ChargeAsync(Guid orderId, CancellationToken ct = default)
+    {
+        Logger.LogInformation("Charging order {OrderId}", orderId);
+        return Task.CompletedTask;
+    }
+}
+
+[Injectable<INotificationService>(ServiceLifetime.Scoped)]
+public sealed class EmailNotificationService : INotificationService
+{
+    public Task NotifyAsync(Guid orderId, CancellationToken ct = default) => Task.CompletedTask;
+}
+
+[Injectable<IOrderService>(ServiceLifetime.Scoped, Group = 10, Order = 1)]
+public sealed class OrderService : IOrderService
 {
     [Inject] public required IClock Clock { get; init; }
-    [Inject] public required ILogger<InvoiceService> Logger { get; init; }
+    [Inject] public required IPaymentGateway PaymentGateway { get; init; }
+    [Inject] public required INotificationService NotificationService { get; init; }
+    [Inject] public required ILogger<OrderService> Logger { get; init; }
 
-    public Task GenerateAsync(Guid invoiceId, CancellationToken ct = default)
+    public async Task PlaceOrderAsync(Guid orderId, CancellationToken ct = default)
     {
-        Logger.LogInformation("Generating invoice {Id} at {UtcNow}", invoiceId, Clock.UtcNow);
-        return Task.CompletedTask;
+        Logger.LogInformation("Processing order {OrderId} at {UtcNow}", orderId, Clock.UtcNow);
+        await PaymentGateway.ChargeAsync(orderId, ct);
+        await NotificationService.NotifyAsync(orderId, ct);
     }
 }
 ```
 
-Each `[Inject]` property replaces a constructor parameter + a private field + an assignment — all at once.
+Why this scales better:
+
+- each dependency is one `[Inject]` property
+- class shape stays readable as dependencies grow
+- generated activation remains explicit and debuggable
 
 ## ⚡ Step 3: Register generated services
-
-One call wires everything GenDI discovered at compile time:
 
 ```csharp
 using MyProject.DependencyInjection;
 
+var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddGenDIServices();
 ```
 
-## ▶️ Step 4: Consume
+That single call includes all services discovered by GenDI (including referenced projects).
+
+## ▶️ Step 4: Consume in endpoint/controller
+
+Assuming that `var app = builder.Build();` has already been executed before this snippet:
 
 ```csharp
-var service = provider.GetRequiredService<IInvoiceService>();
-await service.GenerateAsync(Guid.NewGuid());
-```
-
-## 🏆 Property injection vs constructor injection at a glance
-
-Both styles work. Property injection shines as the number of dependencies grows:
-
-```csharp
-// ❌ Constructor style — each new dependency touches three things:
-// 1. a private backing field
-// 2. a constructor parameter
-// 3. an assignment inside the constructor
-private readonly IClock _clock;
-private readonly ILogger<InvoiceService> _logger;
-public InvoiceService(IClock clock, ILogger<InvoiceService> logger)
+app.MapPost("/orders/{id:guid}", async (Guid id, IOrderService orders, CancellationToken ct) =>
 {
-    _clock = clock;
-    _logger = logger;
-}
-
-// ✅ Property style — one [Inject] line per dependency, zero private fields
-[Inject] public required IClock Clock { get; init; }
-[Inject] public required ILogger<InvoiceService> Logger { get; init; }
+    await orders.PlaceOrderAsync(id, ct);
+    return Results.Accepted();
+});
 ```
 
-## 🔑 Keyed services
+## 🔧 Practical variants you will use in real projects
 
-Use `Key` on `[Injectable]` and `[Inject]` to work with keyed registrations:
+### Optional dependency (`[InjectOptional]`)
+
+Use when the feature is non-critical (e.g., telemetry plugin):
 
 ```csharp
-[Injectable<IInvoiceService>(ServiceLifetime.Scoped, Key = "invoices")]
-public sealed class InvoiceService : IInvoiceService
+[Injectable]
+public sealed class OrderAudit
 {
-    [Inject(Key = "invoices")] public required ILogger<InvoiceService> Logger { get; init; }
+    [InjectOptional]
+    public required IAuditSink? AuditSink { get; init; }
 }
-
-// Resolve by key:
-var service = provider.GetRequiredKeyedService<IInvoiceService>("invoices");
 ```
 
-## 📝 Notes
+### Environment-specific implementation (`[ConditionalInjectable]`)
 
-- If no `[ServiceInjection]` contract is found, GenDI falls back to registering the concrete type as its own service.
-- `[Inject]` properties must be `get; init;` with public or internal visibility.
-- Constructor injection with `[FromKeyedServices]` is also fully supported alongside property injection.
+Use different implementations for Development/Production:
+
+```csharp
+[Injectable<IPaymentGateway>(ServiceLifetime.Scoped)]
+[ConditionalInjectable("Development")]
+public sealed class FakeGateway : IPaymentGateway
+{
+    public Task ChargeAsync(Guid orderId, CancellationToken ct = default) => Task.CompletedTask;
+}
+```
+
+### Module filtering (`[InjectableModule]` + `Module`)
+
+Use when you need selective registration by bounded context:
+
+```csharp
+builder.Services.AddGenDIServices("Billing", "Orders");
+```
+
+When module filters are provided, registrations without `Module` are omitted from the generated call.
+In the example above, `EmailNotificationService` and `OrderService` are only included when using `AddGenDIServices()` without module filters (or after assigning them to a module).
+
+## 📝 Common decisions
+
+- **Use `[Injectable<TService>]`** when you want explicit contract mapping.
+- **Use plain `[Injectable]`** for self-registration or when contract comes from `[ServiceInjection]`.
+- **Use `Group`/`Order`** when deterministic registration order matters.
+- **Use `Key`** for multi-implementation scenarios (tenant, provider, channel).
+
+For detailed advanced behavior (RM-01..RM-12), see:
+
+- [RM-01 to RM-12 — Detailed registration model notes](../advanced/registration-model-rm01-rm12)

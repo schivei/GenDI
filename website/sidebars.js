@@ -32,7 +32,7 @@ const sidebars = {
         'advanced/benchmarks',
         'advanced/testing-and-validation',
         'advanced/analyzer-diagnostics',
-        'advanced/registration-model-rm08-rm12',
+        'advanced/registration-model-rm01-rm12',
       ],
     },
     {
