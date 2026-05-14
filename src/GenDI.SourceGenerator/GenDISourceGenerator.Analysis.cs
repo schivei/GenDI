@@ -301,6 +301,7 @@ public sealed partial class GenDISourceGenerator
                     existingRegistration.EnvironmentName,
                     existingRegistration.ModuleName
                 );
+                // Decorators wrap only the effective unkeyed pipeline registration for the contract.
                 break;
             }
         }
@@ -741,8 +742,8 @@ public sealed partial class GenDISourceGenerator
 
             var inferredContracts = GetServiceInjectionContracts(concreteType);
             if (
-                inferredContracts.Any(static contract => !IsClosedType(contract))
-                && !inferredContracts.Any(IsClosedType)
+                inferredContracts.Any()
+                && inferredContracts.All(static contract => !IsClosedType(contract))
             )
             {
                 yield return BuildOpenGenericBypassWarning(
