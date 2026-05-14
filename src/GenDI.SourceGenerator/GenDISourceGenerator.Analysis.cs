@@ -781,10 +781,7 @@ public sealed partial class GenDISourceGenerator
         }
 
         return targets
-            .GroupBy(
-                static target => $"{target.DisplayName}|{target.Order}",
-                StringComparer.Ordinal
-            )
+            .GroupBy(static target => (target.DisplayName, target.Order))
             .Select(static group => group.First())
             .ToImmutableArray();
     }
