@@ -52,11 +52,6 @@ const BadgeGroups = [
       img: 'https://img.shields.io/nuget/v/GenDI.SourceGenerator.svg',
       href: 'https://www.nuget.org/packages/GenDI.SourceGenerator',
     },
-    {
-      alt: 'NuGet GenDI.Analyzers',
-      img: 'https://img.shields.io/nuget/v/GenDI.Analyzers.svg',
-      href: 'https://www.nuget.org/packages/GenDI.Analyzers',
-    },
   ],
   [
     {
