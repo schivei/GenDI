@@ -224,15 +224,27 @@ For environment-conditional registration, combine `[Injectable]` with `[Conditio
 public sealed class DevOnlyService : IMyService { }
 ```
 
-For decorators, mark the wrapper with `[DecoratorFor<TService>]`:
+For decorators, mark the wrapper with `[DecoratorFor<TService>]` or let GenDI infer the
+`[ServiceInjection]` contract with non-generic `[DecoratorFor(Order = ...)]`:
 
 ```csharp
 [Injectable<IMyService>(ServiceLifetime.Singleton)]
 public sealed class CoreService : IMyService { }
 
-[DecoratorFor<IMyService>]
+[DecoratorFor<IMyService>(Order = 0)]
 public sealed class LoggingDecorator(IMyService inner) : IMyService { }
+
+[DecoratorFor(Order = 1)]
+public sealed class ValidationDecorator : IMyService
+{
+    [Inject]
+    public required IMyService Inner { get; init; }
+}
 ```
+
+Decorator pipelines are emitted statically in ascending `Order`; ties fall back to the decorator
+type name using ordinal comparison. Decorators must expose a public constructor parameter or
+`[Inject]` init-only property matching the decorated service contract.
 
 For factory registration, annotate static factory methods:
 

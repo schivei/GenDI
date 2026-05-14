@@ -212,6 +212,15 @@ public class AttributeUnitTests
     }
 
     [Fact]
+    public void DecoratorForAttribute_without_generic_contract_has_null_service_type_and_default_order()
+    {
+        var attr = new DecoratorForAttribute();
+
+        Assert.Null(attr.ServiceType);
+        Assert.Equal(InjectableAttribute.DefaultOrderingValue, attr.Order);
+    }
+
+    [Fact]
     public void OptionConfigAttribute_ctor_stores_path()
     {
         var attr = new OptionConfigAttribute("App:Feature");

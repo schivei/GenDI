@@ -62,7 +62,7 @@ public sealed class FakePaymentGateway : IPaymentGateway { }
 public sealed class StripePaymentGateway : IPaymentGateway { }
 ```
 
-## RM-03 — `[DecoratorFor<TService>]`
+## RM-03 — `[DecoratorFor<TService>]` / `[DecoratorFor(Order = ...)]`
 
 ### What it solves
 
@@ -71,10 +71,13 @@ Cross-cutting behavior should be applied around a core implementation without ch
 ### Example
 
 ```csharp
-[Injectable<IInventoryService>(ServiceLifetime.Scoped)]
-public sealed class InventoryService : IInventoryService { }
+[ServiceInjection]
+public interface IInventoryService;
 
-[DecoratorFor<IInventoryService>]
+[Injectable(ServiceLifetime.Scoped)]
+public sealed class InventoryService : IInventoryService;
+
+[DecoratorFor<IInventoryService>(Order = 0)]
 public sealed class InventoryLoggingDecorator(
     IInventoryService inner,
     ILogger<InventoryLoggingDecorator> logger) : IInventoryService
@@ -86,7 +89,19 @@ public sealed class InventoryLoggingDecorator(
         logger.LogInformation("Reserve end {OrderId}", orderId);
     }
 }
+
+[DecoratorFor(Order = 1)]
+public sealed class InventoryValidationDecorator : IInventoryService
+{
+    [Inject] public required IInventoryService Inner { get; init; }
+}
 ```
+
+Decorator pipelines are generated statically in ascending `Order`; ties fall back to ordinal
+decorator type-name ordering. The non-generic attribute resolves exactly one
+`[ServiceInjection]` contract from the decorator inheritance/implementation chain. Every decorator
+must expose a public constructor parameter or `[Inject]` init-only property matching that
+contract, otherwise the analyzer fails the build.
 
 ## RM-04 — `ServiceInjectionAttribute` lifetime fallback
 

@@ -217,15 +217,18 @@ public sealed partial class GenDISourceGenerator
 
     private sealed class DecoratorTarget
     {
-        public DecoratorTarget(INamedTypeSymbol serviceType, string displayName)
+        public DecoratorTarget(INamedTypeSymbol serviceType, string displayName, int order)
         {
             ServiceType = serviceType;
             DisplayName = displayName;
+            Order = order;
         }
 
         public INamedTypeSymbol ServiceType { get; }
 
         public string DisplayName { get; }
+
+        public int Order { get; }
     }
 
     private sealed class ImplementationCandidate

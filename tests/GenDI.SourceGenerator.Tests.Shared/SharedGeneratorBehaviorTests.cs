@@ -512,6 +512,50 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
+    public void DecoratorFor_builds_ordered_pipeline_and_infers_non_generic_contract()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace DecoratorPipeline;
+
+            [ServiceInjection]
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>(ServiceLifetime.Singleton)]
+            public sealed class BaseContract : IContract
+            {
+            }
+
+            [DecoratorFor<IContract>(Order = 0)]
+            public sealed class LoggingDecorator(IContract inner) : IContract
+            {
+            }
+
+            [DecoratorFor(Order = 1)]
+            public sealed class ValidationDecorator : IContract
+            {
+                [Inject]
+                public required IContract Inner { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "new global::DecoratorPipeline.ValidationDecorator()",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "@Inner = (new global::DecoratorPipeline.LoggingDecorator((new global::DecoratorPipeline.BaseContract())))",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
     public void Inject_lifetime_override_is_used_for_indirect_registration()
     {
         var generatedSource = GeneratorTestHelper.GenerateSource(
