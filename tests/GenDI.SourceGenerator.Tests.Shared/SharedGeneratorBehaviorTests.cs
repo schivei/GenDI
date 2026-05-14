@@ -635,8 +635,25 @@ public class SharedGeneratorBehaviorTests
             TestSettings.IncludeGeneratedCodeInCoverageAttribute
         );
 
+        var loggingIndex = generatedSource.IndexOf(
+            "new global::DecoratorOrderFallback.LoggingDecorator((new global::DecoratorOrderFallback.BaseContract()))",
+            StringComparison.Ordinal
+        );
+        var validationIndex = generatedSource.IndexOf(
+            "new global::DecoratorOrderFallback.ValidationDecorator(",
+            StringComparison.Ordinal
+        );
+
+        Assert.True(loggingIndex >= 0);
+        Assert.True(validationIndex >= 0);
+        Assert.True(validationIndex < loggingIndex);
         Assert.Contains(
-            "new global::DecoratorOrderFallback.ValidationDecorator((new global::DecoratorOrderFallback.LoggingDecorator((new global::DecoratorOrderFallback.BaseContract()))))",
+            "new global::DecoratorOrderFallback.LoggingDecorator((new global::DecoratorOrderFallback.BaseContract()))",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "new global::DecoratorOrderFallback.ValidationDecorator(",
             generatedSource,
             StringComparison.Ordinal
         );

@@ -740,7 +740,7 @@ public sealed partial class GenDISourceGenerator
                 continue;
             }
 
-            var inferredContracts = GetServiceInjectionContracts(concreteType);
+            var inferredContracts = GetAllServiceInjectionContracts(concreteType);
             if (
                 inferredContracts.Any()
                 && inferredContracts.All(static contract => !IsClosedType(contract))
@@ -912,7 +912,7 @@ public sealed partial class GenDISourceGenerator
             );
     }
 
-    private static ImmutableArray<INamedTypeSymbol> GetServiceInjectionContracts(
+    private static ImmutableArray<INamedTypeSymbol> GetAllServiceInjectionContracts(
         INamedTypeSymbol symbol
     )
     {
@@ -946,7 +946,7 @@ public sealed partial class GenDISourceGenerator
         INamedTypeSymbol symbol
     )
     {
-        return GetServiceInjectionContracts(symbol)
+        return GetAllServiceInjectionContracts(symbol)
             .Where(IsClosedType)
             .ToImmutableArray();
     }
