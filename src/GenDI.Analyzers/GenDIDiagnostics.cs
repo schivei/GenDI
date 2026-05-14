@@ -8,12 +8,13 @@ internal static class GenDIDiagnostics
     private const string AnalyzerDiagnosticsDocBaseUrl =
         "https://github.com/schivei/GenDI/blob/main/docs/ANALYZER_DIAGNOSTICS.md";
     #pragma warning restore S1075
+    private const string UsageCategory = "GenDI.Usage";
 
     public static readonly DiagnosticDescriptor InjectRequiresInitOnlyProperty = new(
         id: "GENDI001",
         title: "Inject attribute requires init-only property",
         messageFormat: "Property '{0}' uses [Inject] and must declare an init-only setter",
-        category: "GenDI.Usage",
+        category: UsageCategory,
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "GenDI property injection supports only init-only properties.",
@@ -24,7 +25,7 @@ internal static class GenDIDiagnostics
         id: "GENDI002",
         title: "Injectable attribute requires concrete class",
         messageFormat: "Type '{0}' uses [Injectable] and must be a non-abstract class",
-        category: "GenDI.Usage",
+        category: UsageCategory,
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "GenDI registers only concrete implementation types.",
@@ -36,7 +37,7 @@ internal static class GenDIDiagnostics
         title: "Constructor injection can be converted to GenDI property injection",
         messageFormat:
             "Constructor injection in '{0}' can be converted to [Inject] init-only properties",
-        category: "GenDI.Usage",
+        category: UsageCategory,
         defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true,
         description:
@@ -50,7 +51,7 @@ internal static class GenDIDiagnostics
         title: "Decorator attribute requires a resolvable service contract",
         messageFormat:
             "Decorator '{0}' must declare or infer exactly one closed [ServiceInjection] contract",
-        category: "GenDI.Usage",
+        category: UsageCategory,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
         description:
@@ -64,7 +65,7 @@ internal static class GenDIDiagnostics
         title: "Decorator requires an inner dependency",
         messageFormat:
             "Decorator '{0}' must declare a public constructor parameter or [Inject] init-only property of type '{1}'",
-        category: "GenDI.Usage",
+        category: UsageCategory,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
         description:

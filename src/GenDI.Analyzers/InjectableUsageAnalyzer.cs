@@ -170,18 +170,64 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
         INamedTypeSymbol typeSymbol
     )
     {
-        var hasDecoratorAttribute = false;
-        var requiresInferredContract = false;
-        var decoratedContracts = ImmutableArray.CreateBuilder<INamedTypeSymbol>();
-
-        foreach (var attributeData in typeSymbol.GetAttributes())
+        var decoratedContracts = GetExplicitDecoratorContracts(typeSymbol, out var requiresInferredContract);
+        if (decoratedContracts is null)
         {
-            var attributeClass = attributeData.AttributeClass;
-            if (attributeClass is null)
+            return;
+        }
+
+        if (requiresInferredContract)
+        {
+            var inferredContracts = GetClosedServiceInjectionContracts(typeSymbol);
+            if (inferredContracts.Length != 1)
+            {
+                context.ReportDiagnostic(
+                    Diagnostic.Create(
+                        GenDIDiagnostics.DecoratorRequiresResolvableContract,
+                        typeSymbol.Locations.FirstOrDefault(),
+                        typeSymbol.Name
+                    )
+                );
+                return;
+            }
+
+            decoratedContracts.Add(inferredContracts[0]);
+        }
+
+        foreach (var decoratedContract in GetDistinctDecoratorContracts(decoratedContracts))
+        {
+            if (HasResolvableInnerDependency(typeSymbol, decoratedContract))
             {
                 continue;
             }
 
+            context.ReportDiagnostic(
+                Diagnostic.Create(
+                    GenDIDiagnostics.DecoratorRequiresInnerDependency,
+                    typeSymbol.Locations.FirstOrDefault(),
+                    typeSymbol.Name,
+                    decoratedContract.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)
+                )
+            );
+        }
+    }
+
+    private static ImmutableArray<INamedTypeSymbol>.Builder? GetExplicitDecoratorContracts(
+        INamedTypeSymbol typeSymbol,
+        out bool requiresInferredContract
+    )
+    {
+        requiresInferredContract = false;
+        var decoratedContracts = ImmutableArray.CreateBuilder<INamedTypeSymbol>();
+        var hasDecoratorAttribute = false;
+
+        foreach (
+            var attributeClass in typeSymbol
+                .GetAttributes()
+                .Select(static attributeData => attributeData.AttributeClass)
+                .OfType<INamedTypeSymbol>()
+        )
+        {
             if (
                 attributeClass.OriginalDefinition.ToDisplayString()
                 == "GenDI.DecoratorForAttribute<TService>"
@@ -206,49 +252,14 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        if (!hasDecoratorAttribute)
-        {
-            return;
-        }
+        return hasDecoratorAttribute ? decoratedContracts : default;
+    }
 
-        if (requiresInferredContract)
-        {
-            var inferredContracts = GetClosedServiceInjectionContracts(typeSymbol);
-            if (inferredContracts.Length != 1)
-            {
-                context.ReportDiagnostic(
-                    Diagnostic.Create(
-                        GenDIDiagnostics.DecoratorRequiresResolvableContract,
-                        typeSymbol.Locations.FirstOrDefault(),
-                        typeSymbol.Name
-                    )
-                );
-                return;
-            }
-
-            decoratedContracts.Add(inferredContracts[0]);
-        }
-
-        foreach (
-            var decoratedContract in decoratedContracts
-                .Distinct(SymbolEqualityComparer.Default)
-                .OfType<INamedTypeSymbol>()
-        )
-        {
-            if (HasResolvableInnerDependency(typeSymbol, decoratedContract))
-            {
-                continue;
-            }
-
-            context.ReportDiagnostic(
-                Diagnostic.Create(
-                    GenDIDiagnostics.DecoratorRequiresInnerDependency,
-                    typeSymbol.Locations.FirstOrDefault(),
-                    typeSymbol.Name,
-                    decoratedContract.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)
-                )
-            );
-        }
+    private static IEnumerable<INamedTypeSymbol> GetDistinctDecoratorContracts(
+        ImmutableArray<INamedTypeSymbol>.Builder decoratedContracts
+    )
+    {
+        return decoratedContracts.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>();
     }
 
     private static ImmutableArray<INamedTypeSymbol> GetClosedServiceInjectionContracts(
@@ -256,12 +267,14 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
     )
     {
         var serviceContracts = ImmutableArray.CreateBuilder<INamedTypeSymbol>();
-        foreach (var interfaceSymbol in symbol.AllInterfaces)
+
+        foreach (
+            var interfaceSymbol in symbol.AllInterfaces.Where(interfaceSymbol =>
+                HasServiceInjectionAttribute(interfaceSymbol) && !IsOpenGeneric(interfaceSymbol)
+            )
+        )
         {
-            if (HasServiceInjectionAttribute(interfaceSymbol) && !IsOpenGeneric(interfaceSymbol))
-            {
-                serviceContracts.Add(interfaceSymbol);
-            }
+            serviceContracts.Add(interfaceSymbol);
         }
 
         var baseType = symbol.BaseType;

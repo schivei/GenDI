@@ -710,16 +710,20 @@ public sealed partial class GenDISourceGenerator
         foreach (var concreteType in concreteTypes)
         {
             var hasInferredDecoratorTarget = false;
-            foreach (var attributeData in concreteType.GetAttributes())
+            foreach (
+                var attributeClass in concreteType
+                    .GetAttributes()
+                    .Select(static attributeData => attributeData.AttributeClass)
+                    .OfType<INamedTypeSymbol>()
+            )
             {
-                var attributeClass = attributeData.AttributeClass;
-                if (attributeClass?.ToDisplayString() == "GenDI.DecoratorForAttribute")
+                if (attributeClass.ToDisplayString() == "GenDI.DecoratorForAttribute")
                 {
                     hasInferredDecoratorTarget = true;
                 }
 
                 if (
-                    attributeClass?.OriginalDefinition.ToDisplayString()
+                    attributeClass.OriginalDefinition.ToDisplayString()
                         != "GenDI.DecoratorForAttribute<TService>"
                     || attributeClass.TypeArguments.Length != 1
                     || attributeClass.TypeArguments[0] is not INamedTypeSymbol serviceType
@@ -917,12 +921,12 @@ public sealed partial class GenDISourceGenerator
     )
     {
         var serviceTypes = ImmutableArray.CreateBuilder<INamedTypeSymbol>();
-        foreach (var interfaceSymbol in symbol.AllInterfaces)
+
+        foreach (
+            var interfaceSymbol in symbol.AllInterfaces.Where(HasServiceInjectionAttribute)
+        )
         {
-            if (HasServiceInjectionAttribute(interfaceSymbol))
-            {
-                serviceTypes.Add(interfaceSymbol);
-            }
+            serviceTypes.Add(interfaceSymbol);
         }
 
         var baseType = symbol.BaseType;
