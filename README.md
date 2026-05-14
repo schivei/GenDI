@@ -224,15 +224,35 @@ For environment-conditional registration, combine `[Injectable]` with `[Conditio
 public sealed class DevOnlyService : IMyService { }
 ```
 
-For decorators, mark the wrapper with `[DecoratorFor<TService>]`:
+For decorators, mark the wrapper with `[DecoratorFor<TService>]` or let GenDI infer the
+`[ServiceInjection]` contract with non-generic `[DecoratorFor(Order = ...)]`:
 
 ```csharp
 [Injectable<IMyService>(ServiceLifetime.Singleton)]
-public sealed class CoreService : IMyService { }
+public sealed class CoreService : IMyService
+{
+    public void Execute() { }
+}
 
-[DecoratorFor<IMyService>]
-public sealed class LoggingDecorator(IMyService inner) : IMyService { }
+[DecoratorFor<IMyService>(Order = 0)]
+public sealed class LoggingDecorator(IMyService inner) : IMyService
+{
+    public void Execute() => inner.Execute();
+}
+
+[DecoratorFor(Order = 1)]
+public sealed class ValidationDecorator : IMyService
+{
+    [Inject]
+    public required IMyService Inner { get; init; }
+
+    public void Execute() => Inner.Execute();
+}
 ```
+
+Decorator pipelines are emitted statically in ascending `Order`; ties fall back to the decorator
+type name using ordinal comparison. Decorators must expose a public constructor parameter or
+`[Inject]` init-only property matching the decorated service contract.
 
 For factory registration, annotate static factory methods:
 
@@ -270,6 +290,8 @@ public MyConsumer([FromKeyedServices("primary")] IMyService service) { }
 - `GENDI001` — `[Inject]` requires `init`-only property
 - `GENDI002` — `[Injectable]` requires concrete non-abstract class
 - `GENDI003` — constructor injection can be converted to GenDI property injection (code-fix available)
+- `GENDI004` — non-generic `[DecoratorFor]` must resolve exactly one closed `[ServiceInjection]` contract
+- `GENDI005` — decorators must expose the decorated contract as a constructor parameter or `[Inject]` property
 
 Official diagnostics list:
 

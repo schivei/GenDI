@@ -15,6 +15,8 @@ GenDI ships analyzer diagnostics to guide attribute usage and migration paths.
 | `GENDI001` | Warning | `[Inject]` property must be `init`-only |
 | `GENDI002` | Warning | `[Injectable]` must target a concrete class |
 | `GENDI003` | Info | Constructor injection can be converted to GenDI property injection |
+| `GENDI004` | Error | Non-generic `[DecoratorFor]` must resolve exactly one closed `[ServiceInjection]` contract |
+| `GENDI005` | Error | Decorators must expose the decorated contract as a constructor parameter or `[Inject]` property |
 
 For the canonical details (message, trigger, fix), see:
 

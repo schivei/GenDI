@@ -175,6 +175,32 @@ public class InjectableUsageAnalyzerTests
             }
             """
         );
+        var unresolvedDecoratorDiagnostics = AnalyzerTestHelper.Run(
+            """
+            [ServiceInjection]
+            public interface IServiceContract
+            {
+            }
+
+            [DecoratorFor<IServiceContract>]
+            public sealed class InvalidDecorator : IServiceContract
+            {
+            }
+            """
+        );
+        var inferredDecoratorDiagnostics = AnalyzerTestHelper.Run(
+            """
+            [ServiceInjection]
+            public interface IServiceContract
+            {
+            }
+
+            [DecoratorFor]
+            public sealed class InvalidDecorator : IServiceContract
+            {
+            }
+            """
+        );
 
         var diagnostic001 = Assert.Single(
             nonInitDiagnostics.Where(static diagnostic => diagnostic.Id == "GENDI001")
@@ -184,6 +210,12 @@ public class InjectableUsageAnalyzerTests
         );
         var diagnostic003 = Assert.Single(
             constructorDiagnostics.Where(static diagnostic => diagnostic.Id == "GENDI003")
+        );
+        var inferredDecoratorInnerDiagnostic = Assert.Single(
+            inferredDecoratorDiagnostics.Where(static diagnostic => diagnostic.Id == "GENDI005")
+        );
+        var explicitDecoratorInnerDiagnostic = Assert.Single(
+            unresolvedDecoratorDiagnostics.Where(static diagnostic => diagnostic.Id == "GENDI005")
         );
 
         Assert.Equal(
@@ -198,6 +230,160 @@ public class InjectableUsageAnalyzerTests
             "https://github.com/schivei/GenDI/blob/main/docs/ANALYZER_DIAGNOSTICS.md#gendi003---constructor-injection-can-be-converted-to-gendi-property-injection",
             diagnostic003.Descriptor.HelpLinkUri
         );
+        Assert.Equal(
+            "https://github.com/schivei/GenDI/blob/main/docs/ANALYZER_DIAGNOSTICS.md#gendi005---decorator-requires-an-inner-dependency",
+            inferredDecoratorInnerDiagnostic.Descriptor.HelpLinkUri
+        );
+        Assert.Equal(
+            "https://github.com/schivei/GenDI/blob/main/docs/ANALYZER_DIAGNOSTICS.md#gendi005---decorator-requires-an-inner-dependency",
+            explicitDecoratorInnerDiagnostic.Descriptor.HelpLinkUri
+        );
+    }
+
+    [Fact]
+    public void Decorator_without_inner_dependency_reports_error()
+    {
+        var diagnostics = AnalyzerTestHelper.Run(
+            """
+            [ServiceInjection]
+            public interface IServiceContract
+            {
+            }
+
+            [DecoratorFor<IServiceContract>]
+            public sealed class InvalidDecorator : IServiceContract
+            {
+            }
+            """
+        );
+
+        Assert.Contains(diagnostics, static diagnostic => diagnostic.Id == "GENDI005");
+    }
+
+    [Fact]
+    public void Non_generic_decorator_without_single_service_contract_reports_error()
+    {
+        var diagnostics = AnalyzerTestHelper.Run(
+            """
+            [DecoratorFor]
+            public sealed class InvalidDecorator
+            {
+            }
+            """
+        );
+
+        Assert.Contains(diagnostics, static diagnostic => diagnostic.Id == "GENDI004");
+    }
+
+    [Fact]
+    public void Non_generic_decorator_with_matching_inner_dependency_does_not_report_error()
+    {
+        var diagnostics = AnalyzerTestHelper.Run(
+            """
+            [ServiceInjection]
+            public interface IServiceContract
+            {
+            }
+
+            [DecoratorFor]
+            public sealed class ValidDecorator(IServiceContract inner) : IServiceContract
+            {
+            }
+            """
+        );
+
+        Assert.DoesNotContain(diagnostics, static diagnostic => diagnostic.Id == "GENDI004");
+        Assert.DoesNotContain(diagnostics, static diagnostic => diagnostic.Id == "GENDI005");
+    }
+
+    [Fact]
+    public void Non_generic_decorator_can_infer_closed_service_injection_base_contract()
+    {
+        var diagnostics = AnalyzerTestHelper.Run(
+            """
+            [ServiceInjection]
+            public abstract class ServiceContractBase
+            {
+            }
+
+            [DecoratorFor]
+            public sealed class ValidDecorator(ServiceContractBase inner) : ServiceContractBase
+            {
+            }
+            """
+        );
+
+        Assert.DoesNotContain(diagnostics, static diagnostic => diagnostic.Id == "GENDI004");
+        Assert.DoesNotContain(diagnostics, static diagnostic => diagnostic.Id == "GENDI005");
+    }
+
+    [Fact]
+    public void Decorator_with_matching_inject_init_property_does_not_report_error()
+    {
+        var diagnostics = AnalyzerTestHelper.Run(
+            """
+            [ServiceInjection]
+            public interface IServiceContract
+            {
+            }
+
+            [DecoratorFor<IServiceContract>]
+            public sealed class ValidDecorator : IServiceContract
+            {
+                [Inject]
+                public required IServiceContract Inner { get; init; }
+            }
+            """
+        );
+
+        Assert.DoesNotContain(diagnostics, static diagnostic => diagnostic.Id == "GENDI005");
+    }
+
+    [Fact]
+    public void Non_generic_decorator_with_only_open_generic_contract_reports_resolvable_contract_error()
+    {
+        var diagnostics = AnalyzerTestHelper.Run(
+            """
+            [ServiceInjection]
+            public interface IServiceContract<T>
+            {
+            }
+
+            [DecoratorFor]
+            public sealed class InvalidDecorator<T>(IServiceContract<T> inner) : IServiceContract<T>
+            {
+            }
+            """
+        );
+
+        Assert.Contains(diagnostics, static diagnostic => diagnostic.Id == "GENDI004");
+    }
+
+    [Fact]
+    public void Decorator_inner_dependency_must_match_generator_selected_constructor()
+    {
+        var diagnostics = AnalyzerTestHelper.Run(
+            """
+            [ServiceInjection]
+            public interface IServiceContract
+            {
+            }
+
+            [DecoratorFor<IServiceContract>]
+            public sealed class InvalidDecorator : IServiceContract
+            {
+                public InvalidDecorator(IServiceContract inner)
+                {
+                }
+
+                public InvalidDecorator(IServiceProvider serviceProvider, IDisposable dependency)
+                {
+                }
+            }
+            """
+        );
+
+        Assert.Contains(diagnostics, static diagnostic => diagnostic.Id == "GENDI005");
     }
 
     [Fact]

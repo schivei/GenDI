@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -13,6 +14,8 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
         GenDIDiagnostics.InjectRequiresInitOnlyProperty,
         GenDIDiagnostics.InjectableRequiresConcreteClass,
         GenDIDiagnostics.ConstructorInjectionCanBeConverted,
+        GenDIDiagnostics.DecoratorRequiresResolvableContract,
+        GenDIDiagnostics.DecoratorRequiresInnerDependency,
     ];
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => SupportedRules;
@@ -62,26 +65,23 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
 
     private static void AnalyzeNamedType(SymbolAnalysisContext context)
     {
-        if (
-            context.Symbol is not INamedTypeSymbol typeSymbol
-            || !HasInjectableAttribute(typeSymbol)
-        )
+        if (context.Symbol is not INamedTypeSymbol typeSymbol)
         {
             return;
         }
 
-        if (typeSymbol.TypeKind == TypeKind.Class && !typeSymbol.IsAbstract)
+        if (HasInjectableAttribute(typeSymbol) && !(typeSymbol.TypeKind == TypeKind.Class && !typeSymbol.IsAbstract))
         {
-            return;
+            context.ReportDiagnostic(
+                Diagnostic.Create(
+                    GenDIDiagnostics.InjectableRequiresConcreteClass,
+                    typeSymbol.Locations.FirstOrDefault(),
+                    typeSymbol.Name
+                )
+            );
         }
 
-        context.ReportDiagnostic(
-            Diagnostic.Create(
-                GenDIDiagnostics.InjectableRequiresConcreteClass,
-                typeSymbol.Locations.FirstOrDefault(),
-                typeSymbol.Name
-            )
-        );
+        AnalyzeDecoratorType(context, typeSymbol);
     }
 
     private static bool HasInjectAttribute(IPropertySymbol propertySymbol)
@@ -163,5 +163,183 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
                 constructorSymbol.ContainingType.Name
             )
         );
+    }
+
+    private static void AnalyzeDecoratorType(
+        SymbolAnalysisContext context,
+        INamedTypeSymbol typeSymbol
+    )
+    {
+        var decoratedContracts = GetExplicitDecoratorContracts(typeSymbol, out var requiresInferredContract);
+        if (decoratedContracts is null)
+        {
+            return;
+        }
+
+        if (requiresInferredContract)
+        {
+            var inferredContracts = GetClosedServiceInjectionContracts(typeSymbol);
+            if (inferredContracts.Length != 1)
+            {
+                context.ReportDiagnostic(
+                    Diagnostic.Create(
+                        GenDIDiagnostics.DecoratorRequiresResolvableContract,
+                        typeSymbol.Locations.FirstOrDefault(),
+                        typeSymbol.Name
+                    )
+                );
+                return;
+            }
+
+            decoratedContracts.Add(inferredContracts[0]);
+        }
+
+        foreach (var decoratedContract in GetDistinctDecoratorContracts(decoratedContracts))
+        {
+            if (HasResolvableInnerDependency(typeSymbol, decoratedContract))
+            {
+                continue;
+            }
+
+            context.ReportDiagnostic(
+                Diagnostic.Create(
+                    GenDIDiagnostics.DecoratorRequiresInnerDependency,
+                    typeSymbol.Locations.FirstOrDefault(),
+                    typeSymbol.Name,
+                    decoratedContract.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)
+                )
+            );
+        }
+    }
+
+    private static ImmutableArray<INamedTypeSymbol>.Builder? GetExplicitDecoratorContracts(
+        INamedTypeSymbol typeSymbol,
+        out bool requiresInferredContract
+    )
+    {
+        requiresInferredContract = false;
+        var decoratedContracts = ImmutableArray.CreateBuilder<INamedTypeSymbol>();
+        var hasDecoratorAttribute = false;
+
+        foreach (
+            var attributeClass in typeSymbol
+                .GetAttributes()
+                .Where(static attributeData => attributeData.AttributeClass is not null)
+                .Select(static attributeData => attributeData.AttributeClass!)
+        )
+        {
+            if (
+                attributeClass.OriginalDefinition.ToDisplayString()
+                == "GenDI.DecoratorForAttribute<TService>"
+            )
+            {
+                hasDecoratorAttribute = true;
+                if (
+                    attributeClass.TypeArguments.Length == 1
+                    && attributeClass.TypeArguments[0] is INamedTypeSymbol serviceType
+                )
+                {
+                    decoratedContracts.Add(serviceType);
+                }
+
+                continue;
+            }
+
+            if (attributeClass.ToDisplayString() == "GenDI.DecoratorForAttribute")
+            {
+                hasDecoratorAttribute = true;
+                requiresInferredContract = true;
+            }
+        }
+
+        return hasDecoratorAttribute ? decoratedContracts : default;
+    }
+
+    private static IEnumerable<INamedTypeSymbol> GetDistinctDecoratorContracts(
+        IEnumerable<INamedTypeSymbol> decoratedContracts
+    )
+    {
+        return decoratedContracts.Distinct<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+    }
+
+    private static ImmutableArray<INamedTypeSymbol> GetClosedServiceInjectionContracts(
+        INamedTypeSymbol symbol
+    )
+    {
+        var serviceContracts = ImmutableArray.CreateBuilder<INamedTypeSymbol>();
+
+        foreach (
+            var interfaceSymbol in symbol.AllInterfaces.Where(iface =>
+                HasServiceInjectionAttribute(iface) && !IsOpenGeneric(iface)
+            )
+        )
+        {
+            serviceContracts.Add(interfaceSymbol);
+        }
+
+        var baseType = symbol.BaseType;
+        while (baseType is not null && baseType.SpecialType != SpecialType.System_Object)
+        {
+            if (HasServiceInjectionAttribute(baseType) && !IsOpenGeneric(baseType))
+            {
+                serviceContracts.Add(baseType);
+            }
+
+            baseType = baseType.BaseType;
+        }
+
+        return serviceContracts
+            .Distinct(SymbolEqualityComparer.Default)
+            .Cast<INamedTypeSymbol>()
+            .ToImmutableArray();
+    }
+
+    private static bool HasServiceInjectionAttribute(ITypeSymbol symbol)
+    {
+        return symbol
+            .GetAttributes()
+            .Any(attributeData =>
+                attributeData.AttributeClass?.ToDisplayString() == "GenDI.ServiceInjectionAttribute"
+            );
+    }
+
+    private static bool HasResolvableInnerDependency(
+        INamedTypeSymbol decoratorType,
+        INamedTypeSymbol serviceType
+    )
+    {
+        var constructor = GetPreferredPublicConstructor(decoratorType);
+        return (constructor is not null
+                && constructor.Parameters.Any(parameter =>
+                    SymbolEqualityComparer.Default.Equals(parameter.Type, serviceType)
+                ))
+            || decoratorType
+                .GetMembers()
+                .OfType<IPropertySymbol>()
+                .Any(property =>
+                    property.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal
+                    && property.SetMethod is not null
+                    && property.SetMethod.IsInitOnly
+                    && property.SetMethod.DeclaredAccessibility
+                        is Accessibility.Public or Accessibility.Internal
+                    && SymbolEqualityComparer.Default.Equals(property.Type, serviceType)
+                    && HasInjectAttribute(property)
+                );
+    }
+
+    private static IMethodSymbol? GetPreferredPublicConstructor(INamedTypeSymbol decoratorType)
+    {
+        return decoratorType
+            .InstanceConstructors.Where(static constructor =>
+                constructor.DeclaredAccessibility == Accessibility.Public
+            )
+            .OrderByDescending(static constructor => constructor.Parameters.Length)
+            .FirstOrDefault();
+    }
+
+    private static bool IsOpenGeneric(INamedTypeSymbol symbol)
+    {
+        return symbol.IsUnboundGenericType
+            || symbol.TypeArguments.Any(static argument => argument.TypeKind == TypeKind.TypeParameter);
     }
 }

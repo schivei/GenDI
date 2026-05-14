@@ -27,3 +27,19 @@ This page is the official reference for `GenDI.Analyzers` diagnostic IDs.
 - **Message**: `Constructor injection in '{0}' can be converted to [Inject] init-only properties`
 - **When it appears**: A public constructor in an `[Injectable]` class has injectable parameters and no custom logic.
 - **How to fix**: Apply the provided code-fix to convert constructor parameters into `[Inject] required ... { get; init; }` properties.
+
+## GENDI004 - Decorator attribute requires a resolvable service contract
+
+- **Category**: `GenDI.Usage`
+- **Severity**: Error
+- **Message**: `Decorator '{0}' must declare or infer exactly one closed [ServiceInjection] contract`
+- **When it appears**: A non-generic `[DecoratorFor]` type does not implement or inherit exactly one closed `[ServiceInjection]` contract.
+- **How to fix**: Either switch to `[DecoratorFor<TService>]` or make the decorator resolve exactly one `[ServiceInjection]` contract in its inheritance/implementation chain.
+
+## GENDI005 - Decorator requires an inner dependency
+
+- **Category**: `GenDI.Usage`
+- **Severity**: Error
+- **Message**: `Decorator '{0}' must declare a public constructor parameter or [Inject] init-only property of type '{1}'`
+- **When it appears**: A decorator does not expose the decorated contract as a public constructor parameter or `[Inject]` init-only property.
+- **How to fix**: Add a matching constructor parameter or injectable init-only property so GenDI can compose the pipeline statically.

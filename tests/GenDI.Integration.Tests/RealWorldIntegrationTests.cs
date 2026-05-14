@@ -140,8 +140,9 @@ public class RealWorldIntegrationTests
         using var provider = services.BuildServiceProvider();
         var decorated = provider.GetRequiredService<IDecoratedContract>();
 
-        var outer = Assert.IsType<DecoratedContractLogger>(decorated);
-        Assert.IsType<DecoratedContractCore>(outer.Inner);
+        var outer = Assert.IsType<DecoratedContractValidator>(decorated);
+        var logging = Assert.IsType<DecoratedContractLogger>(outer.Inner);
+        Assert.IsType<DecoratedContractCore>(logging.Inner);
     }
 
     [Fact]
@@ -318,10 +319,17 @@ public interface IDecoratedContract;
 [Injectable<IDecoratedContract>(ServiceLifetime.Singleton)]
 public sealed class DecoratedContractCore : IDecoratedContract;
 
-[DecoratorFor<IDecoratedContract>]
+[DecoratorFor<IDecoratedContract>(Order = 0)]
 public sealed class DecoratedContractLogger(IDecoratedContract inner) : IDecoratedContract
 {
     public IDecoratedContract Inner { get; } = inner;
+}
+
+[DecoratorFor(Order = 1)]
+public sealed class DecoratedContractValidator : IDecoratedContract
+{
+    [Inject]
+    public required IDecoratedContract Inner { get; init; }
 }
 
 [ServiceInjection(ThreadIsolation = ThreadIsolationPolicy.Singleton)]
