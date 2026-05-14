@@ -1134,7 +1134,7 @@ public class SharedGeneratorBehaviorTests
     [Fact]
     public void Open_generic_explicit_decorator_contract_is_bypassed_with_warning()
     {
-        GeneratorTestHelper.AssertNoSourceGenerated(
+        const string source =
             """
             namespace OpenExplicitDecoratorCase;
 
@@ -1146,23 +1146,15 @@ public class SharedGeneratorBehaviorTests
             public sealed class OpenDecorator<T>(IContract<T> inner) : IContract<T>
             {
             }
-            """,
+            """;
+
+        GeneratorTestHelper.AssertNoSourceGenerated(
+            source,
             TestSettings.IncludeGeneratedCodeInCoverageAttribute
         );
 
         var diagnostics = GeneratorTestHelper.GetGeneratorDiagnostics(
-            """
-            namespace OpenExplicitDecoratorCase;
-
-            public interface IContract<T>
-            {
-            }
-
-            [DecoratorFor<IContract<T>>]
-            public sealed class OpenDecorator<T>(IContract<T> inner) : IContract<T>
-            {
-            }
-            """,
+            source,
             TestSettings.IncludeGeneratedCodeInCoverageAttribute
         );
 
