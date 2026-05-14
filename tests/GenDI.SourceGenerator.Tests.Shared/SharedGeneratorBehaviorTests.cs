@@ -6,6 +6,9 @@ namespace GenDI.SourceGenerator.Tests;
 
 public class SharedGeneratorBehaviorTests
 {
+    private const string DecoratorTargetDiscoveryWarning =
+        "Decorator target contract discovery";
+
     [Fact]
     public void Generated_extension_respects_coverage_toggle()
     {
@@ -1127,13 +1130,17 @@ public class SharedGeneratorBehaviorTests
             static diagnostic =>
                 diagnostic.Id == "GENDISG001"
                 && diagnostic.Severity == DiagnosticSeverity.Warning
-                && diagnostic.GetMessage().Contains("Decorator target contract discovery", StringComparison.Ordinal)
+                && diagnostic.GetMessage().Contains(
+                    DecoratorTargetDiscoveryWarning,
+                    StringComparison.Ordinal
+                )
         );
     }
 
     [Fact]
     public void Open_generic_explicit_decorator_contract_is_bypassed_with_warning()
     {
+        // The attribute target intentionally stays open through T so the generator emits GENDISG001.
         const string source =
             """
             namespace OpenExplicitDecoratorCase;
@@ -1163,7 +1170,10 @@ public class SharedGeneratorBehaviorTests
             static diagnostic =>
                 diagnostic.Id == "GENDISG001"
                 && diagnostic.Severity == DiagnosticSeverity.Warning
-                && diagnostic.GetMessage().Contains("Decorator target contract discovery", StringComparison.Ordinal)
+                && diagnostic.GetMessage().Contains(
+                    DecoratorTargetDiscoveryWarning,
+                    StringComparison.Ordinal
+                )
         );
     }
 
