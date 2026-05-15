@@ -201,14 +201,16 @@ public class RealWorldIntegrationTests
     }
 
     [Fact]
-    public void Indirect_closed_generic_resolution_constructs_inferred_implementation()
+    public void Indirect_open_generic_resolution_is_not_registered()
     {
         var services = new ServiceCollection();
         services.AddGenDIServices();
         using var provider = services.BuildServiceProvider();
 
-        var consumer = provider.GetRequiredService<IUsesGenericIndirect>();
-        Assert.IsType<GenericRepository<Order>>(consumer.Repository);
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => provider.GetRequiredService<IUsesGenericIndirect>()
+        );
+        Assert.Contains(nameof(IGenericRepository<Order>), exception.Message, StringComparison.Ordinal);
     }
 }
 
