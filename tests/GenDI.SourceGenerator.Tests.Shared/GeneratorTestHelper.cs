@@ -13,37 +13,63 @@ internal static class GeneratorTestHelper
 {
     public static Diagnostic[] GetGeneratorDiagnostics(
         string userSource,
-        bool? includeGeneratedCodeInCoverage
+        bool? includeGeneratedCodeInCoverage,
+        params (string AssemblyName, string Source)[] referencedAssemblies
     )
     {
-        var (_, diagnostics) = RunGenerator("Consumer.Tests", userSource, includeGeneratedCodeInCoverage);
+        var (_, diagnostics) = RunGenerator(
+            "Consumer.Tests",
+            userSource,
+            includeGeneratedCodeInCoverage,
+            referencedAssemblies
+        );
         return diagnostics;
     }
 
-    public static string GenerateSource(string userSource, bool? includeGeneratedCodeInCoverage)
+    public static string GenerateSource(
+        string userSource,
+        bool? includeGeneratedCodeInCoverage,
+        params (string AssemblyName, string Source)[] referencedAssemblies
+    )
     {
-        return GenerateSourceWithAssemblyName("Consumer.Tests", userSource, includeGeneratedCodeInCoverage);
+        return GenerateSourceWithAssemblyName(
+            "Consumer.Tests",
+            userSource,
+            includeGeneratedCodeInCoverage,
+            referencedAssemblies
+        );
     }
 
     /// <summary>
     /// Asserts that the generator produces no output for the given source.
     /// Fails the test with an explicit message if any source is generated.
     /// </summary>
-    public static void AssertNoSourceGenerated(string userSource, bool? includeGeneratedCodeInCoverage)
+    public static void AssertNoSourceGenerated(
+        string userSource,
+        bool? includeGeneratedCodeInCoverage,
+        params (string AssemblyName, string Source)[] referencedAssemblies
+    )
     {
-        AssertNoSourceGeneratedWithAssemblyName("Consumer.Tests", userSource, includeGeneratedCodeInCoverage);
+        AssertNoSourceGeneratedWithAssemblyName(
+            "Consumer.Tests",
+            userSource,
+            includeGeneratedCodeInCoverage,
+            referencedAssemblies
+        );
     }
 
     public static void AssertNoSourceGeneratedWithAssemblyName(
         string? assemblyName,
         string userSource,
-        bool? includeGeneratedCodeInCoverage
+        bool? includeGeneratedCodeInCoverage,
+        params (string AssemblyName, string Source)[] referencedAssemblies
     )
     {
         var (driver, diagnostics) = RunGenerator(
             assemblyName,
             userSource,
-            includeGeneratedCodeInCoverage
+            includeGeneratedCodeInCoverage,
+            referencedAssemblies
         );
 
         var generationErrors = diagnostics
@@ -65,13 +91,15 @@ internal static class GeneratorTestHelper
     public static string GenerateSourceWithAssemblyName(
         string? assemblyName,
         string userSource,
-        bool? includeGeneratedCodeInCoverage
+        bool? includeGeneratedCodeInCoverage,
+        params (string AssemblyName, string Source)[] referencedAssemblies
     )
     {
         var (driver, diagnostics) = RunGenerator(
             assemblyName,
             userSource,
-            includeGeneratedCodeInCoverage
+            includeGeneratedCodeInCoverage,
+            referencedAssemblies
         );
 
         var generationErrors = diagnostics
@@ -92,7 +120,8 @@ internal static class GeneratorTestHelper
     private static (GeneratorDriver Driver, Diagnostic[] Diagnostics) RunGenerator(
         string? assemblyName,
         string userSource,
-        bool? includeGeneratedCodeInCoverage
+        bool? includeGeneratedCodeInCoverage,
+        params (string AssemblyName, string Source)[] referencedAssemblies
     )
     {
         var assemblyCoverageAttribute = includeGeneratedCodeInCoverage.HasValue
@@ -112,7 +141,7 @@ internal static class GeneratorTestHelper
         var compilation = CSharpCompilation.Create(
             assemblyName: assemblyName,
             syntaxTrees: new[] { syntaxTree },
-            references: BuildReferences(),
+            references: BuildReferences(referencedAssemblies),
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
 
@@ -180,7 +209,9 @@ internal static class GeneratorTestHelper
         );
     }
 
-    private static List<PortableExecutableReference> BuildReferences()
+    private static List<PortableExecutableReference> BuildReferences(
+        params (string AssemblyName, string Source)[] referencedAssemblies
+    )
     {
         var tpa = (AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string) ?? string.Empty;
         var references = tpa.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
@@ -212,6 +243,41 @@ internal static class GeneratorTestHelper
             )
         );
 
+        foreach (var referencedAssembly in referencedAssemblies)
+        {
+            references.Add(BuildReferencedAssembly(referencedAssembly, references));
+        }
+
         return references;
+    }
+
+    private static PortableExecutableReference BuildReferencedAssembly(
+        (string AssemblyName, string Source) referencedAssembly,
+        IReadOnlyCollection<PortableExecutableReference> references
+    )
+    {
+        var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
+        var wrappedSource =
+            $$"""
+            using GenDI;
+            using Microsoft.Extensions.DependencyInjection;
+
+            {{referencedAssembly.Source}}
+            """;
+        var compilation = CSharpCompilation.Create(
+            assemblyName: referencedAssembly.AssemblyName,
+            syntaxTrees: new[] { CSharpSyntaxTree.ParseText(wrappedSource, parseOptions) },
+            references: references,
+            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
+
+        using var stream = new MemoryStream();
+        var emitResult = compilation.Emit(stream);
+        Assert.True(
+            emitResult.Success,
+            string.Join(Environment.NewLine, emitResult.Diagnostics.Select(diagnostic => diagnostic.ToString()))
+        );
+
+        return MetadataReference.CreateFromImage(stream.ToArray());
     }
 }

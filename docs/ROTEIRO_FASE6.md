@@ -96,11 +96,11 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
 
 ## 4.3 Plataforma e framework
 
-- [ ] **PF-01** Minimal API example e documentação.
-- [ ] **PF-02** Blazor WASM validation.
-- [ ] **PF-03** MAUI/mobile AOT validation.
-- [ ] **PF-04** Worker Service example.
-- [ ] **PF-05** Exploração suporte F#.
+- [x] **PF-01** Minimal API example e documentação.
+- [x] **PF-02** Blazor WASM validation.
+- [x] **PF-03** MAUI/mobile AOT validation.
+- [x] **PF-04** Worker Service example.
+- [x] **PF-05** Exploração suporte F#.
 
 ## 4.4 Ergonomia de testes
 
@@ -169,6 +169,7 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
 - **v1.4**: implementação de `[ConditionalInjectable(environmentName)]` para registro condicional por ambiente.
 - **v1.5**: implementação de `[DecoratorFor<TService>]`, injeção indireta por `[Inject]`, override de lifetime no `[Inject]` e thread isolation configurável.
 - **v1.6**: implementação de RM-08 até RM-12 (varredura em bibliotecas referenciadas, inferência closed-generic indireta, `OptionConfigAttribute`, `[InjectableFactory]` e `[InjectableModule]`).
+- **v1.7**: implementação da trilha 4.3 com exemplos/validações para Minimal API, Worker Service e Blazor WASM, documentação de validação mobile AOT e exploração de suporte F#.
 
 ## 8) Referência detalhada das entregas RM-01..RM-12
 

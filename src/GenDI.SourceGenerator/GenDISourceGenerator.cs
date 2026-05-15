@@ -53,7 +53,7 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
                     .Distinct(SymbolEqualityComparer.Default)
                     .Cast<INamedTypeSymbol>()
                     .ToImmutableArray();
-                var buildResult = BuildRegistrations(allTypes);
+                var buildResult = BuildRegistrations(options.Compilation, allTypes);
                 foreach (var warning in buildResult.Warnings)
                 {
                     sourceProductionContext.ReportDiagnostic(

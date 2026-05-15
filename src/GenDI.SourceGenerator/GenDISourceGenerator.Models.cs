@@ -79,6 +79,7 @@ public sealed partial class GenDISourceGenerator
         public InjectableMetadata(
             string lifetime,
             string? explicitServiceType,
+            ITypeSymbol? explicitServiceTypeSymbol,
             bool hasOpenGenericExplicitServiceType,
             int order,
             int group,
@@ -89,6 +90,7 @@ public sealed partial class GenDISourceGenerator
         {
             Lifetime = lifetime;
             ExplicitServiceType = explicitServiceType;
+            ExplicitServiceTypeSymbol = explicitServiceTypeSymbol;
             HasOpenGenericExplicitServiceType = hasOpenGenericExplicitServiceType;
             Order = order;
             Group = group;
@@ -100,6 +102,8 @@ public sealed partial class GenDISourceGenerator
         public string Lifetime { get; }
 
         public string? ExplicitServiceType { get; }
+
+        public ITypeSymbol? ExplicitServiceTypeSymbol { get; }
 
         public bool HasOpenGenericExplicitServiceType { get; }
 
@@ -119,6 +123,7 @@ public sealed partial class GenDISourceGenerator
         public InjectableFactoryMetadata(
             string lifetime,
             string? serviceType,
+            ITypeSymbol? serviceTypeSymbol,
             bool hasOpenGenericServiceType,
             int order,
             int group,
@@ -129,6 +134,7 @@ public sealed partial class GenDISourceGenerator
         {
             Lifetime = lifetime;
             ServiceType = serviceType;
+            ServiceTypeSymbol = serviceTypeSymbol;
             HasOpenGenericServiceType = hasOpenGenericServiceType;
             Order = order;
             Group = group;
@@ -140,6 +146,8 @@ public sealed partial class GenDISourceGenerator
         public string Lifetime { get; }
 
         public string? ServiceType { get; }
+
+        public ITypeSymbol? ServiceTypeSymbol { get; }
 
         public bool HasOpenGenericServiceType { get; }
 

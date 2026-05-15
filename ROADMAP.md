@@ -96,11 +96,11 @@ This document outlines the planned phases of development for GenDI.
 
 ### 🌐 Platform and framework support
 
-- [ ] ASP.NET Core Minimal API — zero-ceremony endpoint service injection example and docs
-- [ ] Blazor WebAssembly — validate and document property injection in WASM components
-- [ ] MAUI / mobile AOT — validate NativeAOT path on iOS and Android publish targets
-- [ ] Worker Service / hosted service integration example
-- [ ] F# attribute support exploration (`[<Injectable>]`)
+- [x] ASP.NET Core Minimal API — zero-ceremony endpoint service injection example and docs
+- [x] Blazor WebAssembly — validate and document property injection in WASM components
+- [x] MAUI / mobile AOT — document workload-backed validation path for Android/iOS publish targets
+- [x] Worker Service / hosted service integration example
+- [x] F# attribute support exploration (`[<Injectable>]`) with current limitation documented
 
 ### 🧪 Testing ergonomics
 

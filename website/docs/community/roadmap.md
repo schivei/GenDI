@@ -39,10 +39,11 @@ Detailed notes for delivered RM-01..RM-12:
 - [RM-01..RM-12 registration model details](../advanced/registration-model-rm01-rm12)
 
 ### 🌐 Platform support
-- Blazor WebAssembly validated property injection
-- MAUI / mobile AOT on iOS and Android
-- Worker Service and hosted service integration examples
-- F# attribute support exploration
+- ✅ ASP.NET Core Minimal API example and docs
+- ✅ Blazor WebAssembly validated property injection
+- ✅ Worker Service and hosted service integration examples
+- ✅ MAUI / mobile AOT manual validation guidance for Android and iOS publish
+- ✅ F# attribute support exploration with current limitation documented
 
 ### 🧪 Testing
 - `GenDI.Testing` companion package with `ServiceBuilder` helper for unit tests using property injection

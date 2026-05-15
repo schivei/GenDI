@@ -1,0 +1,9 @@
+﻿@page "/"
+@using GenDI.Phase6.BlazorWasmValidation.App.Services
+@inject IOrderDashboardService Dashboard
+
+<PageTitle>GenDI + Blazor WASM</PageTitle>
+
+<h1>GenDI + Blazor WebAssembly</h1>
+
+<p>@Dashboard.BuildSummary()</p>

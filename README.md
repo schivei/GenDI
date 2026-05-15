@@ -396,12 +396,17 @@ For fresh clones, `src/GenDI/GenDI.csproj` runs a pre-restore target that execut
 
 ## Compatibility
 
-| Platform / Framework                         | Supported |
-|----------------------------------------------|-----------|
-| .NET 8+                                      | YES       |
-| NativeAOT                                    | YES       |
-| Trimming                                     | YES       |
-| Microsoft.Extensions.DependencyInjection     | YES       |
+| Platform / Framework                     | Status |
+|------------------------------------------|--------|
+| .NET 8+                                  | YES    |
+| NativeAOT                                | YES    |
+| Trimming                                 | YES    |
+| Microsoft.Extensions.DependencyInjection | YES    |
+| ASP.NET Core Minimal API                 | YES    |
+| Worker Service / hosted services         | YES    |
+| Blazor WebAssembly                       | YES    |
+| MAUI / mobile AOT                        | Manual validation recipe |
+| F#                                       | Exploration only (no generated `AddGenDIServices()`) |
 
 ---
 
@@ -420,6 +425,9 @@ See the full plan in [ROADMAP.md](ROADMAP.md).
 
 Detailed RM-01..RM-12 documentation:
 - [docs/REGISTRATION_MODEL_RM01_RM12.md](docs/REGISTRATION_MODEL_RM01_RM12.md)
+
+Platform/framework notes:
+- [docs/PLATFORM_FRAMEWORK_SUPPORT.md](docs/PLATFORM_FRAMEWORK_SUPPORT.md)
 
 ---
 
