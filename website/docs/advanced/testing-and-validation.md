@@ -33,9 +33,26 @@ Project:
 
 Executes trim/AOT publish verification paths.
 
+## 4️⃣ Platform/framework validation
+
+Projects:
+
+- `GenDI.Phase6.MinimalApiValidation.App`
+- `GenDI.Phase6.WorkerValidation.App`
+- `GenDI.Phase6.BlazorWasmValidation.App`
+- `GenDI.Phase6.PlatformValidation.Tests`
+
+Covers:
+
+- ✅ Minimal API publish validation
+- ✅ Worker Service publish validation
+- ✅ Blazor WebAssembly publish validation
+- ✅ F# exploration proving generated `AddGenDIServices()` is currently unavailable in `fsproj`
+
 ## 🛠️ Local validation commands
 
 ```bash
 dotnet build GenDI.slnx
 dotnet test GenDI.slnx
+dotnet test tests/GenDI.Phase6.PlatformValidation.Tests -c Release
 ```

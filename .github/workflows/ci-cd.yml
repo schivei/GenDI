@@ -142,6 +142,8 @@ jobs:
             --output coverage-results/cov_analyzers.xml --output-format xml
           # Run Phase3 publish-validation tests (spawn dotnet publish internally)
           dotnet test tests/GenDI.Phase3.Validation.Tests --configuration Release --no-build --verbosity normal
+          # Run Phase6 platform/framework validation tests
+          dotnet test tests/GenDI.Phase6.PlatformValidation.Tests --configuration Release --no-build --verbosity normal
 
       - name: Merge coverage and build summary report
         id: coverage
