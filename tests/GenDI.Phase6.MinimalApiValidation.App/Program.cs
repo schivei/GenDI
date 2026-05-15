@@ -11,4 +11,4 @@ var app = builder.Build();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.MapGet("/orders/{id:guid}", (Guid id, IOrderEndpointService orders) => Results.Ok(orders.Create(id)));
 
-app.Run();
+await app.RunAsync();

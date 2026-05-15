@@ -21,7 +21,11 @@ public sealed class OrderEndpointService : IOrderEndpointService
 
     public OrderResponse Create(Guid orderId)
     {
-        Logger.LogInformation("Generating response for order {OrderId}", orderId);
+        if (Logger.IsEnabled(LogLevel.Information))
+        {
+            Logger.LogInformation("Generating response for order {OrderId}", orderId);
+        }
+
         return new OrderResponse(orderId, "accepted", TimeProvider.GetUtcNow());
     }
 }
