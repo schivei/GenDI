@@ -11,11 +11,16 @@ public sealed partial class GenDISourceGenerator
     private const string SingletonLifetimeExpression = "ServiceLifetime.Singleton";
 
     private static RegistrationBuildResult BuildRegistrations(
+        Compilation compilation,
         ImmutableArray<INamedTypeSymbol> allTypes
     )
     {
         var concreteTypes = allTypes
-            .Where(static typeSymbol => typeSymbol.TypeKind == TypeKind.Class && !typeSymbol.IsAbstract)
+            .Where(typeSymbol =>
+                typeSymbol.TypeKind == TypeKind.Class
+                && !typeSymbol.IsAbstract
+                && IsTypeDeclarationAccessibleFromGeneratedCode(typeSymbol, compilation)
+            )
             .ToImmutableArray();
         var registrations = new List<ServiceRegistration>();
         var warnings = new List<OpenGenericBypassWarning>();
@@ -27,7 +32,7 @@ public sealed partial class GenDISourceGenerator
 
         foreach (var concreteType in concreteTypes)
         {
-            if (HasDecoratorTarget(concreteType))
+            if (HasDecoratorTarget(compilation, concreteType))
             {
                 continue;
             }
@@ -61,15 +66,21 @@ public sealed partial class GenDISourceGenerator
 
             injectableTypes[concreteType] = injectableMetadata;
             registrations.AddRange(
-                BuildDirectRegistrations(concreteType, injectableMetadata, warnings)
+                BuildDirectRegistrations(compilation, concreteType, injectableMetadata, warnings)
             );
         }
 
         registrations.AddRange(
-            BuildIndirectRegistrations(concreteTypes, injectableTypes, registrations, warnings)
+            BuildIndirectRegistrations(
+                compilation,
+                concreteTypes,
+                injectableTypes,
+                registrations,
+                warnings
+            )
         );
-        registrations.AddRange(BuildFactoryRegistrations(concreteTypes, warnings));
-        ApplyDecorators(concreteTypes, registrations, warnings);
+        registrations.AddRange(BuildFactoryRegistrations(compilation, concreteTypes, warnings));
+        ApplyDecorators(compilation, concreteTypes, registrations, warnings);
 
         return new RegistrationBuildResult(
             registrations.ToImmutableArray(),
@@ -89,6 +100,7 @@ public sealed partial class GenDISourceGenerator
     }
 
     private static IEnumerable<ServiceRegistration> BuildDirectRegistrations(
+        Compilation compilation,
         INamedTypeSymbol symbol,
         InjectableMetadata injectableMetadata,
         IList<OpenGenericBypassWarning> warnings
@@ -102,8 +114,10 @@ public sealed partial class GenDISourceGenerator
             .OrderByDescending(static constructorSymbol => constructorSymbol.Parameters.Length)
             .FirstOrDefault();
         var serviceTypes = GetServiceTypes(
+            compilation,
             symbol,
             implementationType,
+            injectableMetadata.ExplicitServiceTypeSymbol,
             injectableMetadata.ExplicitServiceType,
             warnings
         );
@@ -129,6 +143,7 @@ public sealed partial class GenDISourceGenerator
     }
 
     private static IEnumerable<ServiceRegistration> BuildIndirectRegistrations(
+        Compilation compilation,
         ImmutableArray<INamedTypeSymbol> concreteTypes,
         IDictionary<INamedTypeSymbol, InjectableMetadata> injectableTypes,
         IReadOnlyCollection<ServiceRegistration> existingRegistrations,
@@ -141,8 +156,12 @@ public sealed partial class GenDISourceGenerator
             StringComparer.Ordinal
         );
         var injectRequests = injectableTypes
-            .SelectMany(static pair =>
-                GetInjectContractRequests(pair.Key, pair.Value.ModuleName ?? GetModuleName(pair.Key))
+            .SelectMany(pair =>
+                GetInjectContractRequests(
+                    compilation,
+                    pair.Key,
+                    pair.Value.ModuleName ?? GetModuleName(pair.Key)
+                )
             )
             .ToImmutableArray();
 
@@ -182,6 +201,7 @@ public sealed partial class GenDISourceGenerator
                 injectRequest.ContractSymbol
             );
             var bestCandidate = FindIndirectImplementationCandidate(
+                compilation,
                 injectRequest.ContractSymbol,
                 injectRequest.ServiceType,
                 concreteTypes,
@@ -232,14 +252,15 @@ public sealed partial class GenDISourceGenerator
     }
 
     private static void ApplyDecorators(
+        Compilation compilation,
         ImmutableArray<INamedTypeSymbol> concreteTypes,
         IList<ServiceRegistration> registrations,
         IList<OpenGenericBypassWarning> warnings
     )
     {
         var decorators = concreteTypes
-            .SelectMany(static typeSymbol =>
-                GetDecoratorTargets(typeSymbol).Select(target => (Symbol: typeSymbol, Target: target))
+            .SelectMany(typeSymbol =>
+                GetDecoratorTargets(compilation, typeSymbol).Select(target => (Symbol: typeSymbol, Target: target))
             )
             .OrderBy(static decorator => decorator.Target.Order)
             .ThenBy(
@@ -308,6 +329,7 @@ public sealed partial class GenDISourceGenerator
     }
 
     private static IEnumerable<ServiceRegistration> BuildFactoryRegistrations(
+        Compilation compilation,
         ImmutableArray<INamedTypeSymbol> concreteTypes,
         IList<OpenGenericBypassWarning> warnings
     )
@@ -316,11 +338,10 @@ public sealed partial class GenDISourceGenerator
         foreach (var concreteType in concreteTypes)
         {
             foreach (
-                var method in concreteType.GetMembers().OfType<IMethodSymbol>().Where(static method =>
-                    method is { MethodKind: MethodKind.Ordinary, IsStatic: true }
-                    && method.DeclaredAccessibility
-                        is Accessibility.Public or Accessibility.Internal
-                )
+                var method in concreteType
+                    .GetMembers()
+                    .OfType<IMethodSymbol>()
+                    .Where(method => IsMethodAccessibleFromGeneratedCode(method, compilation))
             )
             {
                 if (!TryGetInjectableFactoryAttribute(method, out var factoryMetadata))
@@ -346,6 +367,18 @@ public sealed partial class GenDISourceGenerator
                             "InjectableFactory registration"
                         )
                     );
+                    continue;
+                }
+
+                var registrationServiceTypeSymbol = factoryMetadata.ServiceTypeSymbol ?? method.ReturnType;
+                if (
+                    !IsTypeAccessibleFromGeneratedCode(registrationServiceTypeSymbol, compilation)
+                    || !IsTypeAccessibleFromGeneratedCode(method.ReturnType, compilation)
+                    || method.Parameters.Any(parameter =>
+                        !IsTypeAccessibleFromGeneratedCode(parameter.Type, compilation)
+                    )
+                )
+                {
                     continue;
                 }
 
@@ -407,6 +440,7 @@ public sealed partial class GenDISourceGenerator
         metadata = new InjectableFactoryMetadata(
             lifetime: TransientLifetimeExpression,
             serviceType: null,
+            serviceTypeSymbol: null,
             hasOpenGenericServiceType: false,
             order: DefaultOrderingValue,
             group: DefaultOrderingValue,
@@ -429,6 +463,7 @@ public sealed partial class GenDISourceGenerator
 
             var lifetime = TransientLifetimeExpression;
             var serviceType = default(string);
+            var serviceTypeSymbol = default(ITypeSymbol);
             var hasOpenGenericServiceType = false;
             var order = DefaultOrderingValue;
             var group = DefaultOrderingValue;
@@ -444,6 +479,7 @@ public sealed partial class GenDISourceGenerator
                 serviceType = explicitServiceTypeSymbol.ToDisplayString(
                     SymbolDisplayFormat.FullyQualifiedFormat
                 );
+                serviceTypeSymbol = explicitServiceTypeSymbol;
                 if (explicitServiceTypeSymbol is INamedTypeSymbol namedExplicitServiceType)
                 {
                     hasOpenGenericServiceType = !IsClosedType(namedExplicitServiceType);
@@ -458,6 +494,7 @@ public sealed partial class GenDISourceGenerator
                     serviceType = firstTypeSymbol.ToDisplayString(
                         SymbolDisplayFormat.FullyQualifiedFormat
                     );
+                    serviceTypeSymbol = firstTypeSymbol;
                     if (firstTypeSymbol is INamedTypeSymbol namedFirstTypeSymbol)
                     {
                         hasOpenGenericServiceType = !IsClosedType(namedFirstTypeSymbol);
@@ -494,6 +531,7 @@ public sealed partial class GenDISourceGenerator
                     serviceType = namedServiceType.ToDisplayString(
                         SymbolDisplayFormat.FullyQualifiedFormat
                     );
+                    serviceTypeSymbol = namedServiceType;
                     hasOpenGenericServiceType = !IsClosedType(namedServiceType);
                 }
             }
@@ -501,6 +539,7 @@ public sealed partial class GenDISourceGenerator
             metadata = new InjectableFactoryMetadata(
                 lifetime,
                 serviceType,
+                serviceTypeSymbol,
                 hasOpenGenericServiceType,
                 order,
                 group,
@@ -594,6 +633,7 @@ public sealed partial class GenDISourceGenerator
         injectableMetadata = new InjectableMetadata(
             TransientLifetimeExpression,
             explicitServiceType: null,
+            explicitServiceTypeSymbol: null,
             hasOpenGenericExplicitServiceType: false,
             order: DefaultOrderingValue,
             group: DefaultOrderingValue,
@@ -612,6 +652,7 @@ public sealed partial class GenDISourceGenerator
 
             var lifetime = TransientLifetimeExpression;
             var explicitServiceType = default(string);
+            var explicitServiceTypeSymbol = default(ITypeSymbol);
             var hasOpenGenericExplicitServiceType = false;
             var order = DefaultOrderingValue;
             var group = DefaultOrderingValue;
@@ -629,6 +670,7 @@ public sealed partial class GenDISourceGenerator
                 && attributeClass.TypeArguments[0] is ITypeSymbol serviceTypeSymbol
             )
             {
+                explicitServiceTypeSymbol = serviceTypeSymbol;
                 if (serviceTypeSymbol is INamedTypeSymbol namedServiceTypeSymbol)
                 {
                     hasOpenGenericExplicitServiceType = !IsClosedType(namedServiceTypeSymbol);
@@ -653,6 +695,7 @@ public sealed partial class GenDISourceGenerator
             injectableMetadata = new InjectableMetadata(
                 lifetime,
                 explicitServiceType,
+                explicitServiceTypeSymbol,
                 hasOpenGenericExplicitServiceType,
                 order,
                 group,
@@ -667,9 +710,9 @@ public sealed partial class GenDISourceGenerator
     }
     #pragma warning restore S3776
 
-    private static bool HasDecoratorTarget(INamedTypeSymbol symbol)
+    private static bool HasDecoratorTarget(Compilation compilation, INamedTypeSymbol symbol)
     {
-        return GetDecoratorTargets(symbol).Length > 0;
+        return GetDecoratorTargets(compilation, symbol).Length > 0;
     }
 
     private static void ApplyCommonRegistrationNamedArgument(
@@ -758,7 +801,10 @@ public sealed partial class GenDISourceGenerator
         }
     }
 
-    private static ImmutableArray<DecoratorTarget> GetDecoratorTargets(INamedTypeSymbol symbol)
+    private static ImmutableArray<DecoratorTarget> GetDecoratorTargets(
+        Compilation compilation,
+        INamedTypeSymbol symbol
+    )
     {
         var targets = ImmutableArray.CreateBuilder<DecoratorTarget>();
         foreach (var attributeData in symbol.GetAttributes())
@@ -773,6 +819,7 @@ public sealed partial class GenDISourceGenerator
                     attributeClass.TypeArguments.Length != 1
                     || attributeClass.TypeArguments[0] is not INamedTypeSymbol serviceType
                     || !IsClosedType(serviceType)
+                    || !IsTypeAccessibleFromGeneratedCode(serviceType, compilation)
                 )
                 {
                     continue;
@@ -793,7 +840,7 @@ public sealed partial class GenDISourceGenerator
                 continue;
             }
 
-            var inferredTargets = GetClosedServiceInjectionContracts(symbol);
+            var inferredTargets = GetClosedServiceInjectionContracts(compilation, symbol);
             if (inferredTargets.Length != 1)
             {
                 continue;
@@ -817,8 +864,10 @@ public sealed partial class GenDISourceGenerator
 
     #pragma warning disable S3776 // contract resolution intentionally handles multiple precedence branches
     private static ImmutableArray<ServiceContractTarget> GetServiceTypes(
+        Compilation compilation,
         INamedTypeSymbol symbol,
         string implementationType,
+        ITypeSymbol? explicitServiceTypeSymbol,
         string? explicitServiceType,
         IList<OpenGenericBypassWarning> warnings
     )
@@ -826,10 +875,16 @@ public sealed partial class GenDISourceGenerator
         var serviceTypes = new List<ServiceContractTarget>();
         var hasAnyContract = false;
 
-        if (!string.IsNullOrWhiteSpace(explicitServiceType))
+        if (explicitServiceTypeSymbol is not null)
         {
-            serviceTypes.Add(new ServiceContractTarget(explicitServiceType, null, null));
             hasAnyContract = true;
+            if (
+                !string.IsNullOrWhiteSpace(explicitServiceType)
+                && IsTypeAccessibleFromGeneratedCode(explicitServiceTypeSymbol, compilation)
+            )
+            {
+                serviceTypes.Add(new ServiceContractTarget(explicitServiceType, null, null));
+            }
         }
 
         foreach (var interfaceSymbol in symbol.AllInterfaces)
@@ -847,6 +902,11 @@ public sealed partial class GenDISourceGenerator
                         "ServiceInjection interface contract discovery"
                     )
                 );
+                continue;
+            }
+
+            if (!IsTypeAccessibleFromGeneratedCode(interfaceSymbol, compilation))
+            {
                 continue;
             }
 
@@ -873,6 +933,12 @@ public sealed partial class GenDISourceGenerator
                             "ServiceInjection base contract discovery"
                         )
                     );
+                    baseType = baseType.BaseType;
+                    continue;
+                }
+
+                if (!IsTypeAccessibleFromGeneratedCode(baseType, compilation))
+                {
                     baseType = baseType.BaseType;
                     continue;
                 }
@@ -947,11 +1013,14 @@ public sealed partial class GenDISourceGenerator
     }
 
     private static ImmutableArray<INamedTypeSymbol> GetClosedServiceInjectionContracts(
+        Compilation compilation,
         INamedTypeSymbol symbol
     )
     {
         return GetAllServiceInjectionContracts(symbol)
-            .Where(IsClosedType)
+            .Where(contract =>
+                IsClosedType(contract) && IsTypeAccessibleFromGeneratedCode(contract, compilation)
+            )
             .ToImmutableArray();
     }
 
@@ -1248,6 +1317,7 @@ public sealed partial class GenDISourceGenerator
     }
 
     private static ImmutableArray<InjectContractRequest> GetInjectContractRequests(
+        Compilation compilation,
         INamedTypeSymbol symbol,
         string? moduleName
     )
@@ -1255,6 +1325,7 @@ public sealed partial class GenDISourceGenerator
         return GetInjectableProperties(symbol)
             .Where(static property => property.HasInjectAttribute)
             .Where(static property => property.TypeSymbol is INamedTypeSymbol)
+            .Where(property => IsTypeAccessibleFromGeneratedCode(property.TypeSymbol, compilation))
             .Select(static property =>
                 new InjectContractRequest(
                     (INamedTypeSymbol)property.TypeSymbol,
@@ -1628,6 +1699,7 @@ public sealed partial class GenDISourceGenerator
 
     #pragma warning disable S3776 // indirect candidate resolution intentionally evaluates multiple contract scenarios
     private static ImplementationCandidate? FindIndirectImplementationCandidate(
+        Compilation compilation,
         INamedTypeSymbol contractSymbol,
         string contractDisplayName,
         ImmutableArray<INamedTypeSymbol> concreteTypes,
@@ -1639,7 +1711,7 @@ public sealed partial class GenDISourceGenerator
         var candidates = new List<ImplementationCandidate>();
         foreach (var concreteType in concreteTypes)
         {
-            if (HasDecoratorTarget(concreteType))
+            if (HasDecoratorTarget(compilation, concreteType))
             {
                 continue;
             }
@@ -1647,11 +1719,7 @@ public sealed partial class GenDISourceGenerator
             var candidateType = concreteType;
             if (!IsClosedType(candidateType))
             {
-                candidateType = TryConstructClosedImplementationType(concreteType, contractSymbol);
-                if (candidateType is null)
-                {
-                    continue;
-                }
+                continue;
             }
 
             if (!ImplementsOrInherits(candidateType, contractSymbol))
@@ -1948,6 +2016,95 @@ public sealed partial class GenDISourceGenerator
         {
             CollectNamedTypes(nestedType, builder);
         }
+    }
+
+    private static bool IsMethodAccessibleFromGeneratedCode(
+        IMethodSymbol method,
+        Compilation compilation
+    )
+    {
+        return method is { MethodKind: MethodKind.Ordinary, IsStatic: true }
+            && IsDeclaredSymbolAccessibleFromGeneratedCode(method, compilation)
+            && IsTypeDeclarationAccessibleFromGeneratedCode(method.ContainingType, compilation);
+    }
+
+    private static bool IsTypeDeclarationAccessibleFromGeneratedCode(
+        INamedTypeSymbol symbol,
+        Compilation compilation
+    )
+    {
+        if (!IsDeclaredSymbolAccessibleFromGeneratedCode(symbol, compilation))
+        {
+            return false;
+        }
+
+        return symbol.ContainingType is null
+            || IsTypeDeclarationAccessibleFromGeneratedCode(symbol.ContainingType, compilation);
+    }
+
+    private static bool IsTypeAccessibleFromGeneratedCode(
+        ITypeSymbol typeSymbol,
+        Compilation compilation
+    )
+    {
+        if (typeSymbol.TypeKind == TypeKind.TypeParameter)
+        {
+            return false;
+        }
+
+        return typeSymbol switch
+        {
+            IArrayTypeSymbol arrayType => IsTypeAccessibleFromGeneratedCode(
+                arrayType.ElementType,
+                compilation
+            ),
+            INamedTypeSymbol namedType => IsNamedTypeAccessibleFromGeneratedCode(
+                namedType,
+                compilation
+            ),
+            _ => true,
+        };
+    }
+
+    private static bool IsNamedTypeAccessibleFromGeneratedCode(
+        INamedTypeSymbol symbol,
+        Compilation compilation
+    )
+    {
+        if (!IsDeclaredSymbolAccessibleFromGeneratedCode(symbol, compilation))
+        {
+            return false;
+        }
+
+        if (
+            symbol.ContainingType is not null
+            && !IsNamedTypeAccessibleFromGeneratedCode(symbol.ContainingType, compilation)
+        )
+        {
+            return false;
+        }
+
+        return symbol.TypeArguments.All(typeArgument =>
+            IsTypeAccessibleFromGeneratedCode(typeArgument, compilation)
+        );
+    }
+
+    private static bool IsDeclaredSymbolAccessibleFromGeneratedCode(
+        ISymbol symbol,
+        Compilation compilation
+    )
+    {
+        var allowInternal = SymbolEqualityComparer.Default.Equals(
+            symbol.ContainingAssembly,
+            compilation.Assembly
+        );
+
+        return symbol.DeclaredAccessibility switch
+        {
+            Accessibility.Public => true,
+            Accessibility.Internal => allowInternal,
+            _ => false,
+        };
     }
 
     private static bool IsClosedType(INamedTypeSymbol symbol)

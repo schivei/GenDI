@@ -1,5 +1,3 @@
-using GenDI;
-
 namespace GenDI.Phase6.MinimalApiValidation.App;
 
 [ServiceInjection]

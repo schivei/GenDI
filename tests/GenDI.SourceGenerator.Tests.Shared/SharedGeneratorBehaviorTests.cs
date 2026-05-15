@@ -726,7 +726,7 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
-    public void Indirect_closed_generic_inference_registers_constructed_implementation()
+    public void Indirect_open_generic_implementation_is_not_registered()
     {
         var generatedSource = GeneratorTestHelper.GenerateSource(
             """
@@ -754,13 +754,95 @@ public class SharedGeneratorBehaviorTests
             TestSettings.IncludeGeneratedCodeInCoverageAttribute
         );
 
-        Assert.Contains(
+        Assert.DoesNotContain(
             "services.AddTransient<global::ClosedGenericInference.IRepository<global::ClosedGenericInference.Order>>",
             generatedSource,
             StringComparison.Ordinal
         );
-        Assert.Contains(
+        Assert.DoesNotContain(
             "new global::ClosedGenericInference.Repository<global::ClosedGenericInference.Order>()",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Private_nested_injectable_type_is_ignored()
+    {
+        GeneratorTestHelper.AssertNoSourceGenerated(
+            """
+            namespace PrivateNestedCase;
+
+            public sealed class Outer
+            {
+                [Injectable]
+                private sealed class HiddenService
+                {
+                }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+    }
+
+    [Fact]
+    public void Referenced_internal_explicit_service_contract_is_ignored()
+    {
+        GeneratorTestHelper.AssertNoSourceGenerated(
+            string.Empty,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute,
+            (
+                "ReferencedContracts",
+                """
+                namespace ReferencedContracts;
+
+                internal interface IHiddenContract
+                {
+                }
+
+                [Injectable<IHiddenContract>(ServiceLifetime.Singleton)]
+                public sealed class PublicService
+                {
+                }
+                """
+            )
+        );
+    }
+
+    [Fact]
+    public void Referenced_internal_implementation_is_not_used_for_indirect_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ConsumerContracts;
+
+            [Injectable]
+            public sealed class Consumer
+            {
+                [Inject]
+                public required ReferencedImplementations.IPublicContract Contract { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute,
+            (
+                "ReferencedImplementations",
+                """
+                namespace ReferencedImplementations;
+
+                public interface IPublicContract
+                {
+                }
+
+                [Injectable<IPublicContract>(ServiceLifetime.Singleton)]
+                internal sealed class HiddenImplementation : IPublicContract
+                {
+                }
+                """
+            )
+        );
+
+        Assert.DoesNotContain(
+            "services.AddSingleton<global::ReferencedImplementations.IPublicContract>",
             generatedSource,
             StringComparison.Ordinal
         );
@@ -931,7 +1013,7 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
-    public void Indirect_closed_generic_inference_from_base_contract_constructs_implementation()
+    public void Indirect_open_generic_base_implementation_is_not_registered()
     {
         var generatedSource = GeneratorTestHelper.GenerateSource(
             """
@@ -955,12 +1037,12 @@ public class SharedGeneratorBehaviorTests
             TestSettings.IncludeGeneratedCodeInCoverageAttribute
         );
 
-        Assert.Contains(
+        Assert.DoesNotContain(
             "services.AddTransient<global::BaseInferenceCase.GenericBase<int>>",
             generatedSource,
             StringComparison.Ordinal
         );
-        Assert.Contains(
+        Assert.DoesNotContain(
             "new global::BaseInferenceCase.GenericImpl<int>()",
             generatedSource,
             StringComparison.Ordinal

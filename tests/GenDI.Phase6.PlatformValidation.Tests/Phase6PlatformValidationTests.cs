@@ -7,6 +7,9 @@ namespace GenDI.Phase6.PlatformValidation.Tests;
 
 public class Phase6PlatformValidationTests
 {
+    private const string SkipFSharpTemplateTestEnvironmentVariable =
+        "GENDI_SKIP_FSHARP_TEMPLATE_TEST";
+
     [Fact]
     public void MinimalApi_publish_succeeds()
     {
@@ -38,8 +41,20 @@ public class Phase6PlatformValidationTests
     }
 
     [Fact]
+    [Trait("Category", "TemplateDependent")]
     public void FSharp_projects_do_not_receive_generated_AddGenDIServices_extension()
     {
+        if (string.Equals(
+            Environment.GetEnvironmentVariable(SkipFSharpTemplateTestEnvironmentVariable),
+            "1",
+            StringComparison.Ordinal
+        ))
+        {
+            Assert.Skip(
+                $"Set {SkipFSharpTemplateTestEnvironmentVariable}=0 to run the F# template validation."
+            );
+        }
+
         var root = GetRepositoryRoot();
         var tempRoot = Path.Combine(
             Path.GetTempPath(),
@@ -50,7 +65,16 @@ public class Phase6PlatformValidationTests
 
         try
         {
-            RunDotnetCommand($"new web -lang F# -n FSharpMinimal --force", tempRoot);
+            var templateCreation = TryRunDotnetCommand(
+                $"new web -lang F# -n FSharpMinimal --force",
+                tempRoot
+            );
+            if (templateCreation.ExitCode != 0)
+            {
+                Assert.Skip(
+                    $"F# ASP.NET Core templates are unavailable in this environment.{Environment.NewLine}{templateCreation.Output}"
+                );
+            }
 
             var projectDirectory = Path.Combine(tempRoot, "FSharpMinimal");
             var projectPath = Path.Combine(projectDirectory, "FSharpMinimal.fsproj");
@@ -141,6 +165,28 @@ public class Phase6PlatformValidationTests
         bool expectSuccess = true
     )
     {
+        var result = TryRunDotnetCommand(arguments, workingDirectory);
+
+        if (expectSuccess)
+        {
+            Assert.True(
+                result.ExitCode == 0,
+                $"dotnet {arguments} failed with exit code {result.ExitCode}.{Environment.NewLine}{result.Output}"
+            );
+        }
+        else
+        {
+            Assert.NotEqual(0, result.ExitCode);
+        }
+
+        return result.Output;
+    }
+
+    private static (int ExitCode, string Output) TryRunDotnetCommand(
+        string arguments,
+        string? workingDirectory = null
+    )
+    {
         using var process = new Process();
         process.StartInfo = new ProcessStartInfo("dotnet", arguments)
         {
@@ -155,20 +201,9 @@ public class Phase6PlatformValidationTests
         var error = process.StandardError.ReadToEnd();
         process.WaitForExit();
 
-        var combined = $"{output}{Environment.NewLine}{error}";
-
-        if (expectSuccess)
-        {
-            Assert.True(
-                process.ExitCode == 0,
-                $"dotnet {arguments} failed with exit code {process.ExitCode}.{Environment.NewLine}STDOUT:{Environment.NewLine}{output}{Environment.NewLine}STDERR:{Environment.NewLine}{error}"
-            );
-        }
-        else
-        {
-            Assert.NotEqual(0, process.ExitCode);
-        }
-
-        return combined;
+        return (
+            process.ExitCode,
+            $"STDOUT:{Environment.NewLine}{output}{Environment.NewLine}STDERR:{Environment.NewLine}{error}"
+        );
     }
 }
