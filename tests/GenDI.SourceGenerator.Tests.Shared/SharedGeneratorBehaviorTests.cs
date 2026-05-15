@@ -726,6 +726,37 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
+    public void ThreadIsolation_none_named_argument_does_not_generate_thread_local_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ThreadIsolationNoneCase;
+
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>(ThreadIsolation = ThreadIsolationPolicy.None)]
+            public sealed class Service : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddTransient<global::ThreadIsolationNoneCase.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "ThreadLocal<global::ThreadIsolationNoneCase.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
     public void Indirect_open_generic_implementation_is_not_registered()
     {
         var generatedSource = GeneratorTestHelper.GenerateSource(
@@ -879,6 +910,36 @@ public class SharedGeneratorBehaviorTests
         );
         Assert.Contains(
             "GetSection(\"Features:MyOption\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void IOptions_without_OptionConfig_attribute_does_not_generate_configuration_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionsWithoutConfigCase;
+            using Microsoft.Extensions.Options;
+
+            public sealed class MyOption
+            {
+                public string? Value { get; init; }
+            }
+
+            [Injectable]
+            public sealed class UsesOptions
+            {
+                [Inject]
+                public required IOptions<MyOption> Options { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.DoesNotContain(
+            "ConfigurationBinder.Get<global::OptionsWithoutConfigCase.MyOption>",
             generatedSource,
             StringComparison.Ordinal
         );
