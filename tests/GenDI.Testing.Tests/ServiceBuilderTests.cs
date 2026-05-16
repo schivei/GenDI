@@ -1,3 +1,4 @@
+using System;
 using GenDI.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -11,7 +12,9 @@ public class ServiceBuilderTests
     {
         var builder = ServiceBuilder
             .Create()
-            .AddSingleton<ITestClock>(new FixedClock(new DateTimeOffset(2026, 5, 16, 0, 0, 0, TimeSpan.Zero)));
+            .AddSingleton<ITestClock>(
+                new FixedClock(new DateTimeOffset(2026, 5, 16, 0, 0, 0, TimeSpan.Zero))
+            );
 
         using var provider = builder.BuildServiceProvider();
         var resolved = provider.GetRequiredService<ITestClock>();
@@ -29,7 +32,9 @@ public class ServiceBuilderTests
         var builder = ServiceBuilder
             .Create()
             .TryAdd(ServiceDescriptor.Singleton<ITestClock>(initial))
-            .TryAdd(ServiceDescriptor.Singleton<ITestClock>(new FixedClock(DateTimeOffset.MinValue)))
+            .TryAdd(
+                ServiceDescriptor.Singleton<ITestClock>(new FixedClock(DateTimeOffset.MinValue))
+            )
             .Replace(ServiceDescriptor.Singleton<ITestClock>(replacement));
 
         using var provider = builder.BuildServiceProvider();

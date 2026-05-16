@@ -16,8 +16,8 @@ public static class ServiceBuilderDescriptorExtensions
     /// <returns>The current <see cref="ServiceBuilder"/>.</returns>
     public static ServiceBuilder TryAdd(this ServiceBuilder builder, ServiceDescriptor descriptor)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(descriptor);
+        ThrowIfNull(builder, nameof(builder));
+        ThrowIfNull(descriptor, nameof(descriptor));
         builder.Services.TryAdd(descriptor);
         return builder;
     }
@@ -30,8 +30,8 @@ public static class ServiceBuilderDescriptorExtensions
     /// <returns>The current <see cref="ServiceBuilder"/>.</returns>
     public static ServiceBuilder Replace(this ServiceBuilder builder, ServiceDescriptor descriptor)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(descriptor);
+        ThrowIfNull(builder, nameof(builder));
+        ThrowIfNull(descriptor, nameof(descriptor));
         builder.Services.Replace(descriptor);
         return builder;
     }
@@ -47,9 +47,17 @@ public static class ServiceBuilderDescriptorExtensions
         ServiceDescriptor descriptor
     )
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(descriptor);
+        ThrowIfNull(builder, nameof(builder));
+        ThrowIfNull(descriptor, nameof(descriptor));
         builder.Services.TryAddEnumerable(descriptor);
         return builder;
+    }
+
+    private static void ThrowIfNull(object? value, string paramName)
+    {
+        if (value is null)
+        {
+            throw new ArgumentNullException(paramName);
+        }
     }
 }

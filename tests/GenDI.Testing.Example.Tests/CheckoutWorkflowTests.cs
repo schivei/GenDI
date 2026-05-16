@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using GenDI.Testing;
 using GenDI.Testing.Example.Tests.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,12 +19,13 @@ public class CheckoutWorkflowTests
 
         var builder = ServiceBuilder
             .Create()
+            .AddGenDI(services => services.AddGenDIServices())
             .AddSingleton<IProductCatalog>(productCatalog)
-            .AddSingleton<ISystemClock>(fixedClock)
-            .AddGenDI(services => services.AddGenDIServices());
+            .AddSingleton<ISystemClock>(fixedClock);
 
         using var provider = builder.BuildServiceProvider();
-        var checkout = provider.GetRequiredService<ICheckoutService>();
+        using var scope = provider.CreateScope();
+        var checkout = scope.ServiceProvider.GetRequiredService<ICheckoutService>();
 
         var result = checkout.Checkout("book", 2);
 

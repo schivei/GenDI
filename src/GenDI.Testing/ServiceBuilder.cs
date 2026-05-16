@@ -21,7 +21,7 @@ public sealed class ServiceBuilder
     /// <param name="services">Service collection used by the builder.</param>
     public ServiceBuilder(IServiceCollection services)
     {
-        ArgumentNullException.ThrowIfNull(services);
+        ThrowIfNull(services, nameof(services));
         this.services = services;
     }
 
@@ -43,7 +43,7 @@ public sealed class ServiceBuilder
     /// <returns>The current <see cref="ServiceBuilder"/>.</returns>
     public ServiceBuilder ConfigureServices(Action<IServiceCollection> configure)
     {
-        ArgumentNullException.ThrowIfNull(configure);
+        ThrowIfNull(configure, nameof(configure));
         configure(services);
         return this;
     }
@@ -55,7 +55,7 @@ public sealed class ServiceBuilder
     /// <returns>The current <see cref="ServiceBuilder"/>.</returns>
     public ServiceBuilder AddGenDI(Action<IServiceCollection> addGenDIServices)
     {
-        ArgumentNullException.ThrowIfNull(addGenDIServices);
+        ThrowIfNull(addGenDIServices, nameof(addGenDIServices));
         addGenDIServices(services);
         return this;
     }
@@ -83,7 +83,7 @@ public sealed class ServiceBuilder
     public ServiceBuilder AddSingleton<TService>(TService instance)
         where TService : class
     {
-        ArgumentNullException.ThrowIfNull(instance);
+        ThrowIfNull(instance, nameof(instance));
         services.AddSingleton(instance);
         return this;
     }
@@ -127,6 +127,18 @@ public sealed class ServiceBuilder
         bool validateOnBuild = true
     ) =>
         services.BuildServiceProvider(
-            new ServiceProviderOptions { ValidateScopes = validateScopes, ValidateOnBuild = validateOnBuild }
+            new ServiceProviderOptions
+            {
+                ValidateScopes = validateScopes,
+                ValidateOnBuild = validateOnBuild,
+            }
         );
+
+    private static void ThrowIfNull(object? value, string paramName)
+    {
+        if (value is null)
+        {
+            throw new ArgumentNullException(paramName);
+        }
+    }
 }
