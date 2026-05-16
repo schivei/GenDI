@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="../../pack.props" />
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -43,6 +43,7 @@
       PackagePath="buildTransitive/GenDI.SourceGenerator.props"
       Visible="false"
     />
+    <None Include="buildTransitive/GenDI.SourceGenerator.targets" Pack="true" PackagePath="buildTransitive/GenDI.SourceGenerator.targets" Visible="false" />
   </ItemGroup>
 
   <Target Name="IncludeBundledAnalyzerInPackage">
