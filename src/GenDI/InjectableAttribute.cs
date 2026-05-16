@@ -68,6 +68,18 @@ public sealed class InjectableAttribute : Attribute
     /// Optional registration module name used for grouped registration.
     /// </summary>
     public string? Module { get; set; }
+
+    /// <summary>
+    /// Optional registration multiplicity for generated registrations.
+    /// </summary>
+    public RegistrationMultiplicity RegistrationMultiplicity { get; set; } =
+        RegistrationMultiplicity.Multiple;
+
+    /// <summary>
+    /// Optional registration emission strategy for generated registrations.
+    /// </summary>
+    public RegistrationEmissionStrategy RegistrationEmission { get; set; } =
+        RegistrationEmissionStrategy.Add;
 }
 
 /// <summary>
@@ -124,4 +136,16 @@ public sealed class InjectableAttribute<TService> : Attribute
     /// Optional registration module name used for grouped registration.
     /// </summary>
     public string? Module { get; set; }
+
+    /// <summary>
+    /// Optional registration multiplicity for generated registrations.
+    /// </summary>
+    public RegistrationMultiplicity RegistrationMultiplicity { get; set; } =
+        RegistrationMultiplicity.Multiple;
+
+    /// <summary>
+    /// Optional registration emission strategy for generated registrations.
+    /// </summary>
+    public RegistrationEmissionStrategy RegistrationEmission { get; set; } =
+        RegistrationEmissionStrategy.Add;
 }

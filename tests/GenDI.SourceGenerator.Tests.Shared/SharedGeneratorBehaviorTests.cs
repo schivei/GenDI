@@ -1812,6 +1812,133 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
+    public void ServiceInjection_single_tryadd_emits_single_tryadd_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ExplicitSingleTryAddCase;
+
+            [ServiceInjection(
+                RegistrationMultiplicity = RegistrationMultiplicity.Single,
+                RegistrationEmission = RegistrationEmissionStrategy.TryAdd
+            )]
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>]
+            public sealed class FirstImpl : IContract
+            {
+            }
+
+            [Injectable<IContract>]
+            public sealed class SecondImpl : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.TryAddTransient<global::ExplicitSingleTryAddCase.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Equal(
+            1,
+            generatedSource
+                .Split(
+                    "services.TryAddTransient<global::ExplicitSingleTryAddCase.IContract>",
+                    StringSplitOptions.None
+                )
+                .Length - 1
+        );
+    }
+
+    [Fact]
+    public void Injectable_multiple_tryadd_emits_multiple_guarded_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ExplicitMultipleTryAddCase;
+
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>(
+                RegistrationMultiplicity = RegistrationMultiplicity.Multiple,
+                RegistrationEmission = RegistrationEmissionStrategy.TryAdd
+            )]
+            public sealed class Impl : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "if (!HasServiceImplementation(services, typeof(global::ExplicitMultipleTryAddCase.IContract), typeof(global::ExplicitMultipleTryAddCase.Impl)))",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "services.AddTransient<global::ExplicitMultipleTryAddCase.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Inferred_flow_without_serviceInjection_allows_multiple_tryadd_strategy()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace InferredMultipleTryAddCase;
+
+            public interface IContract
+            {
+            }
+
+            [Injectable]
+            public sealed class Consumer
+            {
+                [Inject(
+                    RegistrationMultiplicity = RegistrationMultiplicity.Multiple,
+                    RegistrationEmission = RegistrationEmissionStrategy.TryAdd
+                )]
+                public required IContract Contract { get; init; }
+            }
+
+            public sealed class FirstImpl : IContract
+            {
+            }
+
+            public sealed class SecondImpl : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "typeof(global::InferredMultipleTryAddCase.FirstImpl)",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "typeof(global::InferredMultipleTryAddCase.SecondImpl)",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "HasServiceImplementation(services, typeof(global::InferredMultipleTryAddCase.IContract)",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
     public void Open_generic_injectable_factory_is_bypassed_with_warning()
     {
         GeneratorTestHelper.AssertNoSourceGenerated(

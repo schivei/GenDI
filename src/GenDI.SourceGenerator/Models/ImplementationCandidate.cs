@@ -9,6 +9,8 @@ internal sealed class ImplementationCandidate
         INamedTypeSymbol symbol,
         string implementationType,
         string lifetime,
+        bool? allowMultiple,
+        bool? useTryAdd,
         string? threadIsolationLifetime,
         int order,
         int group,
@@ -18,6 +20,8 @@ internal sealed class ImplementationCandidate
         Symbol = symbol;
         ImplementationType = implementationType;
         Lifetime = lifetime;
+        AllowMultiple = allowMultiple;
+        UseTryAdd = useTryAdd;
         ThreadIsolationLifetime = threadIsolationLifetime;
         Order = order;
         Group = group;
@@ -29,6 +33,10 @@ internal sealed class ImplementationCandidate
     public string ImplementationType { get; }
 
     public string Lifetime { get; }
+
+    public bool? AllowMultiple { get; }
+
+    public bool? UseTryAdd { get; }
 
     public string? ThreadIsolationLifetime { get; }
 

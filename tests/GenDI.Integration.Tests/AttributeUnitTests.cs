@@ -22,6 +22,8 @@ public class AttributeUnitTests
         Assert.Null(attr.Key);
         Assert.Equal(ThreadIsolationPolicy.None, attr.ThreadIsolation);
         Assert.Null(attr.Module);
+        Assert.Equal(RegistrationMultiplicity.Multiple, attr.RegistrationMultiplicity);
+        Assert.Equal(RegistrationEmissionStrategy.Add, attr.RegistrationEmission);
         Assert.Equal(int.MaxValue, InjectableAttribute.DefaultOrderingValue);
     }
 
@@ -46,6 +48,8 @@ public class AttributeUnitTests
             Key = "myKey",
             ThreadIsolation = ThreadIsolationPolicy.Scoped,
             Module = "Core",
+            RegistrationMultiplicity = RegistrationMultiplicity.Single,
+            RegistrationEmission = RegistrationEmissionStrategy.TryAdd,
         };
 
         Assert.Equal(5, attr.Order);
@@ -53,6 +57,8 @@ public class AttributeUnitTests
         Assert.Equal("myKey", attr.Key);
         Assert.Equal(ThreadIsolationPolicy.Scoped, attr.ThreadIsolation);
         Assert.Equal("Core", attr.Module);
+        Assert.Equal(RegistrationMultiplicity.Single, attr.RegistrationMultiplicity);
+        Assert.Equal(RegistrationEmissionStrategy.TryAdd, attr.RegistrationEmission);
     }
 
     // ─── InjectableAttribute<T> ───────────────────────────────────────────────
@@ -69,6 +75,8 @@ public class AttributeUnitTests
         Assert.Null(attr.Key);
         Assert.Equal(ThreadIsolationPolicy.None, attr.ThreadIsolation);
         Assert.Null(attr.Module);
+        Assert.Equal(RegistrationMultiplicity.Multiple, attr.RegistrationMultiplicity);
+        Assert.Equal(RegistrationEmissionStrategy.Add, attr.RegistrationEmission);
     }
 
     [Theory]
@@ -92,6 +100,8 @@ public class AttributeUnitTests
             Key = 42,
             ThreadIsolation = ThreadIsolationPolicy.Singleton,
             Module = "App",
+            RegistrationMultiplicity = RegistrationMultiplicity.Single,
+            RegistrationEmission = RegistrationEmissionStrategy.TryAdd,
         };
 
         Assert.Equal(10, attr.Order);
@@ -99,6 +109,8 @@ public class AttributeUnitTests
         Assert.Equal(42, attr.Key);
         Assert.Equal(ThreadIsolationPolicy.Singleton, attr.ThreadIsolation);
         Assert.Equal("App", attr.Module);
+        Assert.Equal(RegistrationMultiplicity.Single, attr.RegistrationMultiplicity);
+        Assert.Equal(RegistrationEmissionStrategy.TryAdd, attr.RegistrationEmission);
     }
 
     // ─── InjectAttribute ──────────────────────────────────────────────────────
@@ -118,6 +130,8 @@ public class AttributeUnitTests
 
         Assert.Equal("injectionKey", attr.Key);
         Assert.Equal(ServiceLifetime.Transient, attr.Lifetime);
+        Assert.Equal(RegistrationMultiplicity.Single, attr.RegistrationMultiplicity);
+        Assert.Equal(RegistrationEmissionStrategy.Add, attr.RegistrationEmission);
     }
 
     [Fact]
@@ -126,6 +140,8 @@ public class AttributeUnitTests
         var attr = new InjectAttribute(ServiceLifetime.Scoped);
 
         Assert.Equal(ServiceLifetime.Scoped, attr.Lifetime);
+        Assert.Equal(RegistrationMultiplicity.Single, attr.RegistrationMultiplicity);
+        Assert.Equal(RegistrationEmissionStrategy.Add, attr.RegistrationEmission);
     }
 
     // ─── InjectOptionalAttribute ──────────────────────────────────────────────
@@ -166,6 +182,8 @@ public class AttributeUnitTests
         Assert.NotNull(attr);
         Assert.Equal(ServiceLifetime.Transient, attr.Lifetime);
         Assert.Equal(ThreadIsolationPolicy.None, attr.ThreadIsolation);
+        Assert.Equal(RegistrationMultiplicity.Multiple, attr.RegistrationMultiplicity);
+        Assert.Equal(RegistrationEmissionStrategy.Add, attr.RegistrationEmission);
     }
 
     [Fact]
@@ -186,10 +204,14 @@ public class AttributeUnitTests
         var attr = new ServiceInjectionAttribute(lifetime)
         {
             ThreadIsolation = ThreadIsolationPolicy.Singleton,
+            RegistrationMultiplicity = RegistrationMultiplicity.Single,
+            RegistrationEmission = RegistrationEmissionStrategy.TryAdd,
         };
 
         Assert.Equal(lifetime, attr.Lifetime);
         Assert.Equal(ThreadIsolationPolicy.Singleton, attr.ThreadIsolation);
+        Assert.Equal(RegistrationMultiplicity.Single, attr.RegistrationMultiplicity);
+        Assert.Equal(RegistrationEmissionStrategy.TryAdd, attr.RegistrationEmission);
     }
 
     [Fact]

@@ -36,4 +36,16 @@ public sealed class ServiceInjectionAttribute : Attribute
     /// Optional thread-isolation registration lifetime fallback.
     /// </summary>
     public ThreadIsolationPolicy ThreadIsolation { get; set; } = ThreadIsolationPolicy.None;
+
+    /// <summary>
+    /// Optional registration multiplicity fallback for annotated contracts.
+    /// </summary>
+    public RegistrationMultiplicity RegistrationMultiplicity { get; set; } =
+        RegistrationMultiplicity.Multiple;
+
+    /// <summary>
+    /// Optional registration emission fallback for annotated contracts.
+    /// </summary>
+    public RegistrationEmissionStrategy RegistrationEmission { get; set; } =
+        RegistrationEmissionStrategy.Add;
 }

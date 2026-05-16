@@ -10,6 +10,8 @@ internal sealed class InjectContractRequest
         string serviceType,
         string? keyExpression,
         string? lifetimeOverride,
+        bool? allowMultipleOverride,
+        bool? useTryAddOverride,
         string? moduleName
     )
     {
@@ -17,6 +19,8 @@ internal sealed class InjectContractRequest
         ServiceType = serviceType;
         KeyExpression = keyExpression;
         LifetimeOverride = lifetimeOverride;
+        AllowMultipleOverride = allowMultipleOverride;
+        UseTryAddOverride = useTryAddOverride;
         ModuleName = moduleName;
     }
 
@@ -27,6 +31,10 @@ internal sealed class InjectContractRequest
     public string? KeyExpression { get; }
 
     public string? LifetimeOverride { get; }
+
+    public bool? AllowMultipleOverride { get; }
+
+    public bool? UseTryAddOverride { get; }
 
     public string? ModuleName { get; }
 }

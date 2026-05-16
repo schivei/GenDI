@@ -35,4 +35,16 @@ public sealed class InjectAttribute : Attribute
     /// Lifetime override used by indirect registration discovery.
     /// </summary>
     public ServiceLifetime Lifetime { get; } = ServiceLifetime.Transient;
+
+    /// <summary>
+    /// Optional multiplicity override used by indirect registration discovery.
+    /// </summary>
+    public RegistrationMultiplicity RegistrationMultiplicity { get; set; } =
+        RegistrationMultiplicity.Single;
+
+    /// <summary>
+    /// Optional emission strategy override used by indirect registration discovery.
+    /// </summary>
+    public RegistrationEmissionStrategy RegistrationEmission { get; set; } =
+        RegistrationEmissionStrategy.Add;
 }

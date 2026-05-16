@@ -216,6 +216,61 @@ public class RealWorldIntegrationTests
             StringComparison.Ordinal
         );
     }
+
+    [Fact]
+    public void Single_add_strategy_overwrites_existing_registration()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IOverwriteAddContract, ManualOverwriteAddContract>();
+        services.AddGenDIServices();
+        using var provider = services.BuildServiceProvider();
+
+        var resolved = provider.GetRequiredService<IOverwriteAddContract>();
+        Assert.IsType<GeneratedOverwriteAddContract>(resolved);
+    }
+
+    [Fact]
+    public void Single_tryadd_strategy_preserves_existing_registration()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IOverwriteTryAddContract, ManualOverwriteTryAddContract>();
+        services.AddGenDIServices();
+        using var provider = services.BuildServiceProvider();
+
+        var resolved = provider.GetRequiredService<IOverwriteTryAddContract>();
+        Assert.IsType<ManualOverwriteTryAddContract>(resolved);
+    }
+
+    [Fact]
+    public void Multiple_add_strategy_composes_all_implementations()
+    {
+        var services = new ServiceCollection();
+        services.AddGenDIServices();
+        using var provider = services.BuildServiceProvider();
+
+        var resolved = provider.GetServices<IMultipleAddContract>();
+        Assert.Collection(
+            resolved,
+            service => Assert.IsType<MultipleAddContractFirst>(service),
+            service => Assert.IsType<MultipleAddContractSecond>(service)
+        );
+    }
+
+    [Fact]
+    public void Multiple_tryadd_strategy_avoids_duplicate_implementation_registration()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IMultipleTryAddContract, MultipleTryAddContractFirst>();
+        services.AddGenDIServices();
+        using var provider = services.BuildServiceProvider();
+
+        var resolved = provider.GetServices<IMultipleTryAddContract>();
+        Assert.Collection(
+            resolved,
+            service => Assert.IsType<MultipleTryAddContractFirst>(service),
+            service => Assert.IsType<MultipleTryAddContractSecond>(service)
+        );
+    }
 }
 
 public sealed class Order;
@@ -382,3 +437,49 @@ public sealed class UsesGenericIndirect : IUsesGenericIndirect
     [Inject]
     public required IGenericRepository<Order> Repository { get; init; }
 }
+
+[ServiceInjection(
+    RegistrationMultiplicity = RegistrationMultiplicity.Single,
+    RegistrationEmission = RegistrationEmissionStrategy.Add
+)]
+public interface IOverwriteAddContract;
+
+public sealed class ManualOverwriteAddContract : IOverwriteAddContract;
+
+[Injectable<IOverwriteAddContract>]
+public sealed class GeneratedOverwriteAddContract : IOverwriteAddContract;
+
+[ServiceInjection(
+    RegistrationMultiplicity = RegistrationMultiplicity.Single,
+    RegistrationEmission = RegistrationEmissionStrategy.TryAdd
+)]
+public interface IOverwriteTryAddContract;
+
+public sealed class ManualOverwriteTryAddContract : IOverwriteTryAddContract;
+
+[Injectable<IOverwriteTryAddContract>]
+public sealed class GeneratedOverwriteTryAddContract : IOverwriteTryAddContract;
+
+[ServiceInjection(
+    RegistrationMultiplicity = RegistrationMultiplicity.Multiple,
+    RegistrationEmission = RegistrationEmissionStrategy.Add
+)]
+public interface IMultipleAddContract;
+
+[Injectable<IMultipleAddContract>(Order = 0)]
+public sealed class MultipleAddContractFirst : IMultipleAddContract;
+
+[Injectable<IMultipleAddContract>(Order = 1)]
+public sealed class MultipleAddContractSecond : IMultipleAddContract;
+
+[ServiceInjection(
+    RegistrationMultiplicity = RegistrationMultiplicity.Multiple,
+    RegistrationEmission = RegistrationEmissionStrategy.TryAdd
+)]
+public interface IMultipleTryAddContract;
+
+[Injectable<IMultipleTryAddContract>(Order = 0)]
+public sealed class MultipleTryAddContractFirst : IMultipleTryAddContract;
+
+[Injectable<IMultipleTryAddContract>(Order = 1)]
+public sealed class MultipleTryAddContractSecond : IMultipleTryAddContract;
