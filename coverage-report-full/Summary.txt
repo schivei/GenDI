@@ -1,0 +1,100 @@
+Summary
+  Generated on: 05/16/2026 - 02:14:09
+  Parser: DynamicCodeCoverage
+  Assemblies: 11
+  Classes: 62
+  Files: 33
+  Line coverage: 97.2%
+  Covered lines: 8347
+  Uncovered lines: 239
+  Coverable lines: 8586
+  Total lines: 8567
+  Method coverage: 98.5% (483 of 490)
+  Full method coverage: 91.6% (449 of 490)
+  Covered methods: 483
+  Fully covered methods: 449
+  Total methods: 490
+
+GenDI                                                                                 100%
+  GenDI.ConditionalInjectableAttribute                                                100%
+  GenDI.DecoratorForAttribute                                                         100%
+  GenDI.GenDICoverationAttribute                                                      100%
+  GenDI.InjectableAttribute                                                           100%
+  GenDI.InjectableFactoryAttribute                                                    100%
+  GenDI.InjectableModuleAttribute                                                     100%
+  GenDI.InjectAttribute                                                               100%
+  GenDI.OptionConfigAttribute                                                         100%
+  GenDI.ServiceInjectionAttribute                                                     100%
+
+GenDI.Analyzers.dll                                                                  97.6%
+  GenDI.Analyzers.ConstructorInjectionAnalysisHelpers                                93.3%
+  GenDI.Analyzers.ConstructorInjectionCodeFixProvider                                95.7%
+  GenDI.Analyzers.GenDIDiagnostics                                                    100%
+  GenDI.Analyzers.InjectableUsageAnalyzer                                              99%
+  GenDI.Analyzers.PropagationAnalysisResult                                           100%
+
+GenDI.Analyzers.Tests.dll                                                             100%
+  GenDI.Analyzers.Tests.AnalyzerTestHelper                                            100%
+  GenDI.Analyzers.Tests.InjectableUsageAnalyzerTests                                  100%
+
+GenDI.Integration.Tests.dll                                                           100%
+  GenDI.Integration.Tests.AttributeUnitTests                                          100%
+  GenDI.Integration.Tests.DecoratedContractLogger                                     100%
+  GenDI.Integration.Tests.DependencyInjection.GenDIServiceCollectionExtensions        100%
+  GenDI.Integration.Tests.FactoryContract                                             100%
+  GenDI.Integration.Tests.FactoryModule                                               100%
+  GenDI.Integration.Tests.GeneratedService                                            100%
+  GenDI.Integration.Tests.KeyedGeneratedService                                       100%
+  GenDI.Integration.Tests.NonGeneratedDependsOnGenerated                              100%
+  GenDI.Integration.Tests.RealWorldIntegrationTests                                   100%
+  GenDI.Integration.Tests.ThreadIsolatedService                                       100%
+
+GenDI.SourceGenerator                                                                90.1%
+  GenDI.SourceGenerator.GenDISourceGenerator                                         89.5%
+  GenDI.SourceGenerator.GenDISourceGenerator.DecoratorTarget                          100%
+  GenDI.SourceGenerator.GenDISourceGenerator.ImplementationCandidate                  100%
+  GenDI.SourceGenerator.GenDISourceGenerator.InjectableFactoryMetadata                100%
+  GenDI.SourceGenerator.GenDISourceGenerator.InjectableMetadata                       100%
+  GenDI.SourceGenerator.GenDISourceGenerator.InjectablePropertyInfo                   100%
+  GenDI.SourceGenerator.GenDISourceGenerator.InjectContractRequest                    100%
+  GenDI.SourceGenerator.GenDISourceGenerator.InjectPropertyMetadata                   100%
+  GenDI.SourceGenerator.GenDISourceGenerator.OpenGenericBypassWarning                 100%
+  GenDI.SourceGenerator.GenDISourceGenerator.RegistrationBuildResult                  100%
+  GenDI.SourceGenerator.GenDISourceGenerator.ServiceContractTarget                    100%
+  GenDI.SourceGenerator.GenDISourceGenerator.ServiceRegistration                      100%
+  GenDI.SourceGenerator.GenDISourceGenerator.ServiceRegistrationComparer             57.1%
+
+GenDI.SourceGenerator.CoverageDisabled.Tests.dll                                     98.5%
+  GenDI.SourceGenerator.Tests.GeneratorEdgeCaseTests                                  100%
+  GenDI.SourceGenerator.Tests.GeneratorTestHelper                                    88.8%
+  GenDI.SourceGenerator.Tests.SharedGeneratorBehaviorTests                           99.4%
+  GenDI.SourceGenerator.Tests.TestSettings                                            100%
+
+GenDI.SourceGenerator.CoverageEnabled.Tests.dll                                      98.8%
+  GenDI.SourceGenerator.Tests.GeneratorEdgeCaseTests                                  100%
+  GenDI.SourceGenerator.Tests.GeneratorTestHelper                                    88.8%
+  GenDI.SourceGenerator.Tests.SharedGeneratorBehaviorTests                           99.9%
+  GenDI.SourceGenerator.Tests.TestSettings                                            100%
+
+GenDI.SourceGenerator.NoCoverageAttribute.Tests.dll                                  98.8%
+  GenDI.SourceGenerator.Tests.GeneratorEdgeCaseTests                                  100%
+  GenDI.SourceGenerator.Tests.GeneratorTestHelper                                    88.8%
+  GenDI.SourceGenerator.Tests.SharedGeneratorBehaviorTests                           99.9%
+  GenDI.SourceGenerator.Tests.TestSettings                                            100%
+
+GenDI.Testing                                                                         100%
+  GenDI.Testing.ServiceBuilder                                                        100%
+  GenDI.Testing.ServiceBuilderDescriptorExtensions                                    100%
+
+GenDI.Testing.Example.Tests.dll                                                        90%
+  GenDI.Testing.Example.Tests.CheckoutResult                                          100%
+  GenDI.Testing.Example.Tests.CheckoutService                                         100%
+  GenDI.Testing.Example.Tests.CheckoutWorkflowTests                                   100%
+  GenDI.Testing.Example.Tests.DependencyInjection.GenDIServiceCollectionExtensions   76.4%
+  GenDI.Testing.Example.Tests.FixedClock                                              100%
+  GenDI.Testing.Example.Tests.InMemoryProductCatalog                                  100%
+
+GenDI.Testing.Tests.dll                                                               100%
+  GenDI.Testing.Tests.FixedClock                                                      100%
+  GenDI.Testing.Tests.MarkerService                                                   100%
+  GenDI.Testing.Tests.ServiceBuilderTests                                             100%
