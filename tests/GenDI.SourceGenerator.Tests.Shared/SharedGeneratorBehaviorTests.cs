@@ -958,6 +958,142 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
+    public void Referenced_generated_extension_is_chained_instead_of_re_registering_dependency_services()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ConsumerChainCase;
+
+            public interface ILocalContract
+            {
+            }
+
+            [Injectable<ILocalContract>(ServiceLifetime.Singleton)]
+            public sealed class LocalService : ILocalContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute,
+            (
+                "ReferencedChainLibrary",
+                """
+                namespace ReferencedChainLibrary
+                {
+                    public interface IReferencedContract
+                    {
+                    }
+
+                    [Injectable<IReferencedContract>(ServiceLifetime.Singleton)]
+                    public sealed class ReferencedService : IReferencedContract
+                    {
+                    }
+                }
+
+                namespace ReferencedChainLibrary.DependencyInjection
+                {
+                    public static class GenDIServiceCollectionExtensions
+                    {
+                        public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddGenDIServices(
+                            this Microsoft.Extensions.DependencyInjection.IServiceCollection services
+                        )
+                        {
+                            return AddGenDIServices(services, System.Array.Empty<string>());
+                        }
+
+                        public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddGenDIServices(
+                            this Microsoft.Extensions.DependencyInjection.IServiceCollection services,
+                            params string[] modules
+                        )
+                        {
+                            return services;
+                        }
+                    }
+                }
+                """
+            )
+        );
+
+        Assert.Contains(
+            "global::ReferencedChainLibrary.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services, modules);",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "services.AddSingleton<global::ReferencedChainLibrary.IReferencedContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "services.AddSingleton<global::ConsumerChainCase.ILocalContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Explicit_manual_dependency_chain_prevents_automatic_chained_call_generation()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ConsumerChainCase;
+
+            public static class ManualChain
+            {
+                public static void Register(Microsoft.Extensions.DependencyInjection.IServiceCollection services)
+                {
+                    global::ReferencedManualChainLibrary.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services);
+                }
+            }
+
+            public interface ILocalContract
+            {
+            }
+
+            [Injectable<ILocalContract>(ServiceLifetime.Singleton)]
+            public sealed class LocalService : ILocalContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute,
+            (
+                "ReferencedManualChainLibrary",
+                """
+                namespace ReferencedManualChainLibrary.DependencyInjection;
+
+                public static class GenDIServiceCollectionExtensions
+                {
+                    public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddGenDIServices(
+                        this Microsoft.Extensions.DependencyInjection.IServiceCollection services
+                    )
+                    {
+                        return AddGenDIServices(services, System.Array.Empty<string>());
+                    }
+
+                    public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddGenDIServices(
+                        this Microsoft.Extensions.DependencyInjection.IServiceCollection services,
+                        params string[] modules
+                    )
+                    {
+                        return services;
+                    }
+                }
+                """
+            )
+        );
+
+        Assert.DoesNotContain(
+            "global::ReferencedManualChainLibrary.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services, modules);",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "services.AddSingleton<global::ConsumerChainCase.ILocalContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
     public void OptionConfig_generates_IOptions_registration_from_required_path()
     {
         var generatedSource = GeneratorTestHelper.GenerateSource(

@@ -88,6 +88,7 @@ internal static class GenDISourceTemplates
             public static IServiceCollection AddGenDIServices(this IServiceCollection services, params string[] modules)
             {
                 modules ??= Array.Empty<string>();
+        {{CHAINED_CALLS}}
         {{REGISTRATIONS}}
                 return services;
             }

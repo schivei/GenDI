@@ -78,9 +78,11 @@ public sealed partial class GenDISourceGenerator
         );
         registrations.AddRange(BuildFactoryRegistrations(compilation, concreteTypes, warnings));
         ApplyDecorators(compilation, concreteTypes, registrations, warnings);
+        var chainedExtensionCalls = BuildChainedExtensionCalls(compilation);
 
         return new RegistrationBuildResult(
             registrations.ToImmutableArray(),
+            chainedExtensionCalls,
             warnings
                 .Where(static warning => warning.Location is { IsInSource: true })
                 .GroupBy(static warning =>
@@ -94,6 +96,151 @@ public sealed partial class GenDISourceGenerator
                 .Select(static group => group.First())
                 .ToImmutableArray()
         );
+    }
+
+    private static ImmutableArray<string> BuildChainedExtensionCalls(Compilation compilation)
+    {
+        var explicitlyChainedNamespaces = GetExplicitlyChainedDependencyNamespaces(compilation);
+        var chainedCalls = ImmutableArray.CreateBuilder<string>();
+
+        foreach (var referencedAssembly in compilation.SourceModule.ReferencedAssemblySymbols)
+        {
+            if (!ShouldScanReferencedAssembly(referencedAssembly.Name))
+            {
+                continue;
+            }
+
+            var dependencyNamespace = GetProjectNamespace(referencedAssembly.Name);
+            if (
+                string.IsNullOrWhiteSpace(dependencyNamespace)
+                || explicitlyChainedNamespaces.Contains(dependencyNamespace)
+            )
+            {
+                continue;
+            }
+
+            if (!HasGeneratedAddGenDIServicesMethod(referencedAssembly, dependencyNamespace))
+            {
+                continue;
+            }
+
+            chainedCalls.Add(
+                $"global::{dependencyNamespace}.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services, modules);"
+            );
+        }
+
+        return chainedCalls
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(static call => call, StringComparer.Ordinal)
+            .ToImmutableArray();
+    }
+
+    private static HashSet<string> GetExplicitlyChainedDependencyNamespaces(Compilation compilation)
+    {
+        var explicitlyChainedNamespaces = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var syntaxTree in compilation.SyntaxTrees)
+        {
+            var sourceText = syntaxTree.GetText().ToString();
+            foreach (var referencedAssembly in compilation.SourceModule.ReferencedAssemblySymbols)
+            {
+                if (!ShouldScanReferencedAssembly(referencedAssembly.Name))
+                {
+                    continue;
+                }
+
+                var dependencyNamespace = GetProjectNamespace(referencedAssembly.Name);
+                if (string.IsNullOrWhiteSpace(dependencyNamespace))
+                {
+                    continue;
+                }
+
+                if (
+                    sourceText.Contains(
+                        $"{dependencyNamespace}.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(",
+                        StringComparison.Ordinal
+                    )
+                    || sourceText.Contains(
+                        $"global::{dependencyNamespace}.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(",
+                        StringComparison.Ordinal
+                    )
+                )
+                {
+                    explicitlyChainedNamespaces.Add(dependencyNamespace);
+                }
+            }
+        }
+
+        return explicitlyChainedNamespaces;
+    }
+
+    private static bool HasGeneratedAddGenDIServicesMethod(
+        IAssemblySymbol assemblySymbol,
+        string dependencyNamespace
+    )
+    {
+        var dependencyInjectionNamespace = GetNamespaceSymbol(
+            assemblySymbol.GlobalNamespace,
+            $"{dependencyNamespace}.DependencyInjection"
+        );
+        if (dependencyInjectionNamespace is null)
+        {
+            return false;
+        }
+
+        var extensionType = dependencyInjectionNamespace.GetTypeMembers(
+            "GenDIServiceCollectionExtensions"
+        );
+        foreach (var typeMember in extensionType)
+        {
+            foreach (var method in typeMember.GetMembers("AddGenDIServices").OfType<IMethodSymbol>())
+            {
+                if (
+                    method is { IsStatic: true, MethodKind: MethodKind.Ordinary }
+                    && method.Parameters.Length == 2
+                    && method.Parameters[0].Type.ToDisplayString() == "Microsoft.Extensions.DependencyInjection.IServiceCollection"
+                    && method.Parameters[1].Type is IArrayTypeSymbol arrayType
+                    && arrayType.ElementType.SpecialType == SpecialType.System_String
+                )
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static INamespaceSymbol? GetNamespaceSymbol(
+        INamespaceSymbol rootNamespace,
+        string fullNamespace
+    )
+    {
+        var currentNamespace = rootNamespace;
+        foreach (
+            var namespaceSegment in fullNamespace.Split(
+                '.',
+                StringSplitOptions.RemoveEmptyEntries
+            )
+        )
+        {
+            var nextNamespace = currentNamespace.GetNamespaceMembers().FirstOrDefault(
+                namespaceMember =>
+                    string.Equals(
+                        namespaceMember.Name,
+                        namespaceSegment,
+                        StringComparison.Ordinal
+                    )
+            );
+            if (nextNamespace is null)
+            {
+                return null;
+            }
+
+            currentNamespace = nextNamespace;
+        }
+
+        return currentNamespace;
     }
 
     private static IEnumerable<ServiceRegistration> BuildDirectRegistrations(
@@ -1790,24 +1937,6 @@ public sealed partial class GenDISourceGenerator
         return false;
     }
 
-    private static ImmutableArray<INamedTypeSymbol> GetReferencedAssemblyTypes(
-        Compilation compilation
-    )
-    {
-        var candidates = ImmutableArray.CreateBuilder<INamedTypeSymbol>();
-        foreach (var referencedAssembly in compilation.SourceModule.ReferencedAssemblySymbols)
-        {
-            if (!ShouldScanReferencedAssembly(referencedAssembly.Name))
-            {
-                continue;
-            }
-
-            CollectNamedTypes(referencedAssembly.GlobalNamespace, candidates);
-        }
-
-        return candidates.ToImmutable();
-    }
-
     private static bool ShouldScanReferencedAssembly(string assemblyName)
     {
         return !(
@@ -1819,42 +1948,6 @@ public sealed partial class GenDISourceGenerator
             || assemblyName.Equals("netstandard", StringComparison.OrdinalIgnoreCase)
             || assemblyName.Equals("mscorlib", StringComparison.OrdinalIgnoreCase)
         );
-    }
-
-    private static void CollectNamedTypes(
-        INamespaceSymbol namespaceSymbol,
-        ImmutableArray<INamedTypeSymbol>.Builder builder
-    )
-    {
-        foreach (var member in namespaceSymbol.GetMembers())
-        {
-            if (member is INamespaceSymbol childNamespace)
-            {
-                CollectNamedTypes(childNamespace, builder);
-                continue;
-            }
-
-            if (member is INamedTypeSymbol namedType)
-            {
-                CollectNamedTypes(namedType, builder);
-            }
-        }
-    }
-
-    private static void CollectNamedTypes(
-        INamedTypeSymbol namedType,
-        ImmutableArray<INamedTypeSymbol>.Builder builder
-    )
-    {
-        if (namedType.TypeKind == TypeKind.Class && !namedType.IsAbstract)
-        {
-            builder.Add(namedType);
-        }
-
-        foreach (var nestedType in namedType.GetTypeMembers())
-        {
-            CollectNamedTypes(nestedType, builder);
-        }
     }
 
     private static bool IsMethodAccessibleFromGeneratedCode(
