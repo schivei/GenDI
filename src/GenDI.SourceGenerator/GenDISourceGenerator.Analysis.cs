@@ -219,7 +219,7 @@ public sealed partial class GenDISourceGenerator
         var currentNamespace = rootNamespace;
         foreach (
             var namespaceSegment in fullNamespace.Split(
-                '.',
+                new[] { '.' },
                 StringSplitOptions.RemoveEmptyEntries
             )
         )

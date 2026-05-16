@@ -48,8 +48,9 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
                 var (discoveredTypes, options) = source;
                 var sourceTypes = discoveredTypes
                     .Where(static symbol => symbol is not null)
-                    .Cast<INamedTypeSymbol>()
+                    .Cast<ISymbol>()
                     .Distinct(SymbolEqualityComparer.Default)
+                    .Cast<INamedTypeSymbol>()
                     .ToImmutableArray();
                 var buildResult = BuildRegistrations(options.Compilation, sourceTypes);
                 foreach (var warning in buildResult.Warnings)
