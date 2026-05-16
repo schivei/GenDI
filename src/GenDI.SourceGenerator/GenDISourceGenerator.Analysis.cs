@@ -146,16 +146,24 @@ public sealed partial class GenDISourceGenerator
     private static HashSet<string> GetExplicitlyChainedDependencyNamespaces(Compilation compilation)
     {
         var explicitlyChainedNamespaces = new HashSet<string>(StringComparer.Ordinal);
-        var dependencyNamespacesWithGeneratedExtensions = compilation
+        var referencedAssembliesByName = compilation
             .SourceModule.ReferencedAssemblySymbols.Where(static assemblySymbol =>
                 ShouldScanReferencedAssembly(assemblySymbol.Name)
             )
-            .Select(static assemblySymbol =>
+            .ToImmutableDictionary(static assemblySymbol => assemblySymbol.Name);
+
+        var dependencyNamespacesWithGeneratedExtensions = referencedAssembliesByName
+            .Keys
+            .Select(assemblySymbol =>
             {
-                var dependencyNamespace = GetProjectNamespace(assemblySymbol.Name);
+                var dependencyNamespace = GetProjectNamespace(assemblySymbol);
+                var assemblySymbolValue = referencedAssembliesByName[assemblySymbol];
                 var hasGeneratedExtension =
                     !string.IsNullOrWhiteSpace(dependencyNamespace)
-                    && HasGeneratedAddGenDIServicesMethod(assemblySymbol, dependencyNamespace);
+                    && HasGeneratedAddGenDIServicesMethod(
+                        assemblySymbolValue,
+                        dependencyNamespace
+                    );
                 return (Namespace: dependencyNamespace, HasGeneratedExtension: hasGeneratedExtension);
             })
             .Where(static candidate => candidate.HasGeneratedExtension)
