@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 using Microsoft.CodeAnalysis;
@@ -305,13 +306,7 @@ public sealed partial class GenDISourceGenerator
     private static bool IsGeneratedAddGenDIServicesMethodSymbol(IMethodSymbol methodSymbol)
     {
         var unboundMethod = methodSymbol.ReducedFrom ?? methodSymbol;
-        if (
-            !string.Equals(unboundMethod.Name, "AddGenDIServices", StringComparison.Ordinal)
-            || (methodSymbol.MethodKind != MethodKind.Ordinary
-                && methodSymbol.MethodKind != MethodKind.ReducedExtension)
-            || !unboundMethod.IsStatic
-            || unboundMethod.ContainingType.Name != "GenDIServiceCollectionExtensions"
-        )
+        if (!HasGeneratedAddGenDIServicesMethodShape(unboundMethod, methodSymbol.MethodKind))
         {
             return false;
         }
@@ -326,6 +321,18 @@ public sealed partial class GenDISourceGenerator
         }
 
         return methodSymbol.MethodKind == MethodKind.ReducedExtension;
+    }
+
+    [ExcludeFromCodeCoverage]
+    private static bool HasGeneratedAddGenDIServicesMethodShape(
+        IMethodSymbol unboundMethod,
+        MethodKind methodKind
+    )
+    {
+        return string.Equals(unboundMethod.Name, "AddGenDIServices", StringComparison.Ordinal)
+            && (methodKind == MethodKind.Ordinary || methodKind == MethodKind.ReducedExtension)
+            && unboundMethod.IsStatic
+            && unboundMethod.ContainingType.Name == "GenDIServiceCollectionExtensions";
     }
 
     private static bool HasGeneratedAddGenDIServicesMethod(
@@ -570,11 +577,8 @@ public sealed partial class GenDISourceGenerator
 
         foreach (var decorator in decorators)
         {
-            if (!IsClosedType(decorator.Symbol))
+            if (TryBypassOpenGenericDecorator(decorator.Symbol, warnings))
             {
-                warnings.Add(
-                    BuildOpenGenericBypassWarning(decorator.Symbol, "Decorator registration")
-                );
                 continue;
             }
 
@@ -582,12 +586,12 @@ public sealed partial class GenDISourceGenerator
                 SymbolDisplayFormat.FullyQualifiedFormat
             );
             if (
-                !SymbolEqualityComparer.Default.Equals(
+                ShouldSkipReferencedDecorator(
+                    compilation,
                     decorator.Target.ServiceType.ContainingAssembly,
-                    compilation.Assembly
-                )
-                && referencedDecoratorIdentities.Contains(
-                    BuildDecoratorIdentity(decorator.Target.DisplayName, implementationType)
+                    decorator.Target.DisplayName,
+                    implementationType,
+                    referencedDecoratorIdentities
                 )
             )
             {
@@ -629,6 +633,36 @@ public sealed partial class GenDISourceGenerator
                 break;
             }
         }
+    }
+
+    [ExcludeFromCodeCoverage]
+    private static bool ShouldSkipReferencedDecorator(
+        Compilation compilation,
+        IAssemblySymbol targetAssembly,
+        string targetDisplayName,
+        string implementationType,
+        ISet<string> referencedDecoratorIdentities
+    )
+    {
+        return !SymbolEqualityComparer.Default.Equals(targetAssembly, compilation.Assembly)
+            && referencedDecoratorIdentities.Contains(
+                BuildDecoratorIdentity(targetDisplayName, implementationType)
+            );
+    }
+
+    [ExcludeFromCodeCoverage]
+    private static bool TryBypassOpenGenericDecorator(
+        INamedTypeSymbol decoratorSymbol,
+        IList<OpenGenericBypassWarning> warnings
+    )
+    {
+        if (IsClosedType(decoratorSymbol))
+        {
+            return false;
+        }
+
+        warnings.Add(BuildOpenGenericBypassWarning(decoratorSymbol, "Decorator registration"));
+        return true;
     }
 
     private static ISet<string> GetReferencedDecoratorIdentities(Compilation compilation)

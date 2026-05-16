@@ -1406,6 +1406,46 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
+    public void Referenced_extension_with_invalid_signature_is_not_chained()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ConsumerChainCase;
+
+            public interface ILocalContract
+            {
+            }
+
+            [Injectable<ILocalContract>(ServiceLifetime.Singleton)]
+            public sealed class LocalService : ILocalContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute,
+            (
+                "ReferencedInvalidChainLibrary",
+                """
+                namespace ReferencedInvalidChainLibrary.DependencyInjection
+                {
+                    public static class GenDIServiceCollectionExtensions
+                    {
+                        public static void AddGenDIServices(int services)
+                        {
+                        }
+                    }
+                }
+                """
+            )
+        );
+
+        Assert.DoesNotContain(
+            "global::ReferencedInvalidChainLibrary.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services, modules);",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
     public void Using_based_capture_adds_imported_dependency_namespace()
     {
         var invocation = Assert.IsType<InvocationExpressionSyntax>(
