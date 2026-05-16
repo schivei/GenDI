@@ -4,10 +4,10 @@ namespace GenDI.Analyzers;
 
 internal static class GenDIDiagnostics
 {
-    #pragma warning disable S1075 // external diagnostics documentation URL is intentionally fixed
+#pragma warning disable S1075 // external diagnostics documentation URL is intentionally fixed
     private const string AnalyzerDiagnosticsDocBaseUrl =
         "https://github.com/schivei/GenDI/blob/main/docs/ANALYZER_DIAGNOSTICS.md";
-    #pragma warning restore S1075
+#pragma warning restore S1075
     private const string UsageCategory = "GenDI.Usage";
 
     public static readonly DiagnosticDescriptor InjectRequiresInitOnlyProperty = new(
@@ -35,42 +35,33 @@ internal static class GenDIDiagnostics
     public static readonly DiagnosticDescriptor ConstructorInjectionCanBeConverted = new(
         id: "GENDI003",
         title: "Constructor injection can be converted to GenDI property injection",
-        messageFormat:
-            "Constructor injection in '{0}' can be converted to [Inject] init-only properties",
+        messageFormat: "Constructor injection in '{0}' can be converted to [Inject] init-only properties",
         category: UsageCategory,
         defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true,
-        description:
-            "Use a code fix to migrate constructor-injected dependencies to GenDI property injection.",
-        helpLinkUri:
-            $"{AnalyzerDiagnosticsDocBaseUrl}#gendi003---constructor-injection-can-be-converted-to-gendi-property-injection"
+        description: "Use a code fix to migrate constructor-injected dependencies to GenDI property injection.",
+        helpLinkUri: $"{AnalyzerDiagnosticsDocBaseUrl}#gendi003---constructor-injection-can-be-converted-to-gendi-property-injection"
     );
 
     public static readonly DiagnosticDescriptor DecoratorRequiresResolvableContract = new(
         id: "GENDI004",
         title: "Decorator attribute requires a resolvable service contract",
-        messageFormat:
-            "Decorator '{0}' must declare or infer exactly one closed [ServiceInjection] contract",
+        messageFormat: "Decorator '{0}' must declare or infer exactly one closed [ServiceInjection] contract",
         category: UsageCategory,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description:
-            "Non-generic [DecoratorFor] usage requires exactly one closed [ServiceInjection] contract in the decorator inheritance or implementation chain.",
-        helpLinkUri:
-            $"{AnalyzerDiagnosticsDocBaseUrl}#gendi004---decorator-attribute-requires-a-resolvable-service-contract"
+        description: "Non-generic [DecoratorFor] usage requires exactly one closed [ServiceInjection] contract in the decorator inheritance or implementation chain.",
+        helpLinkUri: $"{AnalyzerDiagnosticsDocBaseUrl}#gendi004---decorator-attribute-requires-a-resolvable-service-contract"
     );
 
     public static readonly DiagnosticDescriptor DecoratorRequiresInnerDependency = new(
         id: "GENDI005",
         title: "Decorator requires an inner dependency",
-        messageFormat:
-            "Decorator '{0}' must declare a public constructor parameter or [Inject] init-only property of type '{1}'",
+        messageFormat: "Decorator '{0}' must declare a public constructor parameter or [Inject] init-only property of type '{1}'",
         category: UsageCategory,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description:
-            "Decorators must expose an injectable dependency matching the decorated service contract so the generated pipeline can be composed statically.",
-        helpLinkUri:
-            $"{AnalyzerDiagnosticsDocBaseUrl}#gendi005---decorator-requires-an-inner-dependency"
+        description: "Decorators must expose an injectable dependency matching the decorated service contract so the generated pipeline can be composed statically.",
+        helpLinkUri: $"{AnalyzerDiagnosticsDocBaseUrl}#gendi005---decorator-requires-an-inner-dependency"
     );
 }

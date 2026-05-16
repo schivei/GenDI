@@ -64,7 +64,9 @@ public sealed class ConstructorInjectionCodeFixProvider : CodeFixProvider
             return document;
         }
 
-        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+        var semanticModel = await document
+            .GetSemanticModelAsync(cancellationToken)
+            .ConfigureAwait(false);
 
         var existingPropertyNames = containingClass
             .Members.OfType<PropertyDeclarationSyntax>()
@@ -110,7 +112,11 @@ public sealed class ConstructorInjectionCodeFixProvider : CodeFixProvider
                         SyntaxFactory.SingletonList(
                             SyntaxFactory.AttributeList(
                                 SyntaxFactory.SingletonSeparatedList(
-                                    BuildInjectAttribute(parameter, semanticModel, cancellationToken)
+                                    BuildInjectAttribute(
+                                        parameter,
+                                        semanticModel,
+                                        cancellationToken
+                                    )
                                 )
                             )
                         )
@@ -207,7 +213,11 @@ public sealed class ConstructorInjectionCodeFixProvider : CodeFixProvider
         CancellationToken cancellationToken
     )
     {
-        var keyExpression = GetFromKeyedServicesKeyExpression(parameter, semanticModel, cancellationToken);
+        var keyExpression = GetFromKeyedServicesKeyExpression(
+            parameter,
+            semanticModel,
+            cancellationToken
+        );
         if (keyExpression is null)
         {
             return SyntaxFactory.Attribute(SyntaxFactory.ParseName("global::GenDI.Inject"));
@@ -217,7 +227,8 @@ public sealed class ConstructorInjectionCodeFixProvider : CodeFixProvider
             SyntaxFactory.ParseName("global::GenDI.Inject"),
             SyntaxFactory.AttributeArgumentList(
                 SyntaxFactory.SingletonSeparatedList(
-                    SyntaxFactory.AttributeArgument(keyExpression)
+                    SyntaxFactory
+                        .AttributeArgument(keyExpression)
                         .WithNameEquals(SyntaxFactory.NameEquals("Key"))
                 )
             )

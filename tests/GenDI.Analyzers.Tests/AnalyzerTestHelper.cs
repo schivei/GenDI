@@ -6,13 +6,13 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using GenDI.Analyzers;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GenDI.Analyzers.Tests;
 
@@ -73,11 +73,7 @@ internal static class AnalyzerTestHelper
         references.Add(
             MetadataReference.CreateFromFile(typeof(InjectableAttribute).Assembly.Location)
         );
-        references.Add(
-            MetadataReference.CreateFromFile(
-                typeof(ServiceLifetime).Assembly.Location
-            )
-        );
+        references.Add(MetadataReference.CreateFromFile(typeof(ServiceLifetime).Assembly.Location));
 
         return references.ToImmutableArray();
     }

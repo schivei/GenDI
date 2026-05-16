@@ -45,10 +45,7 @@ public sealed partial class GenDISourceGenerator
             if (!IsClosedType(concreteType))
             {
                 warnings.Add(
-                    BuildOpenGenericBypassWarning(
-                        concreteType,
-                        "Injectable class registration"
-                    )
+                    BuildOpenGenericBypassWarning(concreteType, "Injectable class registration")
                 );
                 continue;
             }
@@ -86,8 +83,8 @@ public sealed partial class GenDISourceGenerator
             registrations.ToImmutableArray(),
             warnings
                 .Where(static warning => warning.Location is { IsInSource: true })
-                .GroupBy(
-                    static warning => (
+                .GroupBy(static warning =>
+                    (
                         warning.Location.GetLineSpan().Path,
                         warning.Location.SourceSpan.Start,
                         warning.Context,
@@ -178,7 +175,13 @@ public sealed partial class GenDISourceGenerator
                 continue;
             }
 
-            if (TryBuildOptionsRegistration(injectRequest, existingKeys, out var optionsRegistration))
+            if (
+                TryBuildOptionsRegistration(
+                    injectRequest,
+                    existingKeys,
+                    out var optionsRegistration
+                )
+            )
             {
                 registrations.Add(optionsRegistration);
                 existingKeys.Add(BuildRegistrationIdentity(optionsRegistration));
@@ -196,7 +199,9 @@ public sealed partial class GenDISourceGenerator
                 continue;
             }
 
-            var contractFallbackLifetime = TryGetServiceInjectionLifetime(injectRequest.ContractSymbol);
+            var contractFallbackLifetime = TryGetServiceInjectionLifetime(
+                injectRequest.ContractSymbol
+            );
             var contractFallbackThreadIsolation = TryGetServiceInjectionThreadIsolationLifetime(
                 injectRequest.ContractSymbol
             );
@@ -215,8 +220,8 @@ public sealed partial class GenDISourceGenerator
                 continue;
             }
 
-            var constructor = bestCandidate.Symbol
-                .InstanceConstructors.Where(static constructorSymbol =>
+            var constructor = bestCandidate
+                .Symbol.InstanceConstructors.Where(static constructorSymbol =>
                     constructorSymbol.DeclaredAccessibility == Accessibility.Public
                 )
                 .OrderByDescending(static constructorSymbol => constructorSymbol.Parameters.Length)
@@ -260,11 +265,13 @@ public sealed partial class GenDISourceGenerator
     {
         var decorators = concreteTypes
             .SelectMany(typeSymbol =>
-                GetDecoratorTargets(compilation, typeSymbol).Select(target => (Symbol: typeSymbol, Target: target))
+                GetDecoratorTargets(compilation, typeSymbol)
+                    .Select(target => (Symbol: typeSymbol, Target: target))
             )
             .OrderBy(static decorator => decorator.Target.Order)
             .ThenBy(
-                static decorator => decorator.Symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                static decorator =>
+                    decorator.Symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                 StringComparer.Ordinal
             )
             .ToImmutableArray();
@@ -274,10 +281,7 @@ public sealed partial class GenDISourceGenerator
             if (!IsClosedType(decorator.Symbol))
             {
                 warnings.Add(
-                    BuildOpenGenericBypassWarning(
-                        decorator.Symbol,
-                        "Decorator registration"
-                    )
+                    BuildOpenGenericBypassWarning(decorator.Symbol, "Decorator registration")
                 );
                 continue;
             }
@@ -285,8 +289,8 @@ public sealed partial class GenDISourceGenerator
             var implementationType = decorator.Symbol.ToDisplayString(
                 SymbolDisplayFormat.FullyQualifiedFormat
             );
-            var constructor = decorator.Symbol
-                .InstanceConstructors.Where(static constructorSymbol =>
+            var constructor = decorator
+                .Symbol.InstanceConstructors.Where(static constructorSymbol =>
                     constructorSymbol.DeclaredAccessibility == Accessibility.Public
                 )
                 .OrderByDescending(static constructorSymbol => constructorSymbol.Parameters.Length)
@@ -362,15 +366,13 @@ public sealed partial class GenDISourceGenerator
                 )
                 {
                     warnings.Add(
-                        BuildOpenGenericBypassWarning(
-                            method,
-                            "InjectableFactory registration"
-                        )
+                        BuildOpenGenericBypassWarning(method, "InjectableFactory registration")
                     );
                     continue;
                 }
 
-                var registrationServiceTypeSymbol = factoryMetadata.ServiceTypeSymbol ?? method.ReturnType;
+                var registrationServiceTypeSymbol =
+                    factoryMetadata.ServiceTypeSymbol ?? method.ReturnType;
                 if (
                     !IsTypeAccessibleFromGeneratedCode(registrationServiceTypeSymbol, compilation)
                     || !IsTypeAccessibleFromGeneratedCode(method.ReturnType, compilation)
@@ -385,12 +387,15 @@ public sealed partial class GenDISourceGenerator
                 var serviceType =
                     factoryMetadata.ServiceType
                     ?? method.ReturnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                var factoryCall = $"{method.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}.{method.Name}({BuildMethodParameters(method)})";
+                var factoryCall =
+                    $"{method.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}.{method.Name}({BuildMethodParameters(method)})";
 
                 registrations.Add(
                     new ServiceRegistration(
                         serviceType,
-                        method.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                        method.ContainingType.ToDisplayString(
+                            SymbolDisplayFormat.FullyQualifiedFormat
+                        ),
                         factoryMetadata.Lifetime,
                         factoryMetadata.ThreadIsolationLifetime,
                         factoryCall,
@@ -431,7 +436,7 @@ public sealed partial class GenDISourceGenerator
         );
     }
 
-    #pragma warning disable S3776 // registration extraction logic is intentionally centralized
+#pragma warning disable S3776 // registration extraction logic is intentionally centralized
     private static bool TryGetInjectableFactoryAttribute(
         IMethodSymbol method,
         out InjectableFactoryMetadata metadata
@@ -455,7 +460,10 @@ public sealed partial class GenDISourceGenerator
             if (
                 attributeClass is null
                 || attributeClass.OriginalDefinition.ToDisplayString()
-                    is not ("GenDI.InjectableFactoryAttribute" or "GenDI.InjectableFactoryAttribute<TService>")
+                    is not (
+                        "GenDI.InjectableFactoryAttribute"
+                        or "GenDI.InjectableFactoryAttribute<TService>"
+                    )
             )
             {
                 continue;
@@ -489,7 +497,10 @@ public sealed partial class GenDISourceGenerator
             if (attributeData.ConstructorArguments.Length > 0)
             {
                 var first = attributeData.ConstructorArguments[0];
-                if (first.Kind == TypedConstantKind.Type && first.Value is ITypeSymbol firstTypeSymbol)
+                if (
+                    first.Kind == TypedConstantKind.Type
+                    && first.Value is ITypeSymbol firstTypeSymbol
+                )
                 {
                     serviceType = firstTypeSymbol.ToDisplayString(
                         SymbolDisplayFormat.FullyQualifiedFormat
@@ -552,7 +563,7 @@ public sealed partial class GenDISourceGenerator
 
         return false;
     }
-    #pragma warning restore S3776
+#pragma warning restore S3776
 
     private static bool TryBuildOptionsRegistration(
         InjectContractRequest injectRequest,
@@ -583,7 +594,9 @@ public sealed partial class GenDISourceGenerator
             return false;
         }
 
-        var optionsTypeDisplay = optionsType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        var optionsTypeDisplay = optionsType.ToDisplayString(
+            SymbolDisplayFormat.FullyQualifiedFormat
+        );
         var escapedPath = EscapeStringLiteral(configPath);
         var escapedTypeName = EscapeStringLiteral(optionsTypeDisplay);
         var factoryBody =
@@ -624,7 +637,7 @@ public sealed partial class GenDISourceGenerator
         return $"{serviceType}|{keyExpression ?? string.Empty}|{environmentName ?? string.Empty}|{moduleName ?? string.Empty}";
     }
 
-    #pragma warning disable S3776 // registration extraction logic is intentionally centralized
+#pragma warning disable S3776 // registration extraction logic is intentionally centralized
     private static bool TryGetInjectableAttribute(
         INamedTypeSymbol symbol,
         out InjectableMetadata injectableMetadata
@@ -708,7 +721,7 @@ public sealed partial class GenDISourceGenerator
 
         return false;
     }
-    #pragma warning restore S3776
+#pragma warning restore S3776
 
     private static bool HasDecoratorTarget(Compilation compilation, INamedTypeSymbol symbol)
     {
@@ -862,7 +875,7 @@ public sealed partial class GenDISourceGenerator
             .ToImmutableArray();
     }
 
-    #pragma warning disable S3776 // contract resolution intentionally handles multiple precedence branches
+#pragma warning disable S3776 // contract resolution intentionally handles multiple precedence branches
     private static ImmutableArray<ServiceContractTarget> GetServiceTypes(
         Compilation compilation,
         INamedTypeSymbol symbol,
@@ -971,7 +984,7 @@ public sealed partial class GenDISourceGenerator
             )
             .ToImmutableArray();
     }
-    #pragma warning restore S3776
+#pragma warning restore S3776
 
     private static bool HasServiceInjectionAttribute(ITypeSymbol symbol)
     {
@@ -988,9 +1001,7 @@ public sealed partial class GenDISourceGenerator
     {
         var serviceTypes = ImmutableArray.CreateBuilder<INamedTypeSymbol>();
 
-        foreach (
-            var interfaceSymbol in symbol.AllInterfaces.Where(HasServiceInjectionAttribute)
-        )
+        foreach (var interfaceSymbol in symbol.AllInterfaces.Where(HasServiceInjectionAttribute))
         {
             serviceTypes.Add(interfaceSymbol);
         }
@@ -1138,7 +1149,9 @@ public sealed partial class GenDISourceGenerator
     {
         foreach (var attributeData in symbol.GetAttributes())
         {
-            if (attributeData.AttributeClass?.ToDisplayString() != "GenDI.InjectableModuleAttribute")
+            if (
+                attributeData.AttributeClass?.ToDisplayString() != "GenDI.InjectableModuleAttribute"
+            )
             {
                 continue;
             }
@@ -1161,7 +1174,8 @@ public sealed partial class GenDISourceGenerator
         string context
     )
     {
-        var location = symbol.Locations.FirstOrDefault(static loc => loc.IsInSource) ?? Location.None;
+        var location =
+            symbol.Locations.FirstOrDefault(static loc => loc.IsInSource) ?? Location.None;
         return new OpenGenericBypassWarning(
             location,
             context,
@@ -1174,7 +1188,8 @@ public sealed partial class GenDISourceGenerator
         string context
     )
     {
-        var location = symbol.Locations.FirstOrDefault(static loc => loc.IsInSource) ?? Location.None;
+        var location =
+            symbol.Locations.FirstOrDefault(static loc => loc.IsInSource) ?? Location.None;
         return new OpenGenericBypassWarning(
             location,
             context,
@@ -1211,7 +1226,8 @@ public sealed partial class GenDISourceGenerator
                     decoratedServiceType,
                     decoratedFactoryBody
                 );
-                var resolution = specialResolution
+                var resolution =
+                    specialResolution
                     ?? BuildResolutionExpression(
                         property.Type,
                         property.KeyExpression,
@@ -1326,24 +1342,20 @@ public sealed partial class GenDISourceGenerator
             .Where(static property => property.HasInjectAttribute)
             .Where(static property => property.TypeSymbol is INamedTypeSymbol)
             .Where(property => IsTypeAccessibleFromGeneratedCode(property.TypeSymbol, compilation))
-            .Select(static property =>
-                new InjectContractRequest(
-                    (INamedTypeSymbol)property.TypeSymbol,
-                    property.Type,
-                    property.KeyExpression,
-                    property.LifetimeExpression,
-                    null
-                )
-            )
-            .Select(request =>
-                new InjectContractRequest(
-                    request.ContractSymbol,
-                    request.ServiceType,
-                    request.KeyExpression,
-                    request.LifetimeOverride,
-                    moduleName
-                )
-            )
+            .Select(static property => new InjectContractRequest(
+                (INamedTypeSymbol)property.TypeSymbol,
+                property.Type,
+                property.KeyExpression,
+                property.LifetimeExpression,
+                null
+            ))
+            .Select(request => new InjectContractRequest(
+                request.ContractSymbol,
+                request.ServiceType,
+                request.KeyExpression,
+                request.LifetimeOverride,
+                moduleName
+            ))
             .GroupBy(
                 static request => $"{request.ServiceType}|{request.KeyExpression ?? string.Empty}",
                 StringComparer.Ordinal
@@ -1697,7 +1709,7 @@ public sealed partial class GenDISourceGenerator
         };
     }
 
-    #pragma warning disable S3776 // indirect candidate resolution intentionally evaluates multiple contract scenarios
+#pragma warning disable S3776 // indirect candidate resolution intentionally evaluates multiple contract scenarios
     private static ImplementationCandidate? FindIndirectImplementationCandidate(
         Compilation compilation,
         INamedTypeSymbol contractSymbol,
@@ -1780,7 +1792,7 @@ public sealed partial class GenDISourceGenerator
             .ThenBy(static candidate => candidate.ImplementationType, StringComparer.Ordinal)
             .FirstOrDefault();
     }
-    #pragma warning restore S3776
+#pragma warning restore S3776
 
     private static bool ImplementsOrInherits(
         INamedTypeSymbol implementationType,
@@ -1828,13 +1840,7 @@ public sealed partial class GenDISourceGenerator
         }
 
         var typeArguments = new ITypeSymbol?[openImplementationType.TypeParameters.Length];
-        if (
-            !TryPopulateGenericTypeArguments(
-                openImplementationType,
-                contractType,
-                typeArguments
-            )
-        )
+        if (!TryPopulateGenericTypeArguments(openImplementationType, contractType, typeArguments))
         {
             return null;
         }
@@ -1929,7 +1935,11 @@ public sealed partial class GenDISourceGenerator
             }
 
             var typeParameterIndex = -1;
-            for (var paramIndex = 0; paramIndex < openImplementationType.TypeParameters.Length; paramIndex++)
+            for (
+                var paramIndex = 0;
+                paramIndex < openImplementationType.TypeParameters.Length;
+                paramIndex++
+            )
             {
                 if (
                     SymbolEqualityComparer.Default.Equals(
@@ -1953,7 +1963,9 @@ public sealed partial class GenDISourceGenerator
         return true;
     }
 
-    private static ImmutableArray<INamedTypeSymbol> GetReferencedAssemblyTypes(Compilation compilation)
+    private static ImmutableArray<INamedTypeSymbol> GetReferencedAssemblyTypes(
+        Compilation compilation
+    )
     {
         var candidates = ImmutableArray.CreateBuilder<INamedTypeSymbol>();
         foreach (var referencedAssembly in compilation.SourceModule.ReferencedAssemblySymbols)

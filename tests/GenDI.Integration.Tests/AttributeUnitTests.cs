@@ -114,10 +114,7 @@ public class AttributeUnitTests
     [Fact]
     public void InjectAttribute_key_round_trips()
     {
-        var attr = new InjectAttribute
-        {
-            Key = "injectionKey",
-        };
+        var attr = new InjectAttribute { Key = "injectionKey" };
 
         Assert.Equal("injectionKey", attr.Key);
         Assert.Equal(ServiceLifetime.Transient, attr.Lifetime);

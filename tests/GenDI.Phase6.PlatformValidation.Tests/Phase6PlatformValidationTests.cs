@@ -44,11 +44,13 @@ public class Phase6PlatformValidationTests
     [Trait("Category", "TemplateDependent")]
     public void FSharp_projects_do_not_receive_generated_AddGenDIServices_extension()
     {
-        if (string.Equals(
-            Environment.GetEnvironmentVariable(SkipFSharpTemplateTestEnvironmentVariable),
-            "1",
-            StringComparison.Ordinal
-        ))
+        if (
+            string.Equals(
+                Environment.GetEnvironmentVariable(SkipFSharpTemplateTestEnvironmentVariable),
+                "1",
+                StringComparison.Ordinal
+            )
+        )
         {
             Assert.Skip(
                 $"Set {SkipFSharpTemplateTestEnvironmentVariable}=0 to run the F# template validation."
@@ -84,10 +86,20 @@ public class Phase6PlatformValidationTests
             fsproj = fsproj.Replace(
                 "</Project>",
                 $"""
-                
+
                   <ItemGroup>
-                    <ProjectReference Include="{Path.Combine(root, "src", "GenDI", "GenDI.csproj")}" />
-                    <ProjectReference Include="{Path.Combine(root, "src", "GenDI.SourceGenerator", "GenDI.SourceGenerator.csproj")}" PrivateAssets="all" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+                    <ProjectReference Include="{Path.Combine(
+                    root,
+                    "src",
+                    "GenDI",
+                    "GenDI.csproj"
+                )}" />
+                    <ProjectReference Include="{Path.Combine(
+                    root,
+                    "src",
+                    "GenDI.SourceGenerator",
+                    "GenDI.SourceGenerator.csproj"
+                )}" PrivateAssets="all" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
                   </ItemGroup>
                 </Project>
                 """

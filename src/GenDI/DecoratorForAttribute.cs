@@ -12,11 +12,11 @@ public sealed class DecoratorForAttribute : Attribute
     /// <see langword="null"/>; use <see cref="DecoratorForAttribute{TService}"/> when callers
     /// need an explicit contract type.
     /// </summary>
-    #pragma warning disable CA1822 // kept as instance member for API parity with generic variant
-    #pragma warning disable S2325 // kept as instance member for API parity with generic variant
+#pragma warning disable CA1822 // kept as instance member for API parity with generic variant
+#pragma warning disable S2325 // kept as instance member for API parity with generic variant
     public Type? ServiceType => null;
-    #pragma warning restore S2325
-    #pragma warning restore CA1822
+#pragma warning restore S2325
+#pragma warning restore CA1822
 
     /// <summary>
     /// Optional pipeline ordering value. Lower values wrap earlier and ties fall back to ordinal

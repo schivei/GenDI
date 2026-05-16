@@ -28,7 +28,10 @@ public sealed class InjectableFactoryAttribute : Attribute
         error: false
     )]
 #pragma warning restore S1133
-    public InjectableFactoryAttribute(Type serviceType, ServiceLifetime lifetime = ServiceLifetime.Transient)
+    public InjectableFactoryAttribute(
+        Type serviceType,
+        ServiceLifetime lifetime = ServiceLifetime.Transient
+    )
     {
         ServiceType = serviceType;
         Lifetime = lifetime;

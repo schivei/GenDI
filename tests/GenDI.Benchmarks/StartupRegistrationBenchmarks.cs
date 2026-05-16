@@ -24,8 +24,8 @@ public class StartupRegistrationBenchmarks
         services.AddSingleton<IBenchmarkClock, BenchmarkClock>();
         services.AddSingleton<IBenchmarkRepository, BenchmarkRepository>();
         services.AddTransient<IBenchmarkService, BenchmarkService>();
-        services.AddTransient<IBenchmarkServiceViaProperties>(sp =>
-            new BenchmarkServiceViaProperties
+        services.AddTransient<IBenchmarkServiceViaProperties>(
+            sp => new BenchmarkServiceViaProperties
             {
                 Clock = sp.GetRequiredService<IBenchmarkClock>(),
                 Repository = sp.GetRequiredService<IBenchmarkRepository>(),
@@ -89,7 +89,7 @@ public class StartupRegistrationBenchmarks
 
 internal static class ReflectionRegistration
 {
-    #pragma warning disable S3776 // benchmark baseline keeps full reflection flow in one method for readability/comparison
+#pragma warning disable S3776 // benchmark baseline keeps full reflection flow in one method for readability/comparison
     public static void AddByReflection(IServiceCollection services, Assembly assembly)
     {
         foreach (var implementationType in assembly.GetTypes().Where(IsInjectableImplementation))
@@ -114,7 +114,11 @@ internal static class ReflectionRegistration
                 contracts.Add(explicitServiceType);
             }
 
-            foreach (var interfaceType in implementationType.GetInterfaces().Where(HasServiceInjectionAttribute))
+            foreach (
+                var interfaceType in implementationType
+                    .GetInterfaces()
+                    .Where(HasServiceInjectionAttribute)
+            )
             {
                 contracts.Add(interfaceType);
             }
@@ -141,7 +145,7 @@ internal static class ReflectionRegistration
             }
         }
     }
-    #pragma warning restore S3776
+#pragma warning restore S3776
 
     private static bool IsInjectableImplementation(Type type)
     {

@@ -53,8 +53,11 @@ public interface IBenchmarkServiceViaProperties
 [Injectable<IBenchmarkServiceViaProperties>(ServiceLifetime.Transient, Group = 1, Order = 2)]
 public sealed class BenchmarkServiceViaProperties : IBenchmarkServiceViaProperties
 {
-    [Inject] public required IBenchmarkClock Clock { get; init; }
-    [Inject] public required IBenchmarkRepository Repository { get; init; }
+    [Inject]
+    public required IBenchmarkClock Clock { get; init; }
+
+    [Inject]
+    public required IBenchmarkRepository Repository { get; init; }
 
     public string Execute() => $"{Repository.GetCount()}@{Clock.UtcNow:O}";
 }

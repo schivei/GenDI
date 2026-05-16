@@ -207,10 +207,14 @@ public class RealWorldIntegrationTests
         services.AddGenDIServices();
         using var provider = services.BuildServiceProvider();
 
-        var exception = Assert.Throws<InvalidOperationException>(
-            () => provider.GetRequiredService<IUsesGenericIndirect>()
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            provider.GetRequiredService<IUsesGenericIndirect>()
         );
-        Assert.Contains(nameof(IGenericRepository<Order>), exception.Message, StringComparison.Ordinal);
+        Assert.Contains(
+            nameof(IGenericRepository<Order>),
+            exception.Message,
+            StringComparison.Ordinal
+        );
     }
 }
 
