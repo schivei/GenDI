@@ -1,0 +1,30 @@
+namespace GenDI.SourceGenerator;
+
+internal sealed class ServiceRegistrationComparer : IEqualityComparer<ServiceRegistration>
+{
+    public static ServiceRegistrationComparer Instance { get; } = new();
+
+    public bool Equals(ServiceRegistration? x, ServiceRegistration? y)
+    {
+        return x?.ServiceType == y?.ServiceType
+            && x?.ImplementationType == y?.ImplementationType
+            && x?.KeyExpression == y?.KeyExpression
+            && x?.EnvironmentName == y?.EnvironmentName
+            && x?.ThreadIsolationLifetime == y?.ThreadIsolationLifetime
+            && x?.ModuleName == y?.ModuleName;
+    }
+
+    public int GetHashCode(ServiceRegistration obj)
+    {
+        unchecked
+        {
+            var hashCode =
+                ((obj.ServiceType?.GetHashCode() ?? 0) * 397)
+                ^ (obj.ImplementationType?.GetHashCode() ?? 0);
+            hashCode = (hashCode * 397) ^ (obj.KeyExpression?.GetHashCode() ?? 0);
+            hashCode = (hashCode * 397) ^ (obj.EnvironmentName?.GetHashCode() ?? 0);
+            hashCode = (hashCode * 397) ^ (obj.ThreadIsolationLifetime?.GetHashCode() ?? 0);
+            return (hashCode * 397) ^ (obj.ModuleName?.GetHashCode() ?? 0);
+        }
+    }
+}
