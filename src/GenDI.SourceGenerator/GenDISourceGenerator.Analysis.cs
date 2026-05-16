@@ -521,11 +521,11 @@ public sealed partial class GenDISourceGenerator
                 )
             )
             .ToImmutableArray();
-        var context = new IndirectInjectProcessingContext(
-            warnings,
-            existingKeys,
-            existingImplementationKeys,
-            registrations
+        var context = (
+            Warnings: warnings,
+            ExistingKeys: existingKeys,
+            ExistingImplementationKeys: existingImplementationKeys,
+            Registrations: registrations
         );
 
         foreach (var injectRequest in injectRequests)
@@ -546,7 +546,12 @@ public sealed partial class GenDISourceGenerator
         Compilation compilation,
         ImmutableArray<INamedTypeSymbol> concreteTypes,
         IDictionary<INamedTypeSymbol, InjectableMetadata> injectableTypes,
-        IndirectInjectProcessingContext context,
+        (
+            IList<OpenGenericBypassWarning> Warnings,
+            HashSet<string> ExistingKeys,
+            HashSet<string> ExistingImplementationKeys,
+            IList<ServiceRegistration> Registrations
+        ) context,
         InjectContractRequest injectRequest
     )
     {
@@ -619,30 +624,6 @@ public sealed partial class GenDISourceGenerator
                 context.Registrations
             );
         }
-    }
-
-    private sealed class IndirectInjectProcessingContext
-    {
-        public IndirectInjectProcessingContext(
-            IList<OpenGenericBypassWarning> warnings,
-            HashSet<string> existingKeys,
-            HashSet<string> existingImplementationKeys,
-            IList<ServiceRegistration> registrations
-        )
-        {
-            Warnings = warnings;
-            ExistingKeys = existingKeys;
-            ExistingImplementationKeys = existingImplementationKeys;
-            Registrations = registrations;
-        }
-
-        public IList<OpenGenericBypassWarning> Warnings { get; }
-
-        public HashSet<string> ExistingKeys { get; }
-
-        public HashSet<string> ExistingImplementationKeys { get; }
-
-        public IList<ServiceRegistration> Registrations { get; }
     }
 
     private static void AddIndirectCandidateRegistration(
