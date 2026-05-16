@@ -46,14 +46,13 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
             static (sourceProductionContext, source) =>
             {
                 var (discoveredTypes, options) = source;
-                var allTypes = discoveredTypes
+                var sourceTypes = discoveredTypes
                     .Where(static symbol => symbol is not null)
                     .Cast<ISymbol>()
-                    .Concat(GetReferencedAssemblyTypes(options.Compilation).Cast<ISymbol>())
                     .Distinct(SymbolEqualityComparer.Default)
                     .Cast<INamedTypeSymbol>()
                     .ToImmutableArray();
-                var buildResult = BuildRegistrations(options.Compilation, allTypes);
+                var buildResult = BuildRegistrations(options.Compilation, sourceTypes);
                 foreach (var warning in buildResult.Warnings)
                 {
                     sourceProductionContext.ReportDiagnostic(
@@ -73,7 +72,10 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
                     .ThenBy(static registration => registration.ServiceType, StringComparer.Ordinal)
                     .ToImmutableArray();
 
-                if (normalizedRegistrations.Length == 0)
+                if (
+                    normalizedRegistrations.Length == 0
+                    && buildResult.ChainedExtensionCalls.Length == 0
+                )
                 {
                     return;
                 }
@@ -83,6 +85,7 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
                     BuildGeneratedSource(
                         normalizedRegistrations,
                         options.Namespace,
+                        buildResult.ChainedExtensionCalls,
                         includeExcludeFromCodeCoverage: options.IncludeExcludeFromCodeCoverage
                     )
                 );

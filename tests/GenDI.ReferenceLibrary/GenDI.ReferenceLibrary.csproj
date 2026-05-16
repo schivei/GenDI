@@ -8,5 +8,11 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/GenDI/GenDI.csproj" />
+    <ProjectReference
+      Include="../../src/GenDI.SourceGenerator/GenDI.SourceGenerator.csproj"
+      PrivateAssets="contentfiles; compile; runtime"
+      OutputItemType="Analyzer"
+      ReferenceOutputAssembly="false"
+    />
   </ItemGroup>
 </Project>

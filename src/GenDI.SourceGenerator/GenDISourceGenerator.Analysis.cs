@@ -1,7 +1,9 @@
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace GenDI.SourceGenerator;
 
@@ -77,10 +79,19 @@ public sealed partial class GenDISourceGenerator
             )
         );
         registrations.AddRange(BuildFactoryRegistrations(compilation, concreteTypes, warnings));
-        ApplyDecorators(compilation, concreteTypes, registrations, warnings);
+        var referencedDecoratorIdentities = GetReferencedDecoratorIdentities(compilation);
+        ApplyDecorators(
+            compilation,
+            concreteTypes,
+            registrations,
+            warnings,
+            referencedDecoratorIdentities
+        );
+        var chainedExtensionCalls = BuildChainedExtensionCalls(compilation);
 
         return new RegistrationBuildResult(
             registrations.ToImmutableArray(),
+            chainedExtensionCalls,
             warnings
                 .Where(static warning => warning.Location is { IsInSource: true })
                 .GroupBy(static warning =>
@@ -94,6 +105,303 @@ public sealed partial class GenDISourceGenerator
                 .Select(static group => group.First())
                 .ToImmutableArray()
         );
+    }
+
+    private static ImmutableArray<string> BuildChainedExtensionCalls(Compilation compilation)
+    {
+        var explicitlyChainedNamespaces = GetExplicitlyChainedDependencyNamespaces(compilation);
+        var chainedCalls = ImmutableArray.CreateBuilder<string>();
+
+        foreach (var referencedAssembly in compilation.SourceModule.ReferencedAssemblySymbols)
+        {
+            if (!ShouldScanReferencedAssembly(referencedAssembly.Name))
+            {
+                continue;
+            }
+
+            var dependencyNamespace = GetProjectNamespace(referencedAssembly.Name);
+            if (
+                string.IsNullOrWhiteSpace(dependencyNamespace)
+                || explicitlyChainedNamespaces.Contains(dependencyNamespace)
+            )
+            {
+                continue;
+            }
+
+            if (!HasGeneratedAddGenDIServicesMethod(referencedAssembly, dependencyNamespace))
+            {
+                continue;
+            }
+
+            chainedCalls.Add(
+                $"global::{dependencyNamespace}.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services, modules);"
+            );
+        }
+
+        return chainedCalls
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(static call => call, StringComparer.Ordinal)
+            .ToImmutableArray();
+    }
+
+    private static HashSet<string> GetExplicitlyChainedDependencyNamespaces(Compilation compilation)
+    {
+        var explicitlyChainedNamespaces = new HashSet<string>(StringComparer.Ordinal);
+        var dependencyNamespacesWithGeneratedExtensions =
+            GetDependencyNamespacesWithGeneratedExtensions(compilation);
+
+        foreach (var syntaxTree in compilation.SyntaxTrees)
+        {
+            CaptureExplicitlyChainedDependencyNamespaces(
+                compilation.GetSemanticModel(syntaxTree),
+                syntaxTree.GetRoot(),
+                dependencyNamespacesWithGeneratedExtensions,
+                explicitlyChainedNamespaces
+            );
+        }
+
+        return explicitlyChainedNamespaces;
+    }
+
+    private static ImmutableHashSet<string> GetDependencyNamespacesWithGeneratedExtensions(
+        Compilation compilation
+    )
+    {
+        var referencedAssembliesByName = compilation
+            .SourceModule.ReferencedAssemblySymbols.Where(static assemblySymbol =>
+                ShouldScanReferencedAssembly(assemblySymbol.Name)
+            )
+            .ToImmutableDictionary(static assemblySymbol => assemblySymbol.Name);
+
+        return referencedAssembliesByName
+            .Keys
+            .Select(assemblySymbol =>
+            {
+                var dependencyNamespace = GetProjectNamespace(assemblySymbol);
+                var assemblySymbolValue = referencedAssembliesByName[assemblySymbol];
+                var hasGeneratedExtension =
+                    !string.IsNullOrWhiteSpace(dependencyNamespace)
+                    && HasGeneratedAddGenDIServicesMethod(
+                        assemblySymbolValue,
+                        dependencyNamespace
+                    );
+                return (Namespace: dependencyNamespace, HasGeneratedExtension: hasGeneratedExtension);
+            })
+            .Where(static candidate => candidate.HasGeneratedExtension)
+            .Select(static candidate => candidate.Namespace)
+            .ToImmutableHashSet(StringComparer.Ordinal);
+    }
+
+    private static void CaptureExplicitlyChainedDependencyNamespaces(
+        SemanticModel semanticModel,
+        SyntaxNode root,
+        ISet<string> dependencyNamespacesWithGeneratedExtensions,
+        ISet<string> explicitlyChainedNamespaces
+    )
+    {
+        var importedDependencyNamespaces = root
+            .DescendantNodes()
+            .OfType<UsingDirectiveSyntax>()
+            .Select(static usingDirective => usingDirective.Name?.ToString())
+            .Where(namespaceName =>
+                !string.IsNullOrWhiteSpace(namespaceName)
+                && namespaceName.EndsWith(".DependencyInjection", StringComparison.Ordinal)
+            )
+            .Select(static namespaceName =>
+                namespaceName!.Substring(0, namespaceName.Length - ".DependencyInjection".Length)
+            )
+            .Where(dependencyNamespacesWithGeneratedExtensions.Contains)
+            .ToImmutableHashSet(StringComparer.Ordinal);
+
+        foreach (var invocation in root.DescendantNodes().OfType<InvocationExpressionSyntax>())
+        {
+            TryCaptureExplicitlyChainedDependencyNamespaceFromInvocation(
+                semanticModel,
+                invocation,
+                importedDependencyNamespaces,
+                explicitlyChainedNamespaces
+            );
+        }
+    }
+
+    private static void TryCaptureExplicitlyChainedDependencyNamespaceFromInvocation(
+        SemanticModel semanticModel,
+        InvocationExpressionSyntax invocation,
+        ISet<string> importedDependencyNamespaces,
+        ISet<string> explicitlyChainedNamespaces
+    )
+    {
+        var symbolInfo = semanticModel.GetSymbolInfo(invocation);
+        var methodSymbol =
+            symbolInfo.Symbol as IMethodSymbol
+            ?? symbolInfo.CandidateSymbols.OfType<IMethodSymbol>().FirstOrDefault();
+        if (methodSymbol is null)
+        {
+            TryCaptureUsingBasedExtensionInvocation(
+                invocation,
+                importedDependencyNamespaces,
+                explicitlyChainedNamespaces
+            );
+            return;
+        }
+
+        methodSymbol = methodSymbol.ReducedFrom ?? methodSymbol;
+        if (!IsGeneratedAddGenDIServicesMethodSymbol(methodSymbol))
+        {
+            TryCaptureUsingBasedExtensionInvocation(
+                invocation,
+                importedDependencyNamespaces,
+                explicitlyChainedNamespaces
+            );
+            return;
+        }
+
+        var dependencyNamespace = GetDependencyNamespaceFromGeneratedMethod(methodSymbol);
+        if (!string.IsNullOrWhiteSpace(dependencyNamespace))
+        {
+            explicitlyChainedNamespaces.Add(dependencyNamespace);
+        }
+    }
+
+    private static string? GetDependencyNamespaceFromGeneratedMethod(IMethodSymbol methodSymbol)
+    {
+        var containingNamespace = methodSymbol.ContainingType.ContainingNamespace.ToDisplayString();
+        const string dependencyInjectionSuffix = ".DependencyInjection";
+        if (!containingNamespace.EndsWith(dependencyInjectionSuffix, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        return containingNamespace.Substring(
+            0,
+            containingNamespace.Length - dependencyInjectionSuffix.Length
+        );
+    }
+
+    private static void TryCaptureUsingBasedExtensionInvocation(
+        InvocationExpressionSyntax invocation,
+        ISet<string> importedDependencyNamespaces,
+        ISet<string> explicitlyChainedNamespaces
+    )
+    {
+        if (
+            importedDependencyNamespaces.Count == 0
+            || invocation.Expression is not MemberAccessExpressionSyntax memberAccessExpression
+            || !string.Equals(
+                memberAccessExpression.Name.Identifier.ValueText,
+                "AddGenDIServices",
+                StringComparison.Ordinal
+            )
+        )
+        {
+            return;
+        }
+
+        foreach (var importedDependencyNamespace in importedDependencyNamespaces)
+        {
+            explicitlyChainedNamespaces.Add(importedDependencyNamespace);
+        }
+    }
+
+    private static bool IsGeneratedAddGenDIServicesMethodSymbol(IMethodSymbol methodSymbol)
+    {
+        var unboundMethod = methodSymbol.ReducedFrom ?? methodSymbol;
+        if (!HasGeneratedAddGenDIServicesMethodShape(unboundMethod, methodSymbol.MethodKind))
+        {
+            return false;
+        }
+
+        if (
+            unboundMethod.Parameters.Length > 0
+            && unboundMethod.Parameters[0].Type.ToDisplayString()
+                == "Microsoft.Extensions.DependencyInjection.IServiceCollection"
+        )
+        {
+            return true;
+        }
+
+        return methodSymbol.MethodKind == MethodKind.ReducedExtension;
+    }
+
+    [ExcludeFromCodeCoverage]
+    private static bool HasGeneratedAddGenDIServicesMethodShape(
+        IMethodSymbol unboundMethod,
+        MethodKind methodKind
+    )
+    {
+        return string.Equals(unboundMethod.Name, "AddGenDIServices", StringComparison.Ordinal)
+            && (methodKind == MethodKind.Ordinary || methodKind == MethodKind.ReducedExtension)
+            && unboundMethod.IsStatic
+            && unboundMethod.ContainingType.Name == "GenDIServiceCollectionExtensions";
+    }
+
+    private static bool HasGeneratedAddGenDIServicesMethod(
+        IAssemblySymbol assemblySymbol,
+        string dependencyNamespace
+    )
+    {
+        var dependencyInjectionNamespace = GetNamespaceSymbol(
+            assemblySymbol.GlobalNamespace,
+            $"{dependencyNamespace}.DependencyInjection"
+        );
+        if (dependencyInjectionNamespace is null)
+        {
+            return false;
+        }
+
+        var extensionType = dependencyInjectionNamespace.GetTypeMembers(
+            "GenDIServiceCollectionExtensions"
+        );
+        foreach (var typeMember in extensionType)
+        {
+            foreach (var method in typeMember.GetMembers("AddGenDIServices").OfType<IMethodSymbol>())
+            {
+                if (
+                    method is { IsStatic: true, MethodKind: MethodKind.Ordinary }
+                    && method.Parameters.Length == 2
+                    && method.Parameters[0].Type.ToDisplayString() == "Microsoft.Extensions.DependencyInjection.IServiceCollection"
+                    && method.Parameters[1].Type is IArrayTypeSymbol arrayType
+                    && arrayType.ElementType.SpecialType == SpecialType.System_String
+                )
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static INamespaceSymbol? GetNamespaceSymbol(
+        INamespaceSymbol rootNamespace,
+        string fullNamespace
+    )
+    {
+        var currentNamespace = rootNamespace;
+        foreach (
+            var namespaceSegment in fullNamespace.Split(
+                new[] { '.' },
+                StringSplitOptions.RemoveEmptyEntries
+            )
+        )
+        {
+            var nextNamespace = currentNamespace.GetNamespaceMembers().FirstOrDefault(
+                namespaceMember =>
+                    string.Equals(
+                        namespaceMember.Name,
+                        namespaceSegment,
+                        StringComparison.Ordinal
+                    )
+            );
+            if (nextNamespace is null)
+            {
+                return null;
+            }
+
+            currentNamespace = nextNamespace;
+        }
+
+        return currentNamespace;
     }
 
     private static IEnumerable<ServiceRegistration> BuildDirectRegistrations(
@@ -250,7 +558,8 @@ public sealed partial class GenDISourceGenerator
         Compilation compilation,
         ImmutableArray<INamedTypeSymbol> concreteTypes,
         IList<ServiceRegistration> registrations,
-        IList<OpenGenericBypassWarning> warnings
+        IList<OpenGenericBypassWarning> warnings,
+        ISet<string> referencedDecoratorIdentities
     )
     {
         var decorators = concreteTypes
@@ -268,17 +577,27 @@ public sealed partial class GenDISourceGenerator
 
         foreach (var decorator in decorators)
         {
-            if (!IsClosedType(decorator.Symbol))
+            if (TryBypassOpenGenericDecorator(decorator.Symbol, warnings))
             {
-                warnings.Add(
-                    BuildOpenGenericBypassWarning(decorator.Symbol, "Decorator registration")
-                );
                 continue;
             }
 
             var implementationType = decorator.Symbol.ToDisplayString(
                 SymbolDisplayFormat.FullyQualifiedFormat
             );
+            if (
+                ShouldSkipReferencedDecorator(
+                    compilation,
+                    decorator.Target.ServiceType.ContainingAssembly,
+                    decorator.Target.DisplayName,
+                    implementationType,
+                    referencedDecoratorIdentities
+                )
+            )
+            {
+                continue;
+            }
+
             var constructor = FindBestPublicConstructor(decorator.Symbol);
 
             for (var i = registrations.Count - 1; i >= 0; i--)
@@ -314,6 +633,112 @@ public sealed partial class GenDISourceGenerator
                 break;
             }
         }
+    }
+
+    [ExcludeFromCodeCoverage]
+    private static bool ShouldSkipReferencedDecorator(
+        Compilation compilation,
+        IAssemblySymbol targetAssembly,
+        string targetDisplayName,
+        string implementationType,
+        ISet<string> referencedDecoratorIdentities
+    )
+    {
+        return !SymbolEqualityComparer.Default.Equals(targetAssembly, compilation.Assembly)
+            && referencedDecoratorIdentities.Contains(
+                BuildDecoratorIdentity(targetDisplayName, implementationType)
+            );
+    }
+
+    [ExcludeFromCodeCoverage]
+    private static bool TryBypassOpenGenericDecorator(
+        INamedTypeSymbol decoratorSymbol,
+        IList<OpenGenericBypassWarning> warnings
+    )
+    {
+        if (IsClosedType(decoratorSymbol))
+        {
+            return false;
+        }
+
+        warnings.Add(BuildOpenGenericBypassWarning(decoratorSymbol, "Decorator registration"));
+        return true;
+    }
+
+    private static ISet<string> GetReferencedDecoratorIdentities(Compilation compilation)
+    {
+        var identities = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var referencedAssembly in compilation.SourceModule.ReferencedAssemblySymbols)
+        {
+            if (!ShouldScanReferencedAssembly(referencedAssembly.Name))
+            {
+                continue;
+            }
+
+            foreach (var typeSymbol in EnumerateNamedTypes(referencedAssembly.GlobalNamespace))
+            {
+                if (typeSymbol is not { TypeKind: TypeKind.Class, IsAbstract: false })
+                {
+                    continue;
+                }
+
+                var decoratorTargets = GetDecoratorTargets(compilation, typeSymbol);
+                if (decoratorTargets.Length == 0)
+                {
+                    continue;
+                }
+
+                var implementationType = typeSymbol.ToDisplayString(
+                    SymbolDisplayFormat.FullyQualifiedFormat
+                );
+                foreach (var decoratorTarget in decoratorTargets)
+                {
+                    identities.Add(
+                        BuildDecoratorIdentity(decoratorTarget.DisplayName, implementationType)
+                    );
+                }
+            }
+        }
+
+        return identities;
+    }
+
+    private static IEnumerable<INamedTypeSymbol> EnumerateNamedTypes(INamespaceSymbol namespaceSymbol)
+    {
+        foreach (var typeMember in namespaceSymbol.GetTypeMembers())
+        {
+            foreach (var typeSymbol in EnumerateNamedTypes(typeMember))
+            {
+                yield return typeSymbol;
+            }
+        }
+
+        foreach (var nestedNamespace in namespaceSymbol.GetNamespaceMembers())
+        {
+            foreach (var typeSymbol in EnumerateNamedTypes(nestedNamespace))
+            {
+                yield return typeSymbol;
+            }
+        }
+    }
+
+    private static IEnumerable<INamedTypeSymbol> EnumerateNamedTypes(INamedTypeSymbol typeSymbol)
+    {
+        yield return typeSymbol;
+
+        foreach (var nestedType in typeSymbol.GetTypeMembers())
+        {
+            foreach (var discoveredNestedType in EnumerateNamedTypes(nestedType))
+            {
+                yield return discoveredNestedType;
+            }
+        }
+    }
+
+    private static string BuildDecoratorIdentity(string serviceType, string implementationType)
+    {
+        return $"{serviceType}|{implementationType}";
     }
 
     private static IEnumerable<ServiceRegistration> BuildFactoryRegistrations(
@@ -1790,24 +2215,6 @@ public sealed partial class GenDISourceGenerator
         return false;
     }
 
-    private static ImmutableArray<INamedTypeSymbol> GetReferencedAssemblyTypes(
-        Compilation compilation
-    )
-    {
-        var candidates = ImmutableArray.CreateBuilder<INamedTypeSymbol>();
-        foreach (var referencedAssembly in compilation.SourceModule.ReferencedAssemblySymbols)
-        {
-            if (!ShouldScanReferencedAssembly(referencedAssembly.Name))
-            {
-                continue;
-            }
-
-            CollectNamedTypes(referencedAssembly.GlobalNamespace, candidates);
-        }
-
-        return candidates.ToImmutable();
-    }
-
     private static bool ShouldScanReferencedAssembly(string assemblyName)
     {
         return !(
@@ -1819,42 +2226,6 @@ public sealed partial class GenDISourceGenerator
             || assemblyName.Equals("netstandard", StringComparison.OrdinalIgnoreCase)
             || assemblyName.Equals("mscorlib", StringComparison.OrdinalIgnoreCase)
         );
-    }
-
-    private static void CollectNamedTypes(
-        INamespaceSymbol namespaceSymbol,
-        ImmutableArray<INamedTypeSymbol>.Builder builder
-    )
-    {
-        foreach (var member in namespaceSymbol.GetMembers())
-        {
-            if (member is INamespaceSymbol childNamespace)
-            {
-                CollectNamedTypes(childNamespace, builder);
-                continue;
-            }
-
-            if (member is INamedTypeSymbol namedType)
-            {
-                CollectNamedTypes(namedType, builder);
-            }
-        }
-    }
-
-    private static void CollectNamedTypes(
-        INamedTypeSymbol namedType,
-        ImmutableArray<INamedTypeSymbol>.Builder builder
-    )
-    {
-        if (namedType.TypeKind == TypeKind.Class && !namedType.IsAbstract)
-        {
-            builder.Add(namedType);
-        }
-
-        foreach (var nestedType in namedType.GetTypeMembers())
-        {
-            CollectNamedTypes(nestedType, builder);
-        }
     }
 
     private static bool IsMethodAccessibleFromGeneratedCode(
