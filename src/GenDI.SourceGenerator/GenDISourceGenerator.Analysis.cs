@@ -1402,18 +1402,7 @@ public sealed partial class GenDISourceGenerator
 
     private static string ConvertLifetimeEnumToExpression(TypedConstant argument)
     {
-        var enumValue = argument.Value switch
-        {
-            null => 2,
-            int i => i,
-            byte b => b,
-            sbyte sb => sb,
-            short s => s,
-            ushort us => us,
-            long l => checked((int)l),
-            ulong ul => checked((int)ul),
-            _ => Convert.ToInt32(argument.Value, CultureInfo.InvariantCulture),
-        };
+        var enumValue = Convert.ToInt32(argument.Value ?? 2, CultureInfo.InvariantCulture);
 
         return enumValue switch
         {
@@ -1425,18 +1414,7 @@ public sealed partial class GenDISourceGenerator
 
     private static string? ConvertThreadIsolationPolicyToLifetimeExpression(TypedConstant argument)
     {
-        var enumValue = argument.Value switch
-        {
-            null => -1,
-            int i => i,
-            byte b => b,
-            sbyte sb => sb,
-            short s => s,
-            ushort us => us,
-            long l => checked((int)l),
-            ulong ul => checked((int)ul),
-            _ => Convert.ToInt32(argument.Value, CultureInfo.InvariantCulture),
-        };
+        var enumValue = Convert.ToInt32(argument.Value ?? -1, CultureInfo.InvariantCulture);
 
         if (enumValue < 0)
         {
