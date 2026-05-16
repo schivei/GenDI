@@ -122,12 +122,12 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
 
 ## 4.5 Explicit registration strategies (Add/TryAdd)
 
-- [ ] **RG-01** Allow single or multiple registration at the `ServiceInjection` and `Injectable` levels.
+- [x] **RG-01** Allow single or multiple registration at the `ServiceInjection` and `Injectable` levels.
   - Criteria:
     - `ServiceInjection` can declare registration policy for annotated contracts.
     - `Injectable` can declare registration policy for annotated implementations.
     - For hierarchy interfaces/abstractions without `[ServiceInjection]`, allow registration strategy configuration in the inferred flow.
-- [ ] **RG-02** Allow users to define emission strategy between `TryAdd*` and `Add*`.
+- [x] **RG-02** Allow users to define emission strategy between `TryAdd*` and `Add*`.
   - Criteria:
     - Strategy must affect generated registration code for eligible contracts.
     - Strategy must differentiate single and multiple registration behavior.

@@ -544,17 +544,6 @@ public sealed partial class GenDISourceGenerator
                 continue;
             }
 
-            var registrationIdentity = BuildRegistrationIdentity(
-                injectRequest.ServiceType,
-                injectRequest.KeyExpression,
-                environmentName: null,
-                moduleName: injectRequest.ModuleName
-            );
-            if (existingKeys.Contains(registrationIdentity))
-            {
-                continue;
-            }
-
             var contractFallbackLifetime = TryGetServiceInjectionLifetime(
                 injectRequest.ContractSymbol
             );

@@ -86,7 +86,7 @@ public sealed partial class GenDISourceGenerator
             return BuildStandardRegistrationStatement(registration, registrationMethod);
         }
 
-        return BuildThreadIsolationRegistrationStatement(registration, registrationMethod);
+        return BuildThreadIsolationRegistrationStatement(registration);
     }
 
     private static string BuildStandardRegistrationStatement(
@@ -157,10 +157,7 @@ public sealed partial class GenDISourceGenerator
         );
     }
 
-    private static string BuildThreadIsolationRegistrationStatement(
-        ServiceRegistration registration,
-        string registrationMethod
-    )
+    private static string BuildThreadIsolationRegistrationStatement(ServiceRegistration registration)
     {
         var threadIsolationMethod = GetRegistrationMethod(registration.ThreadIsolationLifetime);
         var addPrefix = registration.UseTryAdd ? "TryAdd" : "Add";
@@ -181,13 +178,13 @@ public sealed partial class GenDISourceGenerator
         var accessRegistration = string.IsNullOrWhiteSpace(registration.KeyExpression)
             ? string.Format(
                 GenDISourceTemplates.ThreadIsolationUnkeyedAccessTemplate,
-                $"{addPrefix}{registrationMethod}",
+                $"{addPrefix}{TransientRegistrationMethod}",
                 registration.ServiceType,
                 cacheKey
             )
             : string.Format(
                 GenDISourceTemplates.ThreadIsolationKeyedAccessTemplate,
-                $"{addPrefix}Keyed{registrationMethod}",
+                $"{addPrefix}Keyed{TransientRegistrationMethod}",
                 registration.ServiceType,
                 registration.KeyExpression,
                 cacheKey
