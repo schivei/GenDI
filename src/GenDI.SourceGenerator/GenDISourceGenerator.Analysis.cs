@@ -104,12 +104,7 @@ public sealed partial class GenDISourceGenerator
     )
     {
         var implementationType = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        var constructor = symbol
-            .InstanceConstructors.Where(static constructorSymbol =>
-                constructorSymbol.DeclaredAccessibility == Accessibility.Public
-            )
-            .OrderByDescending(static constructorSymbol => constructorSymbol.Parameters.Length)
-            .FirstOrDefault();
+        var constructor = FindBestPublicConstructor(symbol);
         var serviceTypes = GetServiceTypes(
             compilation,
             symbol,
@@ -220,12 +215,7 @@ public sealed partial class GenDISourceGenerator
                 continue;
             }
 
-            var constructor = bestCandidate
-                .Symbol.InstanceConstructors.Where(static constructorSymbol =>
-                    constructorSymbol.DeclaredAccessibility == Accessibility.Public
-                )
-                .OrderByDescending(static constructorSymbol => constructorSymbol.Parameters.Length)
-                .FirstOrDefault();
+            var constructor = FindBestPublicConstructor(bestCandidate.Symbol);
             var factoryBody = BuildFactoryBody(
                 bestCandidate.Symbol,
                 bestCandidate.ImplementationType,
@@ -289,12 +279,7 @@ public sealed partial class GenDISourceGenerator
             var implementationType = decorator.Symbol.ToDisplayString(
                 SymbolDisplayFormat.FullyQualifiedFormat
             );
-            var constructor = decorator
-                .Symbol.InstanceConstructors.Where(static constructorSymbol =>
-                    constructorSymbol.DeclaredAccessibility == Accessibility.Public
-                )
-                .OrderByDescending(static constructorSymbol => constructorSymbol.Parameters.Length)
-                .FirstOrDefault();
+            var constructor = FindBestPublicConstructor(decorator.Symbol);
 
             for (var i = registrations.Count - 1; i >= 0; i--)
             {
@@ -326,7 +311,6 @@ public sealed partial class GenDISourceGenerator
                     existingRegistration.EnvironmentName,
                     existingRegistration.ModuleName
                 );
-                // Decorators wrap only the effective unkeyed pipeline registration for the contract.
                 break;
             }
         }
@@ -1447,11 +1431,14 @@ public sealed partial class GenDISourceGenerator
             : $"serviceProvider.GetRequiredKeyedService<{fullyQualifiedType}>({keyExpression})";
     }
 
+    /// <summary>
+    /// Returns <see langword="true"/> when the type symbol allows a <see langword="null"/>
+    /// resolved value — either because it is explicitly nullable-annotated or because it
+    /// originates from an oblivious (nullable-disabled) context, where assuming non-null
+    /// would be unsafe.
+    /// </summary>
     private static bool ShouldUseOptionalResolution(ITypeSymbol typeSymbol)
     {
-        // NullableAnnotation.None means the symbol comes from an oblivious context
-        // (for example, nullable disabled in the consumer assembly).
-        // In this mode we prefer optional resolution to avoid assuming non-null.
         return typeSymbol.NullableAnnotation
             is NullableAnnotation.Annotated
                 or NullableAnnotation.None;
@@ -1980,16 +1967,33 @@ public sealed partial class GenDISourceGenerator
         return true;
     }
 
+    /// <summary>
+    /// Returns a numeric priority for the given lifetime expression used to break ties
+    /// between implementation candidates. Scoped beats Singleton beats Transient
+    /// (higher value = higher selection priority).
+    /// </summary>
     private static int LifetimePriority(string lifetimeExpression)
     {
-        // RM-06 tie-break rule: Scoped > Singleton > Transient.
-        // Higher numeric value means higher selection priority.
         return lifetimeExpression switch
         {
             "ServiceLifetime.Scoped" => 3,
             SingletonLifetimeExpression => 2,
             _ => 1,
         };
+    }
+
+    /// <summary>
+    /// Selects the public instance constructor with the greatest number of parameters.
+    /// Returns <see langword="null"/> when the type has no accessible public constructor.
+    /// </summary>
+    private static IMethodSymbol? FindBestPublicConstructor(INamedTypeSymbol symbol)
+    {
+        return symbol
+            .InstanceConstructors.Where(static constructorSymbol =>
+                constructorSymbol.DeclaredAccessibility == Accessibility.Public
+            )
+            .OrderByDescending(static constructorSymbol => constructorSymbol.Parameters.Length)
+            .FirstOrDefault();
     }
 
     private sealed class InjectablePropertyInfo
