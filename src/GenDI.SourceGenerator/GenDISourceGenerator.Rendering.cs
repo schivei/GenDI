@@ -39,11 +39,86 @@ public sealed partial class GenDISourceGenerator
             _ => TransientRegistrationMethod,
         };
 
+        var registrationStatement = BuildRegistrationStatement(registration, registrationMethod);
+        registrationStatement = WrapEnvironmentRegistration(registration, registrationStatement);
+
+        return WrapModuleRegistration(registration, registrationStatement);
+    }
+
+    private static string WrapModuleRegistration(
+        ServiceRegistration registration,
+        string registrationStatement
+    )
+    {
+        var moduleCondition = string.IsNullOrWhiteSpace(registration.ModuleName)
+            ? "modules.Length == 0"
+            : $"modules.Length == 0 || IsModuleEnabled(modules, \"{EscapeStringLiteral(registration.ModuleName)}\")";
+
+        return string.Format(
+            GenDISourceTemplates.ModuleRegistrationTemplate,
+            moduleCondition,
+            registrationStatement
+        );
+    }
+
+    private static string WrapEnvironmentRegistration(
+        ServiceRegistration registration,
+        string registrationStatement
+    )
+    {
+        return string.IsNullOrWhiteSpace(registration.EnvironmentName)
+            ? registrationStatement
+            : string.Format(
+                GenDISourceTemplates.ConditionalRegistrationTemplate,
+                EscapeStringLiteral(registration.EnvironmentName),
+                registrationStatement
+            );
+    }
+
+    private static string BuildRegistrationStatement(
+        ServiceRegistration registration,
+        string registrationMethod
+    )
+    {
         if (string.IsNullOrWhiteSpace(registration.ThreadIsolationLifetime))
         {
-            return BuildStandardRegistrationLine(registration, registrationMethod);
+            return BuildStandardRegistrationStatement(registration, registrationMethod);
         }
 
+        return BuildThreadIsolationRegistrationStatement(registration);
+    }
+
+    private static string BuildStandardRegistrationStatement(
+        ServiceRegistration registration,
+        string registrationMethod
+    )
+    {
+        var registrationStatement = string.Empty;
+        if (string.IsNullOrWhiteSpace(registration.KeyExpression))
+        {
+            registrationStatement = string.Format(
+                GenDISourceTemplates.UnkeyedRegistrationTemplate,
+                registrationMethod,
+                registration.ServiceType,
+                registration.FactoryBody
+            );
+        }
+        else
+        {
+            registrationStatement = string.Format(
+                GenDISourceTemplates.KeyedRegistrationTemplate,
+                registrationMethod,
+                registration.ServiceType,
+                registration.KeyExpression,
+                registration.FactoryBody
+            );
+        }
+
+        return registrationStatement;
+    }
+
+    private static string BuildThreadIsolationRegistrationStatement(ServiceRegistration registration)
+    {
         var threadIsolationMethod = registration.ThreadIsolationLifetime switch
         {
             "ServiceLifetime.Singleton" => "Singleton",
@@ -79,78 +154,7 @@ public sealed partial class GenDISourceGenerator
                 cacheKey
             );
 
-        var registrationStatement = $"{cacheRegistration}\n{accessRegistration}";
-        registrationStatement = string.IsNullOrWhiteSpace(registration.EnvironmentName)
-            ? registrationStatement
-            : string.Format(
-                GenDISourceTemplates.ConditionalRegistrationTemplate,
-                EscapeStringLiteral(registration.EnvironmentName),
-                registrationStatement
-            );
-
-        return WrapModuleRegistration(registration, registrationStatement);
-    }
-
-    private static string WrapModuleRegistration(
-        ServiceRegistration registration,
-        string registrationStatement
-    )
-    {
-        var moduleCondition = string.IsNullOrWhiteSpace(registration.ModuleName)
-            ? "modules.Length == 0"
-            : $"modules.Length == 0 || IsModuleEnabled(modules, \"{EscapeStringLiteral(registration.ModuleName)}\")";
-
-        return string.Format(
-            GenDISourceTemplates.ModuleRegistrationTemplate,
-            moduleCondition,
-            registrationStatement
-        );
-    }
-
-    private static string WrapEnvironmentRegistration(
-        ServiceRegistration registration,
-        string registrationStatement
-    )
-    {
-        return string.IsNullOrWhiteSpace(registration.EnvironmentName)
-            ? registrationStatement
-            : string.Format(
-                GenDISourceTemplates.ConditionalRegistrationTemplate,
-                EscapeStringLiteral(registration.EnvironmentName),
-                registrationStatement
-            );
-    }
-
-    private static string BuildStandardRegistrationLine(
-        ServiceRegistration registration,
-        string registrationMethod
-    )
-    {
-        var registrationStatement = string.Empty;
-        if (string.IsNullOrWhiteSpace(registration.KeyExpression))
-        {
-            registrationStatement = string.Format(
-                GenDISourceTemplates.UnkeyedRegistrationTemplate,
-                registrationMethod,
-                registration.ServiceType,
-                registration.FactoryBody
-            );
-        }
-        else
-        {
-            registrationStatement = string.Format(
-                GenDISourceTemplates.KeyedRegistrationTemplate,
-                registrationMethod,
-                registration.ServiceType,
-                registration.KeyExpression,
-                registration.FactoryBody
-            );
-        }
-
-        return WrapModuleRegistration(
-            registration,
-            WrapEnvironmentRegistration(registration, registrationStatement)
-        );
+        return $"{cacheRegistration}\n{accessRegistration}";
     }
 
     private static string GetProjectNamespace(Compilation compilation)

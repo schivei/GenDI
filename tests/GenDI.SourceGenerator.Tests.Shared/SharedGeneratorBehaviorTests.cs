@@ -483,6 +483,44 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
+    public void Standard_registration_with_module_and_environment_keeps_both_guards()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ConditionalModuleStandard;
+
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>(ServiceLifetime.Singleton, Module = "Billing")]
+            [ConditionalInjectable("Development")]
+            public sealed class Service : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddSingleton<global::ConditionalModuleStandard.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "IsModuleEnabled(modules, \"Billing\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "Environment.GetEnvironmentVariable(\"DOTNET_ENVIRONMENT\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("\"Development\"", generatedSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DecoratorFor_rewrites_service_registration_with_decorator_factory()
     {
         var generatedSource = GeneratorTestHelper.GenerateSource(
@@ -720,6 +758,49 @@ public class SharedGeneratorBehaviorTests
             generatedSource,
             StringComparison.Ordinal
         );
+    }
+
+    [Fact]
+    public void ThreadIsolation_registration_with_module_and_environment_keeps_both_guards()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ThreadIsolationConditionalModuleCase;
+
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>(ServiceLifetime.Singleton, ThreadIsolation = ThreadIsolationPolicy.Scoped, Module = "Billing")]
+            [ConditionalInjectable("Development")]
+            public sealed class Service : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddKeyedScoped<ThreadLocal<global::ThreadIsolationConditionalModuleCase.IContract>>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "serviceProvider.GetRequiredKeyedService<ThreadLocal<global::ThreadIsolationConditionalModuleCase.IContract>>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "IsModuleEnabled(modules, \"Billing\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "Environment.GetEnvironmentVariable(\"DOTNET_ENVIRONMENT\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("\"Development\"", generatedSource, StringComparison.Ordinal);
     }
 
     [Fact]
