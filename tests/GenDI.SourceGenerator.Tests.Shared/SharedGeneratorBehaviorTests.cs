@@ -1982,6 +1982,158 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
+    public void ServiceInjection_single_tryadd_with_key_emits_tryadd_keyed_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace KeyedSingleTryAddCase;
+
+            [ServiceInjection(
+                RegistrationMultiplicity = RegistrationMultiplicity.Single,
+                RegistrationEmission = RegistrationEmissionStrategy.TryAdd
+            )]
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>(Key = "contract-key")]
+            public sealed class Impl : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.TryAddKeyedTransient<global::KeyedSingleTryAddCase.IContract>(\"contract-key\"",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void ServiceInjection_multiple_tryadd_with_key_emits_guarded_keyed_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace KeyedMultipleTryAddCase;
+
+            [ServiceInjection(
+                RegistrationMultiplicity = RegistrationMultiplicity.Multiple,
+                RegistrationEmission = RegistrationEmissionStrategy.TryAdd
+            )]
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>(Key = "contract-key")]
+            public sealed class FirstImpl : IContract
+            {
+            }
+
+            [Injectable<IContract>(Key = "contract-key")]
+            public sealed class SecondImpl : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "if (!HasKeyedServiceImplementation(services, typeof(global::KeyedMultipleTryAddCase.IContract), \"contract-key\", typeof(global::KeyedMultipleTryAddCase.FirstImpl)))",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "services.AddKeyedTransient<global::KeyedMultipleTryAddCase.IContract>(\"contract-key\"",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void ServiceRegistrationComparer_includes_strategy_and_module_in_equality()
+    {
+        var generatorAssembly = typeof(GenDI.SourceGenerator.GenDISourceGenerator).Assembly;
+        var registrationType = generatorAssembly.GetType(
+            "GenDI.SourceGenerator.ServiceRegistration",
+            throwOnError: true
+        )!;
+        var comparerType = generatorAssembly.GetType(
+            "GenDI.SourceGenerator.ServiceRegistrationComparer",
+            throwOnError: true
+        )!;
+        var registrationConstructor = registrationType.GetConstructors(
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
+        )[0];
+
+        object CreateRegistration(bool allowMultiple, bool useTryAdd, string? moduleName)
+        {
+            return registrationConstructor.Invoke(
+                new object?[]
+                {
+                    "global::TestNamespace.IService",
+                    "global::TestNamespace.Impl",
+                    "ServiceLifetime.Transient",
+                    allowMultiple,
+                    useTryAdd,
+                    null,
+                    "new global::TestNamespace.Impl()",
+                    0,
+                    0,
+                    null,
+                    null,
+                    moduleName,
+                }
+            );
+        }
+
+        var baseline = CreateRegistration(allowMultiple: true, useTryAdd: true, moduleName: "Billing");
+        var same = CreateRegistration(allowMultiple: true, useTryAdd: true, moduleName: "Billing");
+        var differentMultiplicity = CreateRegistration(
+            allowMultiple: false,
+            useTryAdd: true,
+            moduleName: "Billing"
+        );
+        var differentEmission = CreateRegistration(
+            allowMultiple: true,
+            useTryAdd: false,
+            moduleName: "Billing"
+        );
+        var differentModule = CreateRegistration(
+            allowMultiple: true,
+            useTryAdd: true,
+            moduleName: "Orders"
+        );
+
+        var comparer = comparerType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)!
+            .GetValue(null)!;
+        var equalsMethod = comparerType.GetMethod(
+            "Equals",
+            BindingFlags.Public | BindingFlags.Instance,
+            binder: null,
+            new[] { registrationType, registrationType },
+            modifiers: null
+        )!;
+        var getHashCodeMethod = comparerType.GetMethod(
+            "GetHashCode",
+            BindingFlags.Public | BindingFlags.Instance,
+            binder: null,
+            new[] { registrationType },
+            modifiers: null
+        )!;
+
+        Assert.True((bool)equalsMethod.Invoke(comparer, new[] { baseline, same })!);
+        Assert.False((bool)equalsMethod.Invoke(comparer, new[] { baseline, differentMultiplicity })!);
+        Assert.False((bool)equalsMethod.Invoke(comparer, new[] { baseline, differentEmission })!);
+        Assert.False((bool)equalsMethod.Invoke(comparer, new[] { baseline, differentModule })!);
+
+        var baselineHash = (int)getHashCodeMethod.Invoke(comparer, new[] { baseline })!;
+        var sameHash = (int)getHashCodeMethod.Invoke(comparer, new[] { same })!;
+        Assert.Equal(baselineHash, sameHash);
+    }
+
+    [Fact]
     public void Open_generic_injectable_factory_is_bypassed_with_warning()
     {
         GeneratorTestHelper.AssertNoSourceGenerated(
