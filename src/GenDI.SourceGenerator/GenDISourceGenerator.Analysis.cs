@@ -146,13 +146,33 @@ public sealed partial class GenDISourceGenerator
     private static HashSet<string> GetExplicitlyChainedDependencyNamespaces(Compilation compilation)
     {
         var explicitlyChainedNamespaces = new HashSet<string>(StringComparer.Ordinal);
+        var dependencyNamespacesWithGeneratedExtensions =
+            GetDependencyNamespacesWithGeneratedExtensions(compilation);
+
+        foreach (var syntaxTree in compilation.SyntaxTrees)
+        {
+            CaptureExplicitlyChainedDependencyNamespaces(
+                compilation.GetSemanticModel(syntaxTree),
+                syntaxTree.GetRoot(),
+                dependencyNamespacesWithGeneratedExtensions,
+                explicitlyChainedNamespaces
+            );
+        }
+
+        return explicitlyChainedNamespaces;
+    }
+
+    private static ImmutableHashSet<string> GetDependencyNamespacesWithGeneratedExtensions(
+        Compilation compilation
+    )
+    {
         var referencedAssembliesByName = compilation
             .SourceModule.ReferencedAssemblySymbols.Where(static assemblySymbol =>
                 ShouldScanReferencedAssembly(assemblySymbol.Name)
             )
             .ToImmutableDictionary(static assemblySymbol => assemblySymbol.Name);
 
-        var dependencyNamespacesWithGeneratedExtensions = referencedAssembliesByName
+        return referencedAssembliesByName
             .Keys
             .Select(assemblySymbol =>
             {
@@ -169,81 +189,92 @@ public sealed partial class GenDISourceGenerator
             .Where(static candidate => candidate.HasGeneratedExtension)
             .Select(static candidate => candidate.Namespace)
             .ToImmutableHashSet(StringComparer.Ordinal);
+    }
 
-        foreach (var syntaxTree in compilation.SyntaxTrees)
+    private static void CaptureExplicitlyChainedDependencyNamespaces(
+        SemanticModel semanticModel,
+        SyntaxNode root,
+        ISet<string> dependencyNamespacesWithGeneratedExtensions,
+        ISet<string> explicitlyChainedNamespaces
+    )
+    {
+        var importedDependencyNamespaces = root
+            .DescendantNodes()
+            .OfType<UsingDirectiveSyntax>()
+            .Select(static usingDirective => usingDirective.Name?.ToString())
+            .Where(namespaceName =>
+                !string.IsNullOrWhiteSpace(namespaceName)
+                && namespaceName.EndsWith(".DependencyInjection", StringComparison.Ordinal)
+            )
+            .Select(static namespaceName =>
+                namespaceName!.Substring(0, namespaceName.Length - ".DependencyInjection".Length)
+            )
+            .Where(dependencyNamespacesWithGeneratedExtensions.Contains)
+            .ToImmutableHashSet(StringComparer.Ordinal);
+
+        foreach (var invocation in root.DescendantNodes().OfType<InvocationExpressionSyntax>())
         {
-            var semanticModel = compilation.GetSemanticModel(syntaxTree);
-            var root = syntaxTree.GetRoot();
-            var invocations = root.DescendantNodes().OfType<InvocationExpressionSyntax>();
-            var importedDependencyNamespaces = root
-                .DescendantNodes()
-                .OfType<UsingDirectiveSyntax>()
-                .Select(static usingDirective => usingDirective.Name?.ToString())
-                .Where(namespaceName =>
-                    !string.IsNullOrWhiteSpace(namespaceName)
-                    && namespaceName.EndsWith(".DependencyInjection", StringComparison.Ordinal)
-                )
-                .Select(static namespaceName =>
-                    namespaceName!.Substring(
-                        0,
-                        namespaceName.Length - ".DependencyInjection".Length
-                    )
-                )
-                .Where(dependencyNamespacesWithGeneratedExtensions.Contains)
-                .ToImmutableHashSet(StringComparer.Ordinal);
+            TryCaptureExplicitlyChainedDependencyNamespaceFromInvocation(
+                semanticModel,
+                invocation,
+                importedDependencyNamespaces,
+                explicitlyChainedNamespaces
+            );
+        }
+    }
 
-            foreach (var invocation in invocations)
-            {
-                var symbolInfo = semanticModel.GetSymbolInfo(invocation);
-                var methodSymbol =
-                    symbolInfo.Symbol as IMethodSymbol
-                    ?? symbolInfo.CandidateSymbols.OfType<IMethodSymbol>().FirstOrDefault();
-                if (methodSymbol is null)
-                {
-                    TryCaptureUsingBasedExtensionInvocation(
-                        invocation,
-                        importedDependencyNamespaces,
-                        explicitlyChainedNamespaces
-                    );
-                    continue;
-                }
-
-                methodSymbol = methodSymbol.ReducedFrom ?? methodSymbol;
-                if (!IsGeneratedAddGenDIServicesMethodSymbol(methodSymbol))
-                {
-                    TryCaptureUsingBasedExtensionInvocation(
-                        invocation,
-                        importedDependencyNamespaces,
-                        explicitlyChainedNamespaces
-                    );
-                    continue;
-                }
-
-                var containingNamespace = methodSymbol
-                    .ContainingType.ContainingNamespace.ToDisplayString();
-                const string dependencyInjectionSuffix = ".DependencyInjection";
-                if (
-                    !containingNamespace.EndsWith(
-                        dependencyInjectionSuffix,
-                        StringComparison.Ordinal
-                    )
-                )
-                {
-                    continue;
-                }
-
-                var dependencyNamespace = containingNamespace.Substring(
-                    0,
-                    containingNamespace.Length - dependencyInjectionSuffix.Length
-                );
-                if (!string.IsNullOrWhiteSpace(dependencyNamespace))
-                {
-                    explicitlyChainedNamespaces.Add(dependencyNamespace);
-                }
-            }
+    private static void TryCaptureExplicitlyChainedDependencyNamespaceFromInvocation(
+        SemanticModel semanticModel,
+        InvocationExpressionSyntax invocation,
+        ISet<string> importedDependencyNamespaces,
+        ISet<string> explicitlyChainedNamespaces
+    )
+    {
+        var symbolInfo = semanticModel.GetSymbolInfo(invocation);
+        var methodSymbol =
+            symbolInfo.Symbol as IMethodSymbol
+            ?? symbolInfo.CandidateSymbols.OfType<IMethodSymbol>().FirstOrDefault();
+        if (methodSymbol is null)
+        {
+            TryCaptureUsingBasedExtensionInvocation(
+                invocation,
+                importedDependencyNamespaces,
+                explicitlyChainedNamespaces
+            );
+            return;
         }
 
-        return explicitlyChainedNamespaces;
+        methodSymbol = methodSymbol.ReducedFrom ?? methodSymbol;
+        if (!IsGeneratedAddGenDIServicesMethodSymbol(methodSymbol))
+        {
+            TryCaptureUsingBasedExtensionInvocation(
+                invocation,
+                importedDependencyNamespaces,
+                explicitlyChainedNamespaces
+            );
+            return;
+        }
+
+        var dependencyNamespace = GetDependencyNamespaceFromGeneratedMethod(methodSymbol);
+        if (!string.IsNullOrWhiteSpace(dependencyNamespace))
+        {
+            explicitlyChainedNamespaces.Add(dependencyNamespace);
+        }
+    }
+
+    private static string? GetDependencyNamespaceFromGeneratedMethod(IMethodSymbol methodSymbol)
+    {
+        var containingNamespace = methodSymbol.ContainingType.ContainingNamespace.ToDisplayString();
+        const string dependencyInjectionSuffix = ".DependencyInjection";
+        if (!containingNamespace.EndsWith(dependencyInjectionSuffix, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        return containingNamespace.Substring(
+            0,
+            containingNamespace.Length - dependencyInjectionSuffix.Length
+        );
     }
 
     private static void TryCaptureUsingBasedExtensionInvocation(
