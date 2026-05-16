@@ -141,6 +141,12 @@ jobs:
           timeout "${TEST_TIMEOUT_SECONDS}" dotnet-coverage collect \
             "tests/GenDI.Analyzers.Tests/bin/Release/net10.0/GenDI.Analyzers.Tests" \
             --output coverage-results/cov_analyzers.xml --output-format xml
+          timeout "${TEST_TIMEOUT_SECONDS}" dotnet-coverage collect \
+            "tests/GenDI.Testing.Tests/bin/Release/net10.0/GenDI.Testing.Tests" \
+            --output coverage-results/cov_testing_helpers.xml --output-format xml
+          timeout "${TEST_TIMEOUT_SECONDS}" dotnet-coverage collect \
+            "tests/GenDI.Testing.Example.Tests/bin/Release/net10.0/GenDI.Testing.Example.Tests" \
+            --output coverage-results/cov_testing_example.xml --output-format xml
           # Run Phase3 publish-validation tests (spawn dotnet publish internally)
           timeout "${TEST_TIMEOUT_SECONDS}" dotnet test tests/GenDI.Phase3.Validation.Tests --configuration Release --no-build --verbosity normal
           # Run Phase6 platform/framework validation tests
