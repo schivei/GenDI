@@ -54,8 +54,9 @@ public class ServiceBuilderTests
     {
         var addedByConfigure = false;
         var addedByGenDI = false;
+        var expectedServicesReference = new ServiceCollection();
 
-        var builder = new ServiceBuilder()
+        var builder = new ServiceBuilder(expectedServicesReference)
             .ConfigureServices(services =>
             {
                 addedByConfigure = true;
@@ -72,7 +73,7 @@ public class ServiceBuilderTests
 
         Assert.True(addedByConfigure);
         Assert.True(addedByGenDI);
-        Assert.Same(builder.Services, builder.Services);
+        Assert.Same(expectedServicesReference, builder.Services);
 
         using var provider = builder.BuildServiceProvider(
             validateScopes: false,

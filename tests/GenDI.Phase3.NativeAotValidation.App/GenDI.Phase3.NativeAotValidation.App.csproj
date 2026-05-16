@@ -6,9 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <PublishAot Condition="'$(GenDI_EnableNativeAotPublish)' == 'true'">true</PublishAot>
-    <TargetLatestRuntimePatch Condition="'$(GenDI_EnableNativeAotPublish)' == 'true'"
-      >false</TargetLatestRuntimePatch
-    >
+    <TargetLatestRuntimePatch Condition="'$(GenDI_EnableNativeAotPublish)' == 'true'">false</TargetLatestRuntimePatch>
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
