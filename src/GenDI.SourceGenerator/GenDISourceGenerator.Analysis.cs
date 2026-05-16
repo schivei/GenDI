@@ -1506,16 +1506,16 @@ public sealed partial class GenDISourceGenerator
             }
 
             hasAnyContract = true;
-                serviceTypes.Add(
-                    new ServiceContractTarget(
-                        interfaceSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                        TryGetServiceInjectionLifetime(interfaceSymbol),
-                        TryGetServiceInjectionThreadIsolationLifetime(interfaceSymbol),
-                        TryGetServiceInjectionAllowMultiple(interfaceSymbol),
-                        TryGetServiceInjectionUseTryAdd(interfaceSymbol)
-                    )
-                );
-            }
+            serviceTypes.Add(
+                new ServiceContractTarget(
+                    interfaceSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                    TryGetServiceInjectionLifetime(interfaceSymbol),
+                    TryGetServiceInjectionThreadIsolationLifetime(interfaceSymbol),
+                    TryGetServiceInjectionAllowMultiple(interfaceSymbol),
+                    TryGetServiceInjectionUseTryAdd(interfaceSymbol)
+                )
+            );
+        }
 
         var baseType = symbol.BaseType;
         while (baseType is not null && baseType.SpecialType != SpecialType.System_Object)
