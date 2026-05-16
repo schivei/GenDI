@@ -1939,6 +1939,49 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
+    public void ServiceInjection_strategy_prevails_over_injectable_strategy_when_contract_chain_exists()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ServiceInjectionPrecedenceCase;
+
+            [ServiceInjection(
+                RegistrationMultiplicity = RegistrationMultiplicity.Single,
+                RegistrationEmission = RegistrationEmissionStrategy.TryAdd
+            )]
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>(
+                RegistrationMultiplicity = RegistrationMultiplicity.Multiple,
+                RegistrationEmission = RegistrationEmissionStrategy.Add
+            )]
+            public sealed class Impl : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.TryAddTransient<global::ServiceInjectionPrecedenceCase.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "HasServiceImplementation(services, typeof(global::ServiceInjectionPrecedenceCase.IContract)",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "services.AddTransient<global::ServiceInjectionPrecedenceCase.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
     public void Open_generic_injectable_factory_is_bypassed_with_warning()
     {
         GeneratorTestHelper.AssertNoSourceGenerated(

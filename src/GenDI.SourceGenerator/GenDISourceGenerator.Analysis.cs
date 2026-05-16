@@ -463,18 +463,19 @@ public sealed partial class GenDISourceGenerator
         var factoryBody = BuildFactoryBody(symbol, implementationType, constructor, null, null);
         var environmentName = GetConditionalEnvironmentName(symbol);
         var moduleName = injectableMetadata.ModuleName ?? GetModuleName(symbol);
+        var hasServiceInjectionContracts = GetClosedServiceInjectionContracts(compilation, symbol).Length > 0;
 
         return serviceTypes.Select(serviceType => new ServiceRegistration(
             serviceType.ServiceType,
             implementationType,
             ResolveRegistrationLifetime(injectableMetadata.Lifetime, serviceType.FallbackLifetime),
             ResolveAllowMultiple(
-                injectableMetadata.AllowMultiple,
+                hasServiceInjectionContracts ? null : injectableMetadata.AllowMultiple,
                 serviceType.FallbackAllowMultiple,
                 DefaultAllowMultipleDirectRegistration
             ),
             ResolveUseTryAdd(
-                injectableMetadata.UseTryAdd,
+                hasServiceInjectionContracts ? null : injectableMetadata.UseTryAdd,
                 serviceType.FallbackUseTryAdd,
                 DefaultUseTryAddRegistration
             ),
