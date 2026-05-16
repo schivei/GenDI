@@ -1094,6 +1094,139 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
+    public void Fully_qualified_chain_text_in_comments_or_strings_does_not_block_automatic_chaining()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ConsumerChainCase;
+
+            public static class ManualChainTextOnly
+            {
+                // global::ReferencedManualChainLibrary.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services);
+                public const string Mention = "global::ReferencedManualChainLibrary.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services)";
+            }
+
+            public interface ILocalContract
+            {
+            }
+
+            [Injectable<ILocalContract>(ServiceLifetime.Singleton)]
+            public sealed class LocalService : ILocalContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute,
+            (
+                "ReferencedManualChainLibrary",
+                """
+                namespace ReferencedManualChainLibrary.DependencyInjection;
+
+                public static class GenDIServiceCollectionExtensions
+                {
+                    public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddGenDIServices(
+                        this Microsoft.Extensions.DependencyInjection.IServiceCollection services
+                    )
+                    {
+                        return AddGenDIServices(services, System.Array.Empty<string>());
+                    }
+
+                    public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddGenDIServices(
+                        this Microsoft.Extensions.DependencyInjection.IServiceCollection services,
+                        params string[] modules
+                    )
+                    {
+                        return services;
+                    }
+                }
+                """
+            )
+        );
+
+        Assert.Contains(
+            "global::ReferencedManualChainLibrary.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services, modules);",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Referenced_decorator_duplicate_does_not_reapply_same_concrete_implementation()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ConsumerChainCase;
+
+            [Injectable<ReferencedDecoratorLibrary.IContract>(ServiceLifetime.Singleton)]
+            public sealed class LocalService : ReferencedDecoratorLibrary.IContract
+            {
+            }
+
+            namespace ReferencedDecoratorLibrary
+            {
+                [DecoratorFor<IContract>]
+                public sealed class LoggingDecorator(IContract inner) : IContract
+                {
+                }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute,
+            (
+                "ReferencedDecoratorLibrary",
+                """
+                namespace ReferencedDecoratorLibrary
+                {
+                    public interface IContract
+                    {
+                    }
+
+                    [Injectable<IContract>(ServiceLifetime.Singleton)]
+                    public sealed class BaseService : IContract
+                    {
+                    }
+
+                    [DecoratorFor<IContract>]
+                    public sealed class LoggingDecorator(IContract inner) : IContract
+                    {
+                    }
+                }
+
+                namespace ReferencedDecoratorLibrary.DependencyInjection
+                {
+                    public static class GenDIServiceCollectionExtensions
+                    {
+                        public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddGenDIServices(
+                            this Microsoft.Extensions.DependencyInjection.IServiceCollection services
+                        )
+                        {
+                            return AddGenDIServices(services, System.Array.Empty<string>());
+                        }
+
+                        public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddGenDIServices(
+                            this Microsoft.Extensions.DependencyInjection.IServiceCollection services,
+                            params string[] modules
+                        )
+                        {
+                            return services;
+                        }
+                    }
+                }
+                """
+            )
+        );
+
+        Assert.Contains(
+            "global::ReferencedDecoratorLibrary.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services, modules);",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "new global::ReferencedDecoratorLibrary.LoggingDecorator(",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
     public void OptionConfig_generates_IOptions_registration_from_required_path()
     {
         var generatedSource = GeneratorTestHelper.GenerateSource(
