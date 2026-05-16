@@ -177,6 +177,7 @@ coverage*.xml
 coverage*.info
 coverage-results/
 coverage-report/
+coverage-report-full/
 
 # Visual Studio code coverage results
 *.coverage

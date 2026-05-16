@@ -33,11 +33,11 @@ internal static class ConstructorInjectionAnalysisHelpers
     {
         static bool IsMeaningful(SyntaxTrivia trivia)
         {
-            return trivia is not
-            {
-                RawKind: (int)Microsoft.CodeAnalysis.CSharp.SyntaxKind.WhitespaceTrivia
-                    or (int)Microsoft.CodeAnalysis.CSharp.SyntaxKind.EndOfLineTrivia
-            };
+            return trivia
+                is not {
+                    RawKind: (int)Microsoft.CodeAnalysis.CSharp.SyntaxKind.WhitespaceTrivia
+                        or (int)Microsoft.CodeAnalysis.CSharp.SyntaxKind.EndOfLineTrivia
+                };
         }
 
         return constructorBody.OpenBraceToken.TrailingTrivia.Any(IsMeaningful)

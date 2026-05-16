@@ -66,8 +66,8 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
                     );
                 }
 
-                var normalizedRegistrations = buildResult.Registrations
-                    .Distinct(ServiceRegistrationComparer.Instance)
+                var normalizedRegistrations = buildResult
+                    .Registrations.Distinct(ServiceRegistrationComparer.Instance)
                     .OrderBy(static registration => registration.Group)
                     .ThenBy(static registration => registration.Order)
                     .ThenBy(static registration => registration.ServiceType, StringComparer.Ordinal)
@@ -129,9 +129,7 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
         return false;
     }
 
-    private static bool HasCandidateAttributeName(
-        SyntaxList<AttributeListSyntax> attributeLists
-    )
+    private static bool HasCandidateAttributeName(SyntaxList<AttributeListSyntax> attributeLists)
     {
         if (attributeLists.Count == 0)
         {

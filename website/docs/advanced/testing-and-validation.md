@@ -49,10 +49,25 @@ Covers:
 - ✅ Blazor WebAssembly publish validation
 - ✅ F# exploration proving generated `AddGenDIServices()` is currently unavailable in `fsproj`
 
+## 5️⃣ Testing ergonomics (`GenDI.Testing`)
+
+Projects:
+
+- `GenDI.Testing.Tests`
+- `GenDI.Testing.Example.Tests`
+
+Covers:
+
+- ✅ `ServiceBuilder` fluent helper for test-time `IServiceCollection` composition
+- ✅ Integration with DI abstractions descriptor helpers (`TryAdd`, `Replace`, `TryAddEnumerable`)
+- ✅ Real-world xUnit usage with generated `AddGenDIServices` and property injection
+
 ## 🛠️ Local validation commands
 
 ```bash
 dotnet build GenDI.slnx
 dotnet test GenDI.slnx
 dotnet test tests/GenDI.Phase6.PlatformValidation.Tests -c Release
+dotnet test tests/GenDI.Testing.Tests
+dotnet test tests/GenDI.Testing.Example.Tests
 ```

@@ -14,9 +14,7 @@ public sealed class InjectAttribute : Attribute
     /// <summary>
     /// Initializes a new instance of the <see cref="InjectAttribute"/> class.
     /// </summary>
-    public InjectAttribute()
-    {
-    }
+    public InjectAttribute() { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InjectAttribute"/> class with a lifetime override.

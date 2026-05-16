@@ -85,6 +85,7 @@ No private fields. No constructor ceremony. No manual wiring. Just declare your 
 - **Factory-first registration**: use `[InjectableFactory<TService>]` on static methods when construction should be centralized.
 - **Module filtering**: group registrations with `[InjectableModule]` / `Module` and load only selected modules.
 - **Options mapping**: `[OptionConfig("Path")]` enables automatic `IOptions<T>` registration from configuration.
+- **Testing ergonomics**: `GenDI.Testing` includes a fluent `ServiceBuilder` for xUnit/unit-test composition.
 - **Open-generic safety**: open-generic registrations are bypassed and reported as generator warnings (`GENDISG001`).
 - **No runtime scanning cost**: compile-time generation eliminates startup overhead from reflection-based scanning.
 - **AOT/trimming friendly by design**: safe path for teams that need NativeAOT, without forcing this concern for every project.
@@ -96,6 +97,7 @@ No private fields. No constructor ceremony. No manual wiring. Just declare your 
 ```bash
 dotnet add package GenDI
 dotnet add package GenDI.SourceGenerator
+dotnet add package GenDI.Testing
 ```
 
 `GenDI.SourceGenerator` now bundles `GenDI.Analyzers` and ships `buildTransitive/GenDI.SourceGenerator.props` (`Using Include="GenDI"`).  

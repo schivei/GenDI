@@ -75,13 +75,17 @@ public class GeneratorEdgeCaseTests
         var source = GeneratorTestHelper.GenerateSourceWithAssemblyName(
             assemblyName: null,
             userSource: """
-                [Injectable]
-                public sealed class SimpleService { }
-                """,
+            [Injectable]
+            public sealed class SimpleService { }
+            """,
             includeGeneratedCodeInCoverage: TestSettings.IncludeGeneratedCodeInCoverageAttribute
         );
 
-        Assert.Contains("namespace Generated.DependencyInjection", source, StringComparison.Ordinal);
+        Assert.Contains(
+            "namespace Generated.DependencyInjection",
+            source,
+            StringComparison.Ordinal
+        );
     }
 
     [Fact]
@@ -90,13 +94,17 @@ public class GeneratorEdgeCaseTests
         var source = GeneratorTestHelper.GenerateSourceWithAssemblyName(
             assemblyName: "1Project.Services",
             userSource: """
-                [Injectable]
-                public sealed class SimpleService { }
-                """,
+            [Injectable]
+            public sealed class SimpleService { }
+            """,
             includeGeneratedCodeInCoverage: TestSettings.IncludeGeneratedCodeInCoverageAttribute
         );
 
-        Assert.Contains("namespace _1Project.Services.DependencyInjection", source, StringComparison.Ordinal);
+        Assert.Contains(
+            "namespace _1Project.Services.DependencyInjection",
+            source,
+            StringComparison.Ordinal
+        );
     }
 
     [Fact]
@@ -105,13 +113,17 @@ public class GeneratorEdgeCaseTests
         var source = GeneratorTestHelper.GenerateSourceWithAssemblyName(
             assemblyName: "My-App.Core",
             userSource: """
-                [Injectable]
-                public sealed class SimpleService { }
-                """,
+            [Injectable]
+            public sealed class SimpleService { }
+            """,
             includeGeneratedCodeInCoverage: TestSettings.IncludeGeneratedCodeInCoverageAttribute
         );
 
-        Assert.Contains("namespace My_App.Core.DependencyInjection", source, StringComparison.Ordinal);
+        Assert.Contains(
+            "namespace My_App.Core.DependencyInjection",
+            source,
+            StringComparison.Ordinal
+        );
     }
 
     // ─── Key literal types ────────────────────────────────────────────────────
@@ -134,7 +146,11 @@ public class GeneratorEdgeCaseTests
             TestSettings.IncludeGeneratedCodeInCoverageAttribute
         );
 
-        Assert.Contains("services.AddKeyedSingleton<global::NullKey.IContract>(null", source, StringComparison.Ordinal);
+        Assert.Contains(
+            "services.AddKeyedSingleton<global::NullKey.IContract>(null",
+            source,
+            StringComparison.Ordinal
+        );
     }
 
     [Fact]
@@ -400,7 +416,7 @@ public class GeneratorEdgeCaseTests
         );
 
         // EscapeCharLiteral('\\') → "\\\\" → rendered as '\\'  (4 chars: ' \ \ ')
-        Assert.Contains("'\\\\'" , source, StringComparison.Ordinal);
+        Assert.Contains("'\\\\'", source, StringComparison.Ordinal);
     }
 
     [Fact]

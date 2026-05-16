@@ -257,8 +257,7 @@ internal static class GeneratorTestHelper
     )
     {
         var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
-        var wrappedSource =
-            $$"""
+        var wrappedSource = $$"""
             using GenDI;
             using Microsoft.Extensions.DependencyInjection;
 
@@ -275,7 +274,10 @@ internal static class GeneratorTestHelper
         var emitResult = compilation.Emit(stream);
         Assert.True(
             emitResult.Success,
-            string.Join(Environment.NewLine, emitResult.Diagnostics.Select(diagnostic => diagnostic.ToString()))
+            string.Join(
+                Environment.NewLine,
+                emitResult.Diagnostics.Select(diagnostic => diagnostic.ToString())
+            )
         );
 
         return MetadataReference.CreateFromImage(stream.ToArray());

@@ -1,0 +1,8 @@
+<Project>
+  <ItemGroup>
+    <PackageReference Update="GenDI.SourceGenerator">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>contentfiles; compile; runtime</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>

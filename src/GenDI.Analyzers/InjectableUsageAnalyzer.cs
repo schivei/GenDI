@@ -70,7 +70,10 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        if (HasInjectableAttribute(typeSymbol) && !(typeSymbol.TypeKind == TypeKind.Class && !typeSymbol.IsAbstract))
+        if (
+            HasInjectableAttribute(typeSymbol)
+            && !(typeSymbol.TypeKind == TypeKind.Class && !typeSymbol.IsAbstract)
+        )
         {
             context.ReportDiagnostic(
                 Diagnostic.Create(
@@ -102,7 +105,9 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
             .Any(attributeClass =>
             {
                 var definitionName = attributeClass.OriginalDefinition.ToDisplayString();
-                return definitionName is "GenDI.InjectableAttribute" or "GenDI.InjectableAttribute<TService>";
+                return definitionName
+                    is "GenDI.InjectableAttribute"
+                        or "GenDI.InjectableAttribute<TService>";
             });
     }
 
@@ -170,7 +175,10 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
         INamedTypeSymbol typeSymbol
     )
     {
-        var decoratedContracts = GetExplicitDecoratorContracts(typeSymbol, out var requiresInferredContract);
+        var decoratedContracts = GetExplicitDecoratorContracts(
+            typeSymbol,
+            out var requiresInferredContract
+        );
         if (decoratedContracts is null)
         {
             return;
@@ -309,10 +317,12 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
     )
     {
         var constructor = GetPreferredPublicConstructor(decoratorType);
-        return (constructor is not null
+        return (
+                constructor is not null
                 && constructor.Parameters.Any(parameter =>
                     SymbolEqualityComparer.Default.Equals(parameter.Type, serviceType)
-                ))
+                )
+            )
             || decoratorType
                 .GetMembers()
                 .OfType<IPropertySymbol>()
@@ -321,7 +331,8 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
                     && property.SetMethod is not null
                     && property.SetMethod.IsInitOnly
                     && property.SetMethod.DeclaredAccessibility
-                        is Accessibility.Public or Accessibility.Internal
+                        is Accessibility.Public
+                            or Accessibility.Internal
                     && SymbolEqualityComparer.Default.Equals(property.Type, serviceType)
                     && HasInjectAttribute(property)
                 );
@@ -340,6 +351,8 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
     private static bool IsOpenGeneric(INamedTypeSymbol symbol)
     {
         return symbol.IsUnboundGenericType
-            || symbol.TypeArguments.Any(static argument => argument.TypeKind == TypeKind.TypeParameter);
+            || symbol.TypeArguments.Any(static argument =>
+                argument.TypeKind == TypeKind.TypeParameter
+            );
     }
 }

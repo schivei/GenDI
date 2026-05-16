@@ -6,8 +6,7 @@ namespace GenDI.SourceGenerator.Tests;
 
 public class SharedGeneratorBehaviorTests
 {
-    private const string DecoratorTargetDiscoveryWarning =
-        "Decorator target contract discovery";
+    private const string DecoratorTargetDiscoveryWarning = "Decorator target contract discovery";
 
     [Fact]
     public void Generated_extension_respects_coverage_toggle()
@@ -599,10 +598,8 @@ public class SharedGeneratorBehaviorTests
         );
         Assert.Equal(
             1,
-            generatedSource.Split(
-                    "new global::DecoratorMulti.LoggingDecorator(",
-                    StringSplitOptions.None
-                )
+            generatedSource
+                .Split("new global::DecoratorMulti.LoggingDecorator(", StringSplitOptions.None)
                 .Length - 1
         );
     }
@@ -1006,7 +1003,11 @@ public class SharedGeneratorBehaviorTests
             generatedSource,
             StringComparison.Ordinal
         );
-        Assert.Contains("IsModuleEnabled(modules, \"Billing\")", generatedSource, StringComparison.Ordinal);
+        Assert.Contains(
+            "IsModuleEnabled(modules, \"Billing\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
     }
 
     [Fact]
@@ -1051,21 +1052,13 @@ public class SharedGeneratorBehaviorTests
             TestSettings.IncludeGeneratedCodeInCoverageAttribute
         );
 
-        Assert.Contains(
-            "services.Add",
-            generatedSource,
-            StringComparison.Ordinal
-        );
+        Assert.Contains("services.Add", generatedSource, StringComparison.Ordinal);
         Assert.Contains(
             "global::FactoryTypeofCase.Factories.Create(",
             generatedSource,
             StringComparison.Ordinal
         );
-        Assert.Contains(
-            "\"factory-key\"",
-            generatedSource,
-            StringComparison.Ordinal
-        );
+        Assert.Contains("\"factory-key\"", generatedSource, StringComparison.Ordinal);
         Assert.Contains(
             "IsModuleEnabled(modules, \"Factories\")",
             generatedSource,
@@ -1179,7 +1172,9 @@ public class SharedGeneratorBehaviorTests
             static diagnostic =>
                 diagnostic.Id == "GENDISG001"
                 && diagnostic.Severity == DiagnosticSeverity.Warning
-                && diagnostic.GetMessage().Contains("InjectableFactory registration", StringComparison.Ordinal)
+                && diagnostic
+                    .GetMessage()
+                    .Contains("InjectableFactory registration", StringComparison.Ordinal)
         );
     }
 
@@ -1227,7 +1222,9 @@ public class SharedGeneratorBehaviorTests
             static diagnostic =>
                 diagnostic.Id == "GENDISG001"
                 && diagnostic.Severity == DiagnosticSeverity.Warning
-                && diagnostic.GetMessage().Contains("Injectable class registration", StringComparison.Ordinal)
+                && diagnostic
+                    .GetMessage()
+                    .Contains("Injectable class registration", StringComparison.Ordinal)
         );
     }
 
@@ -1273,10 +1270,9 @@ public class SharedGeneratorBehaviorTests
             static diagnostic =>
                 diagnostic.Id == "GENDISG001"
                 && diagnostic.Severity == DiagnosticSeverity.Warning
-                && diagnostic.GetMessage().Contains(
-                    DecoratorTargetDiscoveryWarning,
-                    StringComparison.Ordinal
-                )
+                && diagnostic
+                    .GetMessage()
+                    .Contains(DecoratorTargetDiscoveryWarning, StringComparison.Ordinal)
         );
     }
 
@@ -1284,8 +1280,7 @@ public class SharedGeneratorBehaviorTests
     public void Open_generic_explicit_decorator_contract_is_bypassed_with_warning()
     {
         // The attribute target intentionally stays open through T so the generator emits GENDISG001.
-        const string source =
-            """
+        const string source = """
             namespace OpenExplicitDecoratorCase;
 
             public interface IContract<T>
@@ -1313,10 +1308,9 @@ public class SharedGeneratorBehaviorTests
             static diagnostic =>
                 diagnostic.Id == "GENDISG001"
                 && diagnostic.Severity == DiagnosticSeverity.Warning
-                && diagnostic.GetMessage().Contains(
-                    DecoratorTargetDiscoveryWarning,
-                    StringComparison.Ordinal
-                )
+                && diagnostic
+                    .GetMessage()
+                    .Contains(DecoratorTargetDiscoveryWarning, StringComparison.Ordinal)
         );
     }
 

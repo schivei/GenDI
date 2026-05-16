@@ -3,6 +3,7 @@
     <Project Path="src/GenDI.Analyzers/GenDI.Analyzers.csproj" />
     <Project Path="src/GenDI.SourceGenerator/GenDI.SourceGenerator.csproj" />
     <Project Path="src/GenDI/GenDI.csproj" />
+    <Project Path="src/GenDI.Testing/GenDI.Testing.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/GenDI.Analyzers.Tests/GenDI.Analyzers.Tests.csproj" />
@@ -19,5 +20,7 @@
     <Project Path="tests/GenDI.SourceGenerator.CoverageDisabled.Tests/GenDI.SourceGenerator.CoverageDisabled.Tests.csproj" />
     <Project Path="tests/GenDI.SourceGenerator.CoverageEnabled.Tests/GenDI.SourceGenerator.CoverageEnabled.Tests.csproj" />
     <Project Path="tests/GenDI.SourceGenerator.NoCoverageAttribute.Tests/GenDI.SourceGenerator.NoCoverageAttribute.Tests.csproj" />
+    <Project Path="tests/GenDI.Testing.Example.Tests/GenDI.Testing.Example.Tests.csproj" />
+    <Project Path="tests/GenDI.Testing.Tests/GenDI.Testing.Tests.csproj" />
   </Folder>
 </Solution>

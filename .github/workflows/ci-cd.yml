@@ -123,27 +123,34 @@ jobs:
 
       - name: Run tests with coverage collection
         run: |
+          TEST_TIMEOUT_SECONDS=900
           mkdir -p coverage-results
           # Run each MTP-enabled test project via dotnet-coverage (also enforces pass/fail)
-          dotnet-coverage collect \
+          timeout "${TEST_TIMEOUT_SECONDS}" dotnet-coverage collect \
             "tests/GenDI.SourceGenerator.CoverageEnabled.Tests/bin/Release/net10.0/GenDI.SourceGenerator.CoverageEnabled.Tests" \
             --output coverage-results/cov_coverage_enabled.xml --output-format xml
-          dotnet-coverage collect \
+          timeout "${TEST_TIMEOUT_SECONDS}" dotnet-coverage collect \
             "tests/GenDI.SourceGenerator.CoverageDisabled.Tests/bin/Release/net10.0/GenDI.SourceGenerator.CoverageDisabled.Tests" \
             --output coverage-results/cov_coverage_disabled.xml --output-format xml
-          dotnet-coverage collect \
+          timeout "${TEST_TIMEOUT_SECONDS}" dotnet-coverage collect \
             "tests/GenDI.SourceGenerator.NoCoverageAttribute.Tests/bin/Release/net10.0/GenDI.SourceGenerator.NoCoverageAttribute.Tests" \
             --output coverage-results/cov_nocoverage.xml --output-format xml
-          dotnet-coverage collect \
+          timeout "${TEST_TIMEOUT_SECONDS}" dotnet-coverage collect \
             "tests/GenDI.Integration.Tests/bin/Release/net10.0/GenDI.Integration.Tests" \
             --output coverage-results/cov_integration.xml --output-format xml
-          dotnet-coverage collect \
+          timeout "${TEST_TIMEOUT_SECONDS}" dotnet-coverage collect \
             "tests/GenDI.Analyzers.Tests/bin/Release/net10.0/GenDI.Analyzers.Tests" \
             --output coverage-results/cov_analyzers.xml --output-format xml
+          timeout "${TEST_TIMEOUT_SECONDS}" dotnet-coverage collect \
+            "tests/GenDI.Testing.Tests/bin/Release/net10.0/GenDI.Testing.Tests" \
+            --output coverage-results/cov_testing_helpers.xml --output-format xml
+          timeout "${TEST_TIMEOUT_SECONDS}" dotnet-coverage collect \
+            "tests/GenDI.Testing.Example.Tests/bin/Release/net10.0/GenDI.Testing.Example.Tests" \
+            --output coverage-results/cov_testing_example.xml --output-format xml
           # Run Phase3 publish-validation tests (spawn dotnet publish internally)
-          dotnet test tests/GenDI.Phase3.Validation.Tests --configuration Release --no-build --verbosity normal
+          timeout "${TEST_TIMEOUT_SECONDS}" dotnet test tests/GenDI.Phase3.Validation.Tests --configuration Release --no-build --verbosity normal
           # Run Phase6 platform/framework validation tests
-          dotnet test tests/GenDI.Phase6.PlatformValidation.Tests --configuration Release --no-build --verbosity normal
+          timeout "${TEST_TIMEOUT_SECONDS}" dotnet test tests/GenDI.Phase6.PlatformValidation.Tests --configuration Release --no-build --verbosity normal
 
       - name: Merge coverage and build summary report
         id: coverage

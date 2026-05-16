@@ -12,9 +12,11 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
 2. Evolução do modelo de registro
 3. Suporte de plataformas/frameworks
 4. Ergonomia de testes
-5. Tooling/IDE
-6. Observabilidade
-7. Comunidade e ecossistema
+5. Explicit registration strategies (Add/TryAdd)
+6. OptionConfig evolution
+7. Tooling/IDE
+8. Observability
+9. Community and ecosystem
 
 ## 3) Estratégia de entrega incremental
 
@@ -45,11 +47,21 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
 - Minimal API, Worker Service, Blazor WASM e validações AOT mobile.
 - Projeto(s) exemplo com cenários reais.
 
-### Incremento 6.5 — Tooling, observabilidade e comunidade
+### Incremento 6.5 — Explicit registration strategies (Add/TryAdd)
+
+- Single vs multiple registration at the `ServiceInjection` and `Injectable` levels.
+- Emission control between `TryAdd*` and `Add*` based on user configuration.
+
+### Incremento 6.6 — OptionConfig evolution
+
+- Optional key for configuration binding (`configurationSection`).
+- Type eligibility constraints for options (concrete classes/structs/records, non-private, no constructor with arguments).
+
+### Incremento 6.7 — Tooling, observability, and community
 
 - Templates (VS/Rider/dotnet new)
-- Recursos observáveis e exportação de grafo
-- Material de comunidade, changelog e localização de docs
+- Observable resources and graph export
+- Community materials, changelog, and docs localization
 
 ## 4) Backlog detalhado por trilha (com critérios de aceite)
 
@@ -104,29 +116,59 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
 
 ## 4.4 Ergonomia de testes
 
-- [ ] **TE-01** `GenDI.Testing` com `ServiceBuilder`.
-- [ ] **TE-02** Integração com helpers de teste de DI abstractions.
-- [ ] **TE-03** Exemplo real xUnit usando GenDI.
+- [x] **TE-01** `GenDI.Testing` com `ServiceBuilder`.
+- [x] **TE-02** Integração com helpers de teste de DI abstractions.
+- [x] **TE-03** Exemplo real xUnit usando GenDI.
 
-## 4.5 Tooling e IDE
+## 4.5 Explicit registration strategies (Add/TryAdd)
+
+- [ ] **RG-01** Allow single or multiple registration at the `ServiceInjection` and `Injectable` levels.
+  - Criteria:
+    - `ServiceInjection` can declare registration policy for annotated contracts.
+    - `Injectable` can declare registration policy for annotated implementations.
+    - For hierarchy interfaces/abstractions without `[ServiceInjection]`, allow registration strategy configuration in the inferred flow.
+- [ ] **RG-02** Allow users to define emission strategy between `TryAdd*` and `Add*`.
+  - Criteria:
+    - Strategy must affect generated registration code for eligible contracts.
+    - Strategy must differentiate single and multiple registration behavior.
+    - Test coverage for overwrite scenarios and composition of multiple implementations.
+
+## 4.6 OptionConfig evolution
+
+- [ ] **OP-01** Allow an optional key in options to select the configuration section.
+  - Criteria:
+    - When a key is defined, use the specified section.
+    - When no key is defined, use the options type name as the default section.
+- [ ] **OP-02** Restrict options to eligible types and compatible constructors.
+  - Criteria:
+    - Concrete classes (including sealed), non-private.
+    - Non-ref and non-private structs.
+    - Non-ref and non-private records.
+    - Parameterless constructor or implicit/default constructor.
+- [ ] **OP-03** Register options using the most performant path between `services.Configure()` and equivalent binding for `IOptions<>`.
+  - Criteria:
+    - Resulting registration must expose `IOptions<TOptions>`.
+    - Test coverage for explicit key, default key by type name, and invalid types.
+
+## 4.7 Tooling and IDE
 
 - [ ] **TL-01** Item-template Visual Studio.
 - [ ] **TL-02** Live template Rider.
 - [ ] **TL-03** `dotnet new gendi-service`.
 
-## 4.6 Observabilidade
+## 4.8 Observability
 
-- [ ] **OB-01** `[ObservableService]` com spans OTel.
-- [ ] **OB-02** Log de resumo de registros no startup.
-- [ ] **OB-03** Exportação de grafo (DOT).
+- [ ] **OB-01** `[ObservableService]` with OTel spans.
+- [ ] **OB-02** Registration summary log at startup.
+- [ ] **OB-03** Graph export (DOT).
 
-## 4.7 Comunidade e ecossistema
+## 4.9 Community and ecosystem
 
-- [ ] **CE-01** Categoria Q&A no Discussions.
-- [ ] **CE-02** `CHANGELOG.md` público.
-- [ ] **CE-03** Localização de documentação.
-- [ ] **CE-04** Repositório sample completo.
-- [ ] **CE-05** Expansão da suíte de benchmarks.
+- [ ] **CE-01** Q&A category in Discussions.
+- [ ] **CE-02** Public `CHANGELOG.md`.
+- [ ] **CE-03** Documentation localization.
+- [ ] **CE-04** Complete sample repository.
+- [ ] **CE-05** Benchmark suite expansion.
 
 ## 5) Checklist de execução técnica (por PR)
 
@@ -170,6 +212,8 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
 - **v1.5**: implementação de `[DecoratorFor<TService>]`, injeção indireta por `[Inject]`, override de lifetime no `[Inject]` e thread isolation configurável.
 - **v1.6**: implementação de RM-08 até RM-12 (varredura em bibliotecas referenciadas, inferência closed-generic indireta, `OptionConfigAttribute`, `[InjectableFactory]` e `[InjectableModule]`).
 - **v1.7**: implementação da trilha 4.3 com exemplos/validações para Minimal API, Worker Service e Blazor WASM, documentação de validação mobile AOT e exploração de suporte F#.
+- **v1.8**: implementação da trilha 4.4 com pacote `GenDI.Testing`, integração com helpers de DI abstractions e exemplo real em xUnit.
+- **v1.9**: added tracks 4.5 and 4.6 (Add/TryAdd registration strategies and OptionConfig evolution), with subsequent renumbering to 4.7, 4.8, and 4.9.
 
 ## 8) Referência detalhada das entregas RM-01..RM-12
 

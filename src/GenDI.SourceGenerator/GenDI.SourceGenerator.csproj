@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="../../pack.props" />
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -16,11 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference
-      Include="Microsoft.CodeAnalysis.CSharp"
-      Version="4.*"
-      PrivateAssets="all"
-    />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.*" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
@@ -47,6 +43,7 @@
       PackagePath="buildTransitive/GenDI.SourceGenerator.props"
       Visible="false"
     />
+    <None Include="buildTransitive/GenDI.SourceGenerator.targets" Pack="true" PackagePath="buildTransitive/GenDI.SourceGenerator.targets" Visible="false" />
   </ItemGroup>
 
   <Target Name="IncludeBundledAnalyzerInPackage">

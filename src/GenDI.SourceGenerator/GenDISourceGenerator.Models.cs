@@ -5,7 +5,7 @@ namespace GenDI.SourceGenerator;
 
 public sealed partial class GenDISourceGenerator
 {
-    #pragma warning disable S107 // model constructors intentionally capture all immutable registration data
+#pragma warning disable S107 // model constructors intentionally capture all immutable registration data
     private sealed class ServiceRegistration
     {
         public ServiceRegistration(
@@ -189,7 +189,7 @@ public sealed partial class GenDISourceGenerator
 
         public string? ModuleName { get; }
     }
-    #pragma warning restore S107
+#pragma warning restore S107
 
     private sealed class OpenGenericBypassWarning
     {
