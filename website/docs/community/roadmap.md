@@ -46,7 +46,9 @@ Detailed notes for delivered RM-01..RM-12:
 - ✅ F# attribute support exploration with current limitation documented
 
 ### 🧪 Testing
-- `GenDI.Testing` companion package with `ServiceBuilder` helper for unit tests using property injection
+- ✅ `GenDI.Testing` companion package with `ServiceBuilder` helper for unit tests using property injection
+- ✅ Integration with `Microsoft.Extensions.DependencyInjection.Abstractions` descriptor helpers
+- ✅ Real-world xUnit suite example using GenDI services and `ServiceBuilder`
 
 ### 🛠️ Tooling and IDE
 - Visual Studio item-template: "GenDI Service" scaffold

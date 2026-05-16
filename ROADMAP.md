@@ -104,9 +104,9 @@ This document outlines the planned phases of development for GenDI.
 
 ### 🧪 Testing ergonomics
 
-- [ ] `GenDI.Testing` companion package: `ServiceBuilder` helper for unit tests using property injection
-- [ ] Integration with `Microsoft.Extensions.DependencyInjection.Abstractions` test helpers
-- [ ] Example project: real-world xUnit test suite using GenDI services
+- [x] `GenDI.Testing` companion package: `ServiceBuilder` helper for unit tests using property injection
+- [x] Integration with `Microsoft.Extensions.DependencyInjection.Abstractions` test helpers
+- [x] Example project: real-world xUnit test suite using GenDI services
 
 ### 🛠️ Tooling and IDE integration
 

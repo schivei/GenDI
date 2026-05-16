@@ -104,9 +104,9 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
 
 ## 4.4 Ergonomia de testes
 
-- [ ] **TE-01** `GenDI.Testing` com `ServiceBuilder`.
-- [ ] **TE-02** Integração com helpers de teste de DI abstractions.
-- [ ] **TE-03** Exemplo real xUnit usando GenDI.
+- [x] **TE-01** `GenDI.Testing` com `ServiceBuilder`.
+- [x] **TE-02** Integração com helpers de teste de DI abstractions.
+- [x] **TE-03** Exemplo real xUnit usando GenDI.
 
 ## 4.5 Tooling e IDE
 
@@ -170,6 +170,7 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
 - **v1.5**: implementação de `[DecoratorFor<TService>]`, injeção indireta por `[Inject]`, override de lifetime no `[Inject]` e thread isolation configurável.
 - **v1.6**: implementação de RM-08 até RM-12 (varredura em bibliotecas referenciadas, inferência closed-generic indireta, `OptionConfigAttribute`, `[InjectableFactory]` e `[InjectableModule]`).
 - **v1.7**: implementação da trilha 4.3 com exemplos/validações para Minimal API, Worker Service e Blazor WASM, documentação de validação mobile AOT e exploração de suporte F#.
+- **v1.8**: implementação da trilha 4.4 com pacote `GenDI.Testing`, integração com helpers de DI abstractions e exemplo real em xUnit.
 
 ## 8) Referência detalhada das entregas RM-01..RM-12
 
