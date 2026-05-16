@@ -521,6 +521,12 @@ public sealed partial class GenDISourceGenerator
                 )
             )
             .ToImmutableArray();
+        var context = new IndirectInjectProcessingContext(
+            warnings,
+            existingKeys,
+            existingImplementationKeys,
+            registrations
+        );
 
         foreach (var injectRequest in injectRequests)
         {
@@ -528,10 +534,7 @@ public sealed partial class GenDISourceGenerator
                 compilation,
                 concreteTypes,
                 injectableTypes,
-                warnings,
-                existingKeys,
-                existingImplementationKeys,
-                registrations,
+                context,
                 injectRequest
             );
         }
@@ -543,16 +546,13 @@ public sealed partial class GenDISourceGenerator
         Compilation compilation,
         ImmutableArray<INamedTypeSymbol> concreteTypes,
         IDictionary<INamedTypeSymbol, InjectableMetadata> injectableTypes,
-        IList<OpenGenericBypassWarning> warnings,
-        HashSet<string> existingKeys,
-        HashSet<string> existingImplementationKeys,
-        IList<ServiceRegistration> registrations,
+        IndirectInjectProcessingContext context,
         InjectContractRequest injectRequest
     )
     {
         if (!IsClosedType(injectRequest.ContractSymbol))
         {
-            warnings.Add(
+            context.Warnings.Add(
                 BuildOpenGenericBypassWarning(
                     injectRequest.ContractSymbol,
                     "Indirect [Inject] contract discovery"
@@ -561,10 +561,16 @@ public sealed partial class GenDISourceGenerator
             return;
         }
 
-        if (TryBuildOptionsRegistration(injectRequest, existingKeys, out var optionsRegistration))
+        if (
+            TryBuildOptionsRegistration(
+                injectRequest,
+                context.ExistingKeys,
+                out var optionsRegistration
+            )
+        )
         {
-            registrations.Add(optionsRegistration);
-            existingKeys.Add(BuildRegistrationIdentity(optionsRegistration));
+            context.Registrations.Add(optionsRegistration);
+            context.ExistingKeys.Add(BuildRegistrationIdentity(optionsRegistration));
             return;
         }
 
@@ -608,11 +614,35 @@ public sealed partial class GenDISourceGenerator
                 candidate,
                 allowMultiple,
                 contractFallbackUseTryAdd,
-                existingKeys,
-                existingImplementationKeys,
-                registrations
+                context.ExistingKeys,
+                context.ExistingImplementationKeys,
+                context.Registrations
             );
         }
+    }
+
+    private sealed class IndirectInjectProcessingContext
+    {
+        public IndirectInjectProcessingContext(
+            IList<OpenGenericBypassWarning> warnings,
+            HashSet<string> existingKeys,
+            HashSet<string> existingImplementationKeys,
+            IList<ServiceRegistration> registrations
+        )
+        {
+            Warnings = warnings;
+            ExistingKeys = existingKeys;
+            ExistingImplementationKeys = existingImplementationKeys;
+            Registrations = registrations;
+        }
+
+        public IList<OpenGenericBypassWarning> Warnings { get; }
+
+        public HashSet<string> ExistingKeys { get; }
+
+        public HashSet<string> ExistingImplementationKeys { get; }
+
+        public IList<ServiceRegistration> Registrations { get; }
     }
 
     private static void AddIndirectCandidateRegistration(
@@ -2054,7 +2084,13 @@ public sealed partial class GenDISourceGenerator
     private static bool IsInjectPropertyAttribute(INamedTypeSymbol? attributeClass)
     {
         var attributeDisplayName = attributeClass?.ToDisplayString();
-        return attributeDisplayName is "GenDI.InjectAttribute" or "GenDI.InjectOptionalAttribute";
+        return IsInjectPropertyAttribute(attributeDisplayName);
+    }
+
+    private static bool IsInjectPropertyAttribute(string? attributeDisplayName)
+    {
+        return attributeDisplayName
+            is InjectAttributeMetadataName or InjectOptionalAttributeMetadataName;
     }
 
     private static string ConvertLifetimeEnumToExpression(TypedConstant argument)
@@ -2183,12 +2219,6 @@ public sealed partial class GenDISourceGenerator
             allowMultipleOverride,
             useTryAddOverride
         );
-    }
-
-    private static bool IsInjectPropertyAttribute(string? attributeDisplayName)
-    {
-        return attributeDisplayName
-            is InjectAttributeMetadataName or InjectOptionalAttributeMetadataName;
     }
 
     private static void ApplyInjectPropertyAttributeKind(
