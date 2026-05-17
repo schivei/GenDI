@@ -1145,7 +1145,9 @@ public sealed partial class GenDISourceGenerator
         );
         var escapedPath = EscapeStringLiteral(configPath);
         var canUseConfigurePath =
-            string.IsNullOrWhiteSpace(injectRequest.KeyExpression)
+            optionsType.IsReferenceType
+            && !optionsType.IsValueType
+            && string.IsNullOrWhiteSpace(injectRequest.KeyExpression)
             && injectRequest.LifetimeOverride is null
             && injectRequest.AllowMultipleOverride is null
             && injectRequest.UseTryAddOverride is null;

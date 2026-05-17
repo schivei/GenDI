@@ -1905,6 +1905,118 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
+    public void OptionConfig_private_nested_type_does_not_generate_options_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionsPrivateTypeCase;
+            using Microsoft.Extensions.Options;
+
+            public static class Container
+            {
+                [OptionConfig("Features:MyOption")]
+                private sealed class MyOption
+                {
+                    public string? Value { get; init; }
+                }
+
+                [Injectable]
+                public sealed class UsesOptions
+                {
+                    [Inject]
+                    public required IOptions<MyOption> Options { get; init; }
+                }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.DoesNotContain(
+            "services.Configure<global::OptionsPrivateTypeCase.Container.MyOption>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "ConfigurationBinder.Get<global::OptionsPrivateTypeCase.Container.MyOption>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void OptionConfig_value_type_uses_equivalent_ioptions_binding_path()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionsStructCase;
+            using Microsoft.Extensions.Options;
+
+            [OptionConfig("Features:MyStructOption")]
+            public struct MyStructOption
+            {
+                public string? Value { get; set; }
+            }
+
+            [Injectable]
+            public sealed class UsesOptions
+            {
+                [Inject]
+                public required IOptions<MyStructOption> Options { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.DoesNotContain(
+            "services.Configure<global::OptionsStructCase.MyStructOption>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "ConfigurationBinder.Get<global::OptionsStructCase.MyStructOption>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("GetSection(\"Features:MyStructOption\")", generatedSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OptionConfig_with_inject_lifetime_override_uses_equivalent_ioptions_binding_path()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionsOverrideCase;
+            using Microsoft.Extensions.Options;
+
+            [OptionConfig("Features:MyOption")]
+            public sealed class MyOption
+            {
+                public string? Value { get; init; }
+            }
+
+            [Injectable]
+            public sealed class UsesOptions
+            {
+                [Inject(ServiceLifetime.Scoped)]
+                public required IOptions<MyOption> Options { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddScoped<global::Microsoft.Extensions.Options.IOptions<global::OptionsOverrideCase.MyOption>>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "ConfigurationBinder.Get<global::OptionsOverrideCase.MyOption>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
     public void IOptions_without_OptionConfig_attribute_does_not_generate_configuration_registration()
     {
         var generatedSource = GeneratorTestHelper.GenerateSource(
@@ -2400,6 +2512,7 @@ public class SharedGeneratorBehaviorTests
                     null,
                     null,
                     moduleName,
+                    null,
                 }
             );
         }
