@@ -6,6 +6,7 @@ import Heading from '@theme/Heading';
 import PropTypes from 'prop-types';
 
 import styles from './index.module.css';
+import benchmarkSalesPitch from '../data/benchmarkSalesPitch';
 
 function HomepageHeader() {
   const {siteConfig} = useDocusaurusContext();
@@ -229,6 +230,32 @@ function HomepageFeatures() {
   );
 }
 
+function BenchmarkValueProposition() {
+  if (!benchmarkSalesPitch) {
+    return null;
+  }
+
+  return (
+    <section className={styles.salesPitch}>
+      <div className="container">
+        <div className={styles.salesPitchCard}>
+          <p className={styles.salesPitchEyebrow}>{benchmarkSalesPitch.eyebrow}</p>
+          <Heading as="h2">{benchmarkSalesPitch.title}</Heading>
+          <p>{benchmarkSalesPitch.description}</p>
+          <ul className={styles.salesPitchList}>
+            {benchmarkSalesPitch.points.map((point) => (
+              <li key={point}>{point}</li>
+            ))}
+          </ul>
+          <Link className="button button--primary button--lg" to={benchmarkSalesPitch.ctaHref}>
+            {benchmarkSalesPitch.ctaLabel}
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function QuickExample() {
   return (
     <section className={styles.quickExample}>
@@ -274,6 +301,7 @@ export default function Home() {
       <HomepageHeader />
       <main>
         <HomepageBadges />
+        <BenchmarkValueProposition />
         <HomepageFeatures />
         <QuickExample />
       </main>

@@ -42,6 +42,54 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
+    public void Generated_extension_ignores_referenced_assembly_coverage_attribute()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            [Injectable]
+            public sealed class ConsumerService
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute,
+            (
+                "ReferencedCoverageLibrary",
+                """
+                [assembly: GenDI.GenDICoveration(false)]
+
+                namespace ReferencedCoverageLibrary.DependencyInjection;
+
+                public static class GenDIServiceCollectionExtensions
+                {
+                    public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddGenDIServices(
+                        this Microsoft.Extensions.DependencyInjection.IServiceCollection services,
+                        params string[] modules
+                    ) => services;
+                }
+                """
+            )
+        );
+
+        Assert.Contains(
+            "global::ReferencedCoverageLibrary.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services, modules);",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+
+        if (TestSettings.IncludeGeneratedCodeInCoverageAttribute is false)
+        {
+            Assert.Contains("[ExcludeFromCodeCoverage]", generatedSource, StringComparison.Ordinal);
+            return;
+        }
+
+        Assert.DoesNotContain(
+            "[ExcludeFromCodeCoverage]",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
     public void Registers_serviceType_alongside_serviceInjection_contracts_and_generates_complex_factory()
     {
         var generatedSource = GeneratorTestHelper.GenerateSource(
