@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -642,7 +643,7 @@ public class SharedGeneratorBehaviorTests
         Assert.Equal(
             1,
             generatedSource
-                .Split("new global::DecoratorMulti.LoggingDecorator(", StringSplitOptions.None)
+                .Split("new global::DecoratorMulti.LoggingDecorator(")
                 .Length - 1
         );
     }
@@ -784,8 +785,7 @@ public class SharedGeneratorBehaviorTests
             1,
             generatedSource
                 .Split(
-                    "services.AddTransient<global::IndirectDuplicatePaths.ISingleContract>",
-                    StringSplitOptions.None
+                    "services.AddTransient<global::IndirectDuplicatePaths.ISingleContract>"
                 )
                 .Length - 1
         );
@@ -793,8 +793,7 @@ public class SharedGeneratorBehaviorTests
             1,
             generatedSource
                 .Split(
-                    "services.AddTransient<global::IndirectDuplicatePaths.IMultipleContract>",
-                    StringSplitOptions.None
+                    "services.AddTransient<global::IndirectDuplicatePaths.IMultipleContract>"
                 )
                 .Length - 1
         );
@@ -1703,7 +1702,7 @@ public class SharedGeneratorBehaviorTests
         Assert.NotNull(captureUsingBasedInvocationMethod);
         captureUsingBasedInvocationMethod.Invoke(
             null,
-            new object[] { invocation, importedDependencyNamespaces, explicitlyChainedNamespaces }
+            [invocation, importedDependencyNamespaces, explicitlyChainedNamespaces]
         );
 
         Assert.Contains("ReferencedManualChainLibrary", explicitlyChainedNamespaces);
@@ -1787,7 +1786,7 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
-    public void OptionConfig_generates_IOptions_registration_from_required_path()
+    public void OptionConfig_generates_IOptions_registration_using_explicit_section_key()
     {
         var generatedSource = GeneratorTestHelper.GenerateSource(
             """
@@ -1811,12 +1810,343 @@ public class SharedGeneratorBehaviorTests
         );
 
         Assert.Contains(
+            "services.AddOptions<global::OptionsCase.MyOption>().BindConfiguration(\"Features:MyOption\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
             "ConfigurationBinder.Get<global::OptionsCase.MyOption>",
             generatedSource,
             StringComparison.Ordinal
         );
+        Assert.DoesNotContain(
+            "serviceProvider.GetRequiredService<global::Microsoft.Extensions.Configuration.IConfiguration>()",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void OptionConfig_without_explicit_key_uses_options_type_name_as_section_key()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionsDefaultSectionCase;
+            using Microsoft.Extensions.Options;
+
+            [OptionConfig]
+            public sealed class MyOption
+            {
+                public string? Value { get; init; }
+            }
+
+            [Injectable]
+            public sealed class UsesOptions
+            {
+                [Inject]
+                public required IOptions<MyOption> Options { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
         Assert.Contains(
-            "GetSection(\"Features:MyOption\")",
+            "services.AddOptions<global::OptionsDefaultSectionCase.MyOption>().BindConfiguration(\"MyOption\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void OptionConfig_with_incompatible_constructor_does_not_generate_options_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionsInvalidTypeCase;
+            using Microsoft.Extensions.Options;
+
+            [OptionConfig("Features:MyOption")]
+            public sealed class MyOption
+            {
+                public MyOption(string value)
+                {
+                    Value = value;
+                }
+
+                public string Value { get; }
+            }
+
+            [Injectable]
+            public sealed class UsesOptions
+            {
+                [Inject]
+                public required IOptions<MyOption> Options { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.DoesNotContain(
+            "services.AddOptions<global::OptionsInvalidTypeCase.MyOption>().BindConfiguration(\"Features:MyOption\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "ConfigurationBinder.Get<global::OptionsInvalidTypeCase.MyOption>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void OptionConfig_with_whitespace_key_falls_back_to_options_type_name()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionsWhitespaceKeyCase;
+            using Microsoft.Extensions.Options;
+
+            [OptionConfig("   ")]
+            public sealed class MyOption
+            {
+                public string? Value { get; init; }
+            }
+
+            [Injectable]
+            public sealed class UsesOptions
+            {
+                [Inject]
+                public required IOptions<MyOption> Options { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddOptions<global::OptionsWhitespaceKeyCase.MyOption>().BindConfiguration(\"MyOption\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void OptionConfig_with_private_parameterless_constructor_does_not_generate_options_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionsPrivateCtorCase;
+            using Microsoft.Extensions.Options;
+
+            [OptionConfig("Features:MyOption")]
+            public sealed class MyOption
+            {
+                private MyOption() { }
+            }
+
+            [Injectable]
+            public sealed class UsesOptions
+            {
+                [Inject]
+                public required IOptions<MyOption> Options { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.DoesNotContain(
+            "services.AddOptions<global::OptionsPrivateCtorCase.MyOption>().BindConfiguration(\"Features:MyOption\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "ConfigurationBinder.Get<global::OptionsPrivateCtorCase.MyOption>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void OptionConfig_with_internal_parameterless_constructor_does_not_generate_options_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionsInternalCtorCase;
+            using Microsoft.Extensions.Options;
+
+            [OptionConfig("Features:MyOption")]
+            public sealed class MyOption
+            {
+                internal MyOption() { }
+            }
+
+            [Injectable]
+            public sealed class UsesOptions
+            {
+                [Inject]
+                public required IOptions<MyOption> Options { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.DoesNotContain(
+            "services.AddOptions<global::OptionsInternalCtorCase.MyOption>().BindConfiguration(\"Features:MyOption\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "ConfigurationBinder.Get<global::OptionsInternalCtorCase.MyOption>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void OptionConfig_private_nested_type_does_not_generate_options_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionsPrivateTypeCase;
+            using Microsoft.Extensions.Options;
+
+            public static class Container
+            {
+                [OptionConfig("Features:MyOption")]
+                private sealed class MyOption
+                {
+                    public string? Value { get; init; }
+                }
+
+                [Injectable]
+                public sealed class UsesOptions
+                {
+                    [Inject]
+                    public required IOptions<MyOption> Options { get; init; }
+                }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.DoesNotContain(
+            "services.AddOptions<global::OptionsPrivateTypeCase.Container.MyOption>().BindConfiguration(\"Features:MyOption\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "ConfigurationBinder.Get<global::OptionsPrivateTypeCase.Container.MyOption>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void OptionConfig_protected_nested_type_does_not_generate_options_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionsProtectedTypeCase;
+            using Microsoft.Extensions.Options;
+
+            public class Container
+            {
+                [OptionConfig("Features:MyOption")]
+                protected sealed class MyOption
+                {
+                    public MyOption() { }
+                }
+
+                [Injectable]
+                public sealed class UsesOptions
+                {
+                    [Inject]
+                    public required IOptions<MyOption> Options { get; init; }
+                }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.DoesNotContain(
+            "services.AddOptions<global::OptionsProtectedTypeCase.Container.MyOption>().BindConfiguration(\"Features:MyOption\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "ConfigurationBinder.Get<global::OptionsProtectedTypeCase.Container.MyOption>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void OptionConfig_value_type_uses_equivalent_ioptions_binding_path()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionsStructCase;
+            using Microsoft.Extensions.Options;
+
+            [OptionConfig("Features:MyStructOption")]
+            public struct MyStructOption
+            {
+                public string? Value { get; set; }
+            }
+
+            [Injectable]
+            public sealed class UsesOptions
+            {
+                [Inject]
+                public required IOptions<MyStructOption> Options { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.DoesNotContain(
+            "services.AddOptions<global::OptionsStructCase.MyStructOption>().BindConfiguration(\"Features:MyStructOption\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "ConfigurationBinder.Get<global::OptionsStructCase.MyStructOption>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("GetSection(\"Features:MyStructOption\")", generatedSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OptionConfig_with_inject_lifetime_override_uses_equivalent_ioptions_binding_path()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionsOverrideCase;
+            using Microsoft.Extensions.Options;
+
+            [OptionConfig("Features:MyOption")]
+            public sealed class MyOption
+            {
+                public string? Value { get; init; }
+            }
+
+            [Injectable]
+            public sealed class UsesOptions
+            {
+                [Inject(ServiceLifetime.Scoped)]
+                public required IOptions<MyOption> Options { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddScoped<global::Microsoft.Extensions.Options.IOptions<global::OptionsOverrideCase.MyOption>>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "ConfigurationBinder.Get<global::OptionsOverrideCase.MyOption>",
             generatedSource,
             StringComparison.Ordinal
         );
@@ -1845,6 +2175,11 @@ public class SharedGeneratorBehaviorTests
             TestSettings.IncludeGeneratedCodeInCoverageAttribute
         );
 
+        Assert.DoesNotContain(
+            "services.AddOptions<global::OptionsWithoutConfigCase.MyOption>().BindConfiguration(\"MyOption\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
         Assert.DoesNotContain(
             "ConfigurationBinder.Get<global::OptionsWithoutConfigCase.MyOption>",
             generatedSource,
@@ -2036,7 +2371,7 @@ public class SharedGeneratorBehaviorTests
         var registrationLine = "services.AddTransient<global::DuplicateCase.IContract>";
         Assert.Equal(
             1,
-            generatedSource.Split(registrationLine, StringSplitOptions.None).Length - 1
+            generatedSource.Split(registrationLine).Length - 1
         );
     }
 
@@ -2077,8 +2412,7 @@ public class SharedGeneratorBehaviorTests
             1,
             generatedSource
                 .Split(
-                    "services.TryAddTransient<global::ExplicitSingleTryAddCase.IContract>",
-                    StringSplitOptions.None
+                    "services.TryAddTransient<global::ExplicitSingleTryAddCase.IContract>"
                 )
                 .Length - 1
         );
@@ -2281,26 +2615,30 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
-    public void ServiceRegistrationComparer_includes_strategy_and_module_in_equality()
+    public void ServiceRegistrationComparer_includes_strategy_module_and_direct_statement_in_equality()
     {
         var generatorAssembly = typeof(GenDI.SourceGenerator.GenDISourceGenerator).Assembly;
         var registrationType = generatorAssembly.GetType(
-            "GenDI.SourceGenerator.ServiceRegistration",
+            "GenDI.SourceGenerator.Models.ServiceRegistration",
             throwOnError: true
         )!;
         var comparerType = generatorAssembly.GetType(
-            "GenDI.SourceGenerator.ServiceRegistrationComparer",
+            "GenDI.SourceGenerator.Models.ServiceRegistrationComparer",
             throwOnError: true
         )!;
         var registrationConstructor = registrationType.GetConstructors(
             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
         )[0];
 
-        object CreateRegistration(bool allowMultiple, bool useTryAdd, string? moduleName)
+        object CreateRegistration(
+            bool allowMultiple,
+            bool useTryAdd,
+            string? moduleName,
+            string? directRegistrationStatement = null
+        )
         {
             return registrationConstructor.Invoke(
-                new object?[]
-                {
+                [
                     "global::TestNamespace.IService",
                     "global::TestNamespace.Impl",
                     "ServiceLifetime.Transient",
@@ -2313,7 +2651,8 @@ public class SharedGeneratorBehaviorTests
                     null,
                     null,
                     moduleName,
-                }
+                    directRegistrationStatement,
+                ]
             );
         }
 
@@ -2334,6 +2673,12 @@ public class SharedGeneratorBehaviorTests
             useTryAdd: true,
             moduleName: "Orders"
         );
+        var differentDirectStatement = CreateRegistration(
+            allowMultiple: true,
+            useTryAdd: true,
+            moduleName: "Billing",
+            directRegistrationStatement: "services.AddOptions<global::TestNamespace.Impl>().BindConfiguration(\"MySection\")"
+        );
 
         var comparer = comparerType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)!
             .GetValue(null)!;
@@ -2341,24 +2686,25 @@ public class SharedGeneratorBehaviorTests
             "Equals",
             BindingFlags.Public | BindingFlags.Instance,
             binder: null,
-            new[] { registrationType, registrationType },
+            [registrationType, registrationType],
             modifiers: null
         )!;
         var getHashCodeMethod = comparerType.GetMethod(
             "GetHashCode",
             BindingFlags.Public | BindingFlags.Instance,
             binder: null,
-            new[] { registrationType },
+            [registrationType],
             modifiers: null
         )!;
 
-        Assert.True((bool)equalsMethod.Invoke(comparer, new[] { baseline, same })!);
-        Assert.False((bool)equalsMethod.Invoke(comparer, new[] { baseline, differentMultiplicity })!);
-        Assert.False((bool)equalsMethod.Invoke(comparer, new[] { baseline, differentEmission })!);
-        Assert.False((bool)equalsMethod.Invoke(comparer, new[] { baseline, differentModule })!);
+        Assert.True((bool)equalsMethod.Invoke(comparer, [baseline, same])!);
+        Assert.False((bool)equalsMethod.Invoke(comparer, [baseline, differentMultiplicity])!);
+        Assert.False((bool)equalsMethod.Invoke(comparer, [baseline, differentEmission])!);
+        Assert.False((bool)equalsMethod.Invoke(comparer, [baseline, differentModule])!);
+        Assert.False((bool)equalsMethod.Invoke(comparer, [baseline, differentDirectStatement])!);
 
-        var baselineHash = (int)getHashCodeMethod.Invoke(comparer, new[] { baseline })!;
-        var sameHash = (int)getHashCodeMethod.Invoke(comparer, new[] { same })!;
+        var baselineHash = (int)getHashCodeMethod.Invoke(comparer, [baseline])!;
+        var sameHash = (int)getHashCodeMethod.Invoke(comparer, [same])!;
         Assert.Equal(baselineHash, sameHash);
     }
 
@@ -2402,8 +2748,7 @@ public class SharedGeneratorBehaviorTests
         Assert.Contains(
             diagnostics,
             static diagnostic =>
-                diagnostic.Id == "GENDISG001"
-                && diagnostic.Severity == DiagnosticSeverity.Warning
+                diagnostic is { Id: "GENDISG001", Severity: DiagnosticSeverity.Warning }
                 && diagnostic
                     .GetMessage()
                     .Contains("InjectableFactory registration", StringComparison.Ordinal)
@@ -2452,8 +2797,7 @@ public class SharedGeneratorBehaviorTests
         Assert.Contains(
             diagnostics,
             static diagnostic =>
-                diagnostic.Id == "GENDISG001"
-                && diagnostic.Severity == DiagnosticSeverity.Warning
+                diagnostic is { Id: "GENDISG001", Severity: DiagnosticSeverity.Warning }
                 && diagnostic
                     .GetMessage()
                     .Contains("Injectable class registration", StringComparison.Ordinal)
@@ -2500,8 +2844,7 @@ public class SharedGeneratorBehaviorTests
         Assert.Contains(
             diagnostics,
             static diagnostic =>
-                diagnostic.Id == "GENDISG001"
-                && diagnostic.Severity == DiagnosticSeverity.Warning
+                diagnostic is { Id: "GENDISG001", Severity: DiagnosticSeverity.Warning }
                 && diagnostic
                     .GetMessage()
                     .Contains(DecoratorTargetDiscoveryWarning, StringComparison.Ordinal)
@@ -2538,8 +2881,7 @@ public class SharedGeneratorBehaviorTests
         Assert.Contains(
             diagnostics,
             static diagnostic =>
-                diagnostic.Id == "GENDISG001"
-                && diagnostic.Severity == DiagnosticSeverity.Warning
+                diagnostic is { Id: "GENDISG001", Severity: DiagnosticSeverity.Warning }
                 && diagnostic
                     .GetMessage()
                     .Contains(DecoratorTargetDiscoveryWarning, StringComparison.Ordinal)
@@ -2575,6 +2917,562 @@ public class SharedGeneratorBehaviorTests
             "new global::BaseDecoratorContractCase.LoggingDecorator((new global::BaseDecoratorContractCase.ConcreteContract()))",
             generatedSource,
             StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Options_registration_deduplicates_same_ioptions_contract()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionsDuplicateCase;
+            using Microsoft.Extensions.Options;
+
+            [OptionConfig("MySettingsSection")]
+            public sealed class MySettings
+            {
+                public string? Value { get; init; }
+            }
+
+            [Injectable]
+            public sealed class UsesOptionsA
+            {
+                [Inject]
+                public required IOptions<MySettings> Settings { get; init; }
+            }
+
+            [Injectable]
+            public sealed class UsesOptionsB
+            {
+                [Inject]
+                public required IOptions<MySettings> Settings { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        var expectedRegistration =
+            "services.AddOptions<global::OptionsDuplicateCase.MySettings>().BindConfiguration(\"MySettingsSection\")";
+        Assert.Equal(
+            1,
+            generatedSource.Split(expectedRegistration).Length - 1
+        );
+    }
+
+    [Fact]
+    public void Open_generic_explicit_service_contract_is_bypassed_with_warning()
+    {
+        const string source = """
+            namespace OpenExplicitServiceContractCase;
+
+            public interface IContract<T>
+            {
+            }
+
+            public static class Wrapper<T>
+            {
+                [Injectable<IContract<T>>]
+                public sealed class OpenExplicitService : IContract<T>
+                {
+                }
+            }
+            """;
+
+        GeneratorTestHelper.AssertNoSourceGenerated(
+            source,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        var diagnostics = GeneratorTestHelper.GetGeneratorDiagnostics(
+            source,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            diagnostics,
+            static diagnostic =>
+                diagnostic is { Id: "GENDISG001", Severity: DiagnosticSeverity.Warning }
+                && diagnostic
+                    .GetMessage()
+                    .Contains("Injectable explicit service contract", StringComparison.Ordinal)
+        );
+    }
+
+    [Fact]
+    public void Analysis_private_branches_are_covered_via_reflection()
+    {
+        const string source = """
+            using GenDI;
+            using Microsoft.Extensions.Options;
+
+            [assembly: GenDICoveration]
+
+            namespace AnalysisCoverageCase;
+
+            [OptionConfig]
+            public interface IInvalidOptions
+            {
+            }
+
+            [ServiceInjection]
+            public interface IOpen<T>
+            {
+            }
+
+            [ServiceInjection()]
+            public interface IContract
+            {
+            }
+
+            [ServiceInjection(ThreadIsolation = (ThreadIsolationPolicy)0)]
+            public interface IThreadContract
+            {
+            }
+
+            [ServiceInjection]
+            public abstract class OpenBase<T>
+            {
+            }
+
+            [Injectable]
+            public sealed class ClosedImpl : IContract
+            {
+                [Inject(Key = typeof(string))]
+                public required IContract Contract { get; init; }
+            }
+
+            [Injectable]
+            public sealed class GenericImpl<T> : IOpen<T>
+            {
+            }
+
+            public sealed class ConcreteFromOpenBase<T> : OpenBase<T>
+            {
+            }
+
+            public abstract class BaseContract
+            {
+            }
+
+            public sealed class DerivedContract : BaseContract
+            {
+            }
+
+            public class GenericType<T>
+            {
+            }
+
+            public unsafe class PointerHolder
+            {
+                public int* Value;
+            }
+
+            public sealed class ArrayHolder
+            {
+                public int[] Values { get; set; } = [];
+            }
+
+            public static class NoFactoryAttributeModule
+            {
+                public static object Create() => new object();
+            }
+
+            public class NestingConsumer
+            {
+                private class Container
+                {
+                    public class Middle
+                    {
+                        [OptionConfig]
+                        public sealed class PublicNestedOption
+                        {
+                            public PublicNestedOption()
+                            {
+                            }
+                        }
+                    }
+                }
+            }
+
+            public class AccessibilityConsumer
+            {
+                private class Hidden
+                {
+                    public class Visible
+                    {
+                    }
+                }
+            }
+            """;
+
+        var compilation = CreateCompilationForGeneratorCoverage(source);
+        var generatorType = typeof(GenDI.SourceGenerator.GenDISourceGenerator);
+
+        var invalidOptionType = compilation.GetTypeByMetadataName("AnalysisCoverageCase.IInvalidOptions");
+        Assert.NotNull(invalidOptionType);
+        var isEligibleOptionConfigType = generatorType.GetMethod(
+            "IsEligibleOptionConfigType",
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
+        Assert.NotNull(isEligibleOptionConfigType);
+        Assert.False((bool)isEligibleOptionConfigType.Invoke(null, [invalidOptionType])!);
+
+        var nestingConsumer = compilation.GetTypeByMetadataName("AnalysisCoverageCase.NestingConsumer");
+        Assert.NotNull(nestingConsumer);
+        var nestedOptionType = nestingConsumer
+            .GetTypeMembers("Container")
+            .Single()
+            .GetTypeMembers("Middle")
+            .Single()
+            .GetTypeMembers("PublicNestedOption")
+            .Single();
+        Assert.NotNull(nestedOptionType);
+        Assert.False((bool)isEligibleOptionConfigType.Invoke(null, [nestedOptionType])!);
+
+        var isGeneratedCoverageEnabled = generatorType.GetMethod(
+            "IsGeneratedCodeCoverageEnabled",
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
+        Assert.NotNull(isGeneratedCoverageEnabled);
+        Assert.True((bool)isGeneratedCoverageEnabled.Invoke(null, [compilation])!);
+
+        var escapeStringLiteral = generatorType.GetMethod(
+            "EscapeStringLiteral",
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
+        Assert.NotNull(escapeStringLiteral);
+        var escaped = (string)escapeStringLiteral.Invoke(null, ["A\0B"])!;
+        Assert.Equal("A\\0B", escaped);
+
+        var buildTypedConstantExpression = generatorType.GetMethod(
+            "BuildTypedConstantExpression",
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
+        Assert.NotNull(buildTypedConstantExpression);
+        Assert.Equal(
+            "null",
+            (string?)buildTypedConstantExpression.Invoke(null, [default(TypedConstant)])
+        );
+
+        var closedImplType = compilation.GetTypeByMetadataName("AnalysisCoverageCase.ClosedImpl");
+        Assert.NotNull(closedImplType);
+        var injectAttribute = closedImplType
+            .GetMembers("Contract")
+            .OfType<IPropertySymbol>()
+            .Single()
+            .GetAttributes()
+            .Single();
+        var typeKeyArgument = injectAttribute.NamedArguments.Single(argument => argument.Key == "Key").Value;
+        Assert.Null(
+            (string?)buildTypedConstantExpression.Invoke(null, [typeKeyArgument])
+        );
+
+        var convertThreadIsolation = generatorType.GetMethod(
+            "ConvertThreadIsolationPolicyToLifetimeExpression",
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
+        Assert.NotNull(convertThreadIsolation);
+        var threadContractType = compilation.GetTypeByMetadataName("AnalysisCoverageCase.IThreadContract");
+        Assert.NotNull(threadContractType);
+        var threadIsolationArgument = threadContractType
+            .GetAttributes()
+            .Single()
+            .NamedArguments.Single(argument => argument.Key == "ThreadIsolation")
+            .Value;
+        Assert.Equal(
+            "ServiceLifetime.Singleton",
+            (string?)convertThreadIsolation.Invoke(null, [threadIsolationArgument])
+        );
+
+        var tryGetServiceInjectionLifetime = generatorType.GetMethod(
+            "TryGetServiceInjectionLifetime",
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
+        Assert.NotNull(tryGetServiceInjectionLifetime);
+        var contractType = compilation.GetTypeByMetadataName("AnalysisCoverageCase.IContract");
+        Assert.NotNull(contractType);
+        Assert.Equal(
+            "ServiceLifetime.Transient",
+            (string?)tryGetServiceInjectionLifetime.Invoke(null, [contractType])
+        );
+
+        var tryGetServiceInjectionThreadIsolation = generatorType.GetMethod(
+            "TryGetServiceInjectionThreadIsolationLifetime",
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
+        Assert.NotNull(tryGetServiceInjectionThreadIsolation);
+        Assert.Equal(
+            "ServiceLifetime.Singleton",
+            (string?)tryGetServiceInjectionThreadIsolation.Invoke(
+                null,
+                [threadContractType]
+            )
+        );
+
+        var tryBuildDecoratorResolution = generatorType.GetMethod(
+            "TryBuildDecoratorResolution",
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
+        Assert.NotNull(tryBuildDecoratorResolution);
+        Assert.Null(
+            (string?)tryBuildDecoratorResolution.Invoke(
+                null,
+                [closedImplType, "global::Different.Type", "new object()"]
+            )
+        );
+
+        var noFactoryAttributeModule = compilation.GetTypeByMetadataName(
+            "AnalysisCoverageCase.NoFactoryAttributeModule"
+        );
+        Assert.NotNull(noFactoryAttributeModule);
+        var methodWithoutFactoryAttribute = noFactoryAttributeModule
+            .GetMembers("Create")
+            .OfType<IMethodSymbol>()
+            .Single();
+        var tryGetInjectableFactory = generatorType.GetMethod(
+            "TryGetInjectableFactoryAttribute",
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
+        Assert.NotNull(tryGetInjectableFactory);
+        var metadataArguments = new object?[]
+        {
+            methodWithoutFactoryAttribute,
+            null,
+        };
+        Assert.False((bool)tryGetInjectableFactory.Invoke(null, metadataArguments)!);
+
+        var getServiceTypes = generatorType.GetMethod(
+            "GetServiceTypes",
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
+        Assert.NotNull(getServiceTypes);
+        var openGenericImpl = compilation.GetTypeByMetadataName("AnalysisCoverageCase.GenericImpl`1");
+        var openBaseImpl = compilation.GetTypeByMetadataName("AnalysisCoverageCase.ConcreteFromOpenBase`1");
+        Assert.NotNull(openGenericImpl);
+        Assert.NotNull(openBaseImpl);
+        var warningType = generatorType.Assembly.GetType(
+            "GenDI.SourceGenerator.Models.OpenGenericBypassWarning",
+            throwOnError: true
+        )!;
+        var warningListType = typeof(List<>).MakeGenericType(warningType);
+        var warnings = Activator.CreateInstance(warningListType)!;
+        _ = getServiceTypes.Invoke(
+            null,
+            [compilation, openGenericImpl, "global::AnalysisCoverageCase.GenericImpl`1", null, null, warnings]
+        );
+        _ = getServiceTypes.Invoke(
+            null,
+            [compilation, openBaseImpl, "global::AnalysisCoverageCase.ConcreteFromOpenBase`1", null, null, warnings]
+        );
+        var warningsCount = (int)warningListType.GetProperty("Count")!.GetValue(warnings)!;
+        Assert.True(warningsCount >= 1);
+
+        var findIndirectImplementationCandidates = generatorType.GetMethod(
+            "FindIndirectImplementationCandidates",
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
+        Assert.NotNull(findIndirectImplementationCandidates);
+        var injectableMetadataType = generatorType.Assembly.GetType(
+            "GenDI.SourceGenerator.Models.InjectableMetadata",
+            throwOnError: true
+        )!;
+        var injectableMapType = typeof(Dictionary<,>).MakeGenericType(
+            typeof(INamedTypeSymbol),
+            injectableMetadataType
+        );
+        var injectableMap = Activator.CreateInstance(injectableMapType)!;
+        var indirectResult = findIndirectImplementationCandidates.Invoke(
+            null,
+            [
+                compilation,
+                contractType,
+                "global::AnalysisCoverageCase.IContract",
+                System.Collections.Immutable.ImmutableArray.Create(closedImplType),
+                injectableMap,
+                null,
+                null,
+            ]
+        );
+        Assert.NotNull(indirectResult);
+        var indirectLength = (int)indirectResult
+            .GetType()
+            .GetProperty("Length", BindingFlags.Instance | BindingFlags.Public)!
+            .GetValue(indirectResult)!;
+        Assert.True(indirectLength >= 1);
+
+        var implementsOrInherits = generatorType.GetMethod(
+            "ImplementsOrInherits",
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
+        Assert.NotNull(implementsOrInherits);
+        var derivedContract = compilation.GetTypeByMetadataName("AnalysisCoverageCase.DerivedContract");
+        var baseContract = compilation.GetTypeByMetadataName("AnalysisCoverageCase.BaseContract");
+        Assert.NotNull(derivedContract);
+        Assert.NotNull(baseContract);
+        Assert.True(
+            (bool)implementsOrInherits.Invoke(null, [derivedContract, baseContract])!
+        );
+
+        var isTypeAccessibleFromGeneratedCode = generatorType.GetMethod(
+            "IsTypeAccessibleFromGeneratedCode",
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
+        Assert.NotNull(isTypeAccessibleFromGeneratedCode);
+        var genericType = compilation.GetTypeByMetadataName("AnalysisCoverageCase.GenericType`1");
+        Assert.NotNull(genericType);
+        var typeParameter = genericType.TypeParameters[0];
+        Assert.False(
+            (bool)isTypeAccessibleFromGeneratedCode.Invoke(null, [typeParameter, compilation])!
+        );
+        var arrayType = compilation.GetTypeByMetadataName("AnalysisCoverageCase.ArrayHolder")!
+            .GetMembers("Values")
+            .OfType<IPropertySymbol>()
+            .Single()
+            .Type;
+        Assert.True(
+            (bool)isTypeAccessibleFromGeneratedCode.Invoke(null, [arrayType, compilation])!
+        );
+        var pointerType = compilation.GetTypeByMetadataName("AnalysisCoverageCase.PointerHolder")!
+            .GetMembers("Value")
+            .OfType<IFieldSymbol>()
+            .Single()
+            .Type;
+        Assert.True(
+            (bool)isTypeAccessibleFromGeneratedCode.Invoke(
+                null,
+                [pointerType, compilation]
+            )!
+        );
+        var accessibilityConsumerType = compilation.GetTypeByMetadataName(
+            "AnalysisCoverageCase.AccessibilityConsumer"
+        );
+        Assert.NotNull(accessibilityConsumerType);
+        var hiddenVisibleType = accessibilityConsumerType
+            .GetTypeMembers("Hidden")
+            .Single()
+            .GetTypeMembers("Visible")
+            .Single();
+        Assert.NotNull(hiddenVisibleType);
+        Assert.False(
+            (bool)isTypeAccessibleFromGeneratedCode.Invoke(
+                null,
+                [hiddenVisibleType, compilation]
+            )!
+        );
+
+        var isDeclaredSymbolAccessibleFromGeneratedCode = generatorType.GetMethod(
+            "IsDeclaredSymbolAccessibleFromGeneratedCode",
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
+        Assert.NotNull(isDeclaredSymbolAccessibleFromGeneratedCode);
+        var internalSourceCompilation = CreateCompilationForGeneratorCoverage(
+            """
+            namespace InternalAccessibilityCase;
+            internal class InternalContract
+            {
+            }
+            """
+        );
+        var internalContract = internalSourceCompilation.GetTypeByMetadataName(
+            "InternalAccessibilityCase.InternalContract"
+        );
+        Assert.NotNull(internalContract);
+        Assert.True(
+            (bool)isDeclaredSymbolAccessibleFromGeneratedCode.Invoke(
+                null,
+                [internalContract, internalSourceCompilation]
+            )!
+        );
+
+        var isClosedTypeArgument = generatorType.GetMethod(
+            "IsClosedTypeArgument",
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
+        Assert.NotNull(isClosedTypeArgument);
+        Assert.False((bool)isClosedTypeArgument.Invoke(null, [typeParameter])!);
+        var openGenericType = compilation.GetTypeByMetadataName("AnalysisCoverageCase.GenericType`1");
+        Assert.NotNull(openGenericType);
+        var unboundGenericType = openGenericType.ConstructUnboundGenericType();
+        Assert.False((bool)isClosedTypeArgument.Invoke(null, [unboundGenericType])!);
+        Assert.True(
+            (bool)isClosedTypeArgument.Invoke(null, [compilation.GetSpecialType(SpecialType.System_Int32)])!
+        );
+
+        var isCandidateClassDeclaration = generatorType.GetMethod(
+            "IsCandidateClassDeclaration",
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
+        Assert.NotNull(isCandidateClassDeclaration);
+        var hasCandidateAttributeName = generatorType.GetMethod(
+            "HasCandidateAttributeName",
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
+        Assert.NotNull(hasCandidateAttributeName);
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var candidateSyntaxTree = CSharpSyntaxTree.ParseText(
+            """
+            using GenDI;
+            public sealed class CandidateFromProperty
+            {
+                [Inject]
+                public object? Property { get; init; }
+            }
+            [Obsolete]
+            public sealed class NonCandidateByAttribute
+            {
+            }
+            """,
+            cancellationToken: cancellationToken
+        );
+        var candidateRoot = candidateSyntaxTree.GetRoot(cancellationToken);
+        var candidateClass = candidateRoot
+            .DescendantNodes()
+            .OfType<ClassDeclarationSyntax>()
+            .Single(classDeclaration => classDeclaration.Identifier.ValueText == "CandidateFromProperty");
+        var nonCandidateClass = candidateRoot
+            .DescendantNodes()
+            .OfType<ClassDeclarationSyntax>()
+            .Single(classDeclaration =>
+                classDeclaration.Identifier.ValueText == "NonCandidateByAttribute"
+            );
+        Assert.True(
+            (bool)isCandidateClassDeclaration.Invoke(null, [candidateClass])!
+        );
+        Assert.False(
+            (bool)hasCandidateAttributeName.Invoke(
+                null,
+                [nonCandidateClass.AttributeLists]
+            )!
+        );
+    }
+
+    private static CSharpCompilation CreateCompilationForGeneratorCoverage(string userSource)
+    {
+        var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
+        var syntaxTree = CSharpSyntaxTree.ParseText(userSource, parseOptions);
+        var tpa = AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string ?? string.Empty;
+        var references = tpa
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Select(static path => MetadataReference.CreateFromFile(path))
+            .ToList();
+        references.Add(MetadataReference.CreateFromFile(typeof(InjectableAttribute).Assembly.Location));
+        references.Add(
+            MetadataReference.CreateFromFile(typeof(Microsoft.Extensions.Options.IOptions<>).Assembly.Location)
+        );
+        references.Add(
+            MetadataReference.CreateFromFile(
+                typeof(Microsoft.Extensions.DependencyInjection.ServiceLifetime).Assembly.Location
+            )
+        );
+
+        return CSharpCompilation.Create(
+            assemblyName: "GeneratorCoverageReflection.Tests",
+            syntaxTrees: [syntaxTree],
+            references: references,
+            options: new CSharpCompilationOptions(
+                OutputKind.DynamicallyLinkedLibrary,
+                allowUnsafe: true
+            )
         );
     }
 }

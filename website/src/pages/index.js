@@ -44,14 +44,29 @@ const BadgeGroups = [
     },
     {
       alt: 'NuGet GenDI',
-      img: 'https://img.shields.io/nuget/v/GenDI.svg',
+      img: 'https://img.shields.io/nuget/v/GenDI.svg?style=flat&label=GenDI&logo=nuget',
       href: 'https://www.nuget.org/packages/GenDI',
     },
     {
       alt: 'NuGet GenDI.SourceGenerator',
-      img: 'https://img.shields.io/nuget/v/GenDI.SourceGenerator.svg',
+      img: 'https://img.shields.io/nuget/v/GenDI.SourceGenerator.svg?style=flat&label=GenDI.SourceGenerator&logo=nuget',
       href: 'https://www.nuget.org/packages/GenDI.SourceGenerator',
     },
+    {
+      alt: 'NuGet GenDI.Testing',
+      img: 'https://img.shields.io/nuget/v/GenDI.Testing.svg?style=flat&label=GenDI.Testing&logo=nuget',
+      href: 'https://www.nuget.org/packages/GenDI.Testing',
+    },
+    {
+      alt: 'NuGet GenDI.Analyzers',
+      img: 'https://img.shields.io/nuget/v/GenDI.Analyzers.svg?style=flat&label=GenDI.Analyzers&logo=nuget',
+      href: 'https://www.nuget.org/packages/GenDI.Analyzers',
+    },
+    {
+      alt: 'NuGet GenDI.Testing',
+      img: 'https://img.shields.io/nuget/vpre/GenDI.Testing.svg?style=flat&label=GenDI.Testing%20Pre&logo=nuget',
+      href: 'https://www.nuget.org/packages/GenDI.Testing',
+    }
   ],
   [
     {

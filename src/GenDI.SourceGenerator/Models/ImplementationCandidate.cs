@@ -1,49 +1,36 @@
 using Microsoft.CodeAnalysis;
 
-namespace GenDI.SourceGenerator;
+namespace GenDI.SourceGenerator.Models;
 
 #pragma warning disable S107 // model constructors intentionally capture all immutable registration data
-internal sealed class ImplementationCandidate
+internal sealed class ImplementationCandidate(
+    INamedTypeSymbol symbol,
+    string implementationType,
+    string lifetime,
+    bool? allowMultiple,
+    bool? useTryAdd,
+    string? threadIsolationLifetime,
+    int order,
+    int group,
+    string? moduleName
+)
 {
-    public ImplementationCandidate(
-        INamedTypeSymbol symbol,
-        string implementationType,
-        string lifetime,
-        bool? allowMultiple,
-        bool? useTryAdd,
-        string? threadIsolationLifetime,
-        int order,
-        int group,
-        string? moduleName
-    )
-    {
-        Symbol = symbol;
-        ImplementationType = implementationType;
-        Lifetime = lifetime;
-        AllowMultiple = allowMultiple;
-        UseTryAdd = useTryAdd;
-        ThreadIsolationLifetime = threadIsolationLifetime;
-        Order = order;
-        Group = group;
-        ModuleName = moduleName;
-    }
+    public INamedTypeSymbol Symbol { get; } = symbol;
 
-    public INamedTypeSymbol Symbol { get; }
+    public string ImplementationType { get; } = implementationType;
 
-    public string ImplementationType { get; }
+    public string Lifetime { get; } = lifetime;
 
-    public string Lifetime { get; }
+    public bool? AllowMultiple { get; } = allowMultiple;
 
-    public bool? AllowMultiple { get; }
+    public bool? UseTryAdd { get; } = useTryAdd;
 
-    public bool? UseTryAdd { get; }
+    public string? ThreadIsolationLifetime { get; } = threadIsolationLifetime;
 
-    public string? ThreadIsolationLifetime { get; }
+    public int Order { get; } = order;
 
-    public int Order { get; }
+    public int Group { get; } = group;
 
-    public int Group { get; }
-
-    public string? ModuleName { get; }
+    public string? ModuleName { get; } = moduleName;
 }
 #pragma warning restore S107

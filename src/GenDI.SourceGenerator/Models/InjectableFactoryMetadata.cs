@@ -1,49 +1,36 @@
 using Microsoft.CodeAnalysis;
 
-namespace GenDI.SourceGenerator;
+namespace GenDI.SourceGenerator.Models;
 
 #pragma warning disable S107 // model constructors intentionally capture all immutable registration data
-internal sealed class InjectableFactoryMetadata
+internal sealed class InjectableFactoryMetadata(
+    string lifetime,
+    string? serviceType,
+    ITypeSymbol? serviceTypeSymbol,
+    bool hasOpenGenericServiceType,
+    int order,
+    int group,
+    string? keyExpression,
+    string? threadIsolationLifetime,
+    string? moduleName
+)
 {
-    public InjectableFactoryMetadata(
-        string lifetime,
-        string? serviceType,
-        ITypeSymbol? serviceTypeSymbol,
-        bool hasOpenGenericServiceType,
-        int order,
-        int group,
-        string? keyExpression,
-        string? threadIsolationLifetime,
-        string? moduleName
-    )
-    {
-        Lifetime = lifetime;
-        ServiceType = serviceType;
-        ServiceTypeSymbol = serviceTypeSymbol;
-        HasOpenGenericServiceType = hasOpenGenericServiceType;
-        Order = order;
-        Group = group;
-        KeyExpression = keyExpression;
-        ThreadIsolationLifetime = threadIsolationLifetime;
-        ModuleName = moduleName;
-    }
+    public string Lifetime { get; } = lifetime;
 
-    public string Lifetime { get; }
+    public string? ServiceType { get; } = serviceType;
 
-    public string? ServiceType { get; }
+    public ITypeSymbol? ServiceTypeSymbol { get; } = serviceTypeSymbol;
 
-    public ITypeSymbol? ServiceTypeSymbol { get; }
+    public bool HasOpenGenericServiceType { get; } = hasOpenGenericServiceType;
 
-    public bool HasOpenGenericServiceType { get; }
+    public int Order { get; } = order;
 
-    public int Order { get; }
+    public int Group { get; } = group;
 
-    public int Group { get; }
+    public string? KeyExpression { get; } = keyExpression;
 
-    public string? KeyExpression { get; }
+    public string? ThreadIsolationLifetime { get; } = threadIsolationLifetime;
 
-    public string? ThreadIsolationLifetime { get; }
-
-    public string? ModuleName { get; }
+    public string? ModuleName { get; } = moduleName;
 }
 #pragma warning restore S107

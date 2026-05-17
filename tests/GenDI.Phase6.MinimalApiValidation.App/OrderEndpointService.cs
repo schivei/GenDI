@@ -1,3 +1,4 @@
+// ReSharper disable NotAccessedPositionalProperty.Global
 namespace GenDI.Phase6.MinimalApiValidation.App;
 
 [ServiceInjection]

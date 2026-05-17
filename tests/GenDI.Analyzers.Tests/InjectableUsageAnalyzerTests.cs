@@ -1,7 +1,6 @@
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using GenDI.Analyzers;
 using Xunit;
 
 namespace GenDI.Analyzers.Tests;
@@ -619,6 +618,13 @@ public class InjectableUsageAnalyzerTests
         );
 
         Assert.Contains("[global::GenDI.Inject(Key = \"my-key\")]", fixedSource);
+    }
+
+    [Fact]
+    public void Constructor_injection_code_fix_provider_exposes_supported_diagnostic_id()
+    {
+        var provider = new ConstructorInjectionCodeFixProvider();
+        Assert.Contains("GENDI003", provider.FixableDiagnosticIds);
     }
 
     [Fact]
