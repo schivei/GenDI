@@ -77,7 +77,7 @@ jobs:
       COVERAGE_THRESHOLD: "95.0"
       VERSION: ${{ needs.version-calculation.outputs.version }}
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
       issues: write
 
@@ -286,12 +286,31 @@ jobs:
       - name: Run startup benchmark snapshot
         run: dotnet run -c Release --project tests/GenDI.Benchmarks/GenDI.Benchmarks.csproj -- --job Short --filter "*"
 
-      - name: Upload benchmark report artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: benchmark-report
-          path: BenchmarkDotNet.Artifacts/results/*
-          retention-days: 14
+      - name: Update benchmark documentation snapshot
+        env:
+          BENCHMARK_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python3 .github/scripts/update_benchmark_docs.py
+
+      - name: Publish benchmark summary
+        run: |
+          echo "## Startup benchmark snapshot" >> "$GITHUB_STEP_SUMMARY"
+          awk '/<!-- benchmark-ci:start -->/{flag=1;next}/<!-- benchmark-ci:end -->/{flag=0}flag' docs/BENCHMARKS.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit benchmark documentation updates
+        if: >-
+          github.event_name == 'pull_request' &&
+          !github.event.pull_request.head.repo.fork &&
+          github.actor != 'github-actions[bot]'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/BENCHMARKS.md website/docs/advanced/benchmarks.md
+          if git diff --cached --quiet; then
+            echo "No benchmark documentation updates to commit."
+            exit 0
+          fi
+          git commit -m "docs: update benchmark snapshot from CI run #${{ github.run_number }}"
+          git push
 
       - name: SonarQube end analysis (.NET scanner)
         if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork) && env.SONAR_TOKEN != '' }}
