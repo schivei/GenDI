@@ -1707,12 +1707,11 @@ public sealed partial class GenDISourceGenerator
                 continue;
             }
 
-            if (attributeData.ConstructorArguments.Length > 0)
-            {
-                return ConvertLifetimeEnumToExpression(attributeData.ConstructorArguments[0]);
-            }
-
-            return TransientLifetimeExpression;
+            return ConvertLifetimeEnumToExpression(
+                attributeData.ConstructorArguments.Length > 0
+                    ? attributeData.ConstructorArguments[0]
+                    : default
+            );
         }
 
         return null;
@@ -2379,16 +2378,7 @@ public sealed partial class GenDISourceGenerator
                 continue;
             }
 
-            if (
-                attributeData.ConstructorArguments.Length > 0
-                && attributeData.ConstructorArguments[0].Value
-                    is bool includeGeneratedCodeInCoverage
-            )
-            {
-                return includeGeneratedCodeInCoverage;
-            }
-
-            return true;
+            return attributeData.ConstructorArguments.FirstOrDefault().Value is not bool value || value;
         }
 
         return true;
@@ -2402,11 +2392,6 @@ public sealed partial class GenDISourceGenerator
         }
 
         var value = typedConstant.Value;
-        if (value is null)
-        {
-            return null;
-        }
-
         return value switch
         {
             string s => $"\"{EscapeStringLiteral(s)}\"",
