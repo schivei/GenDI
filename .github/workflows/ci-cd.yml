@@ -310,7 +310,7 @@ jobs:
             exit 0
           fi
           git commit -m "docs: update benchmark snapshot from CI run #${{ github.run_number }}"
-          git push
+          git push origin "HEAD:${{ github.head_ref }}"
 
       - name: SonarQube end analysis (.NET scanner)
         if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork) && env.SONAR_TOKEN != '' }}
