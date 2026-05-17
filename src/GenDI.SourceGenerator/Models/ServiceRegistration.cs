@@ -15,7 +15,8 @@ internal sealed class ServiceRegistration
         int group,
         string? keyExpression,
         string? environmentName,
-        string? moduleName
+        string? moduleName,
+        string? directRegistrationStatement = null
     )
     {
         ServiceType = serviceType;
@@ -30,6 +31,7 @@ internal sealed class ServiceRegistration
         KeyExpression = keyExpression;
         EnvironmentName = environmentName;
         ModuleName = moduleName;
+        DirectRegistrationStatement = directRegistrationStatement;
     }
 
     public string ServiceType { get; }
@@ -55,5 +57,7 @@ internal sealed class ServiceRegistration
     public string? EnvironmentName { get; }
 
     public string? ModuleName { get; }
+
+    public string? DirectRegistrationStatement { get; }
 }
 #pragma warning restore S107

@@ -1787,7 +1787,7 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
-    public void OptionConfig_generates_IOptions_registration_from_required_path()
+    public void OptionConfig_generates_IOptions_registration_using_explicit_section_key()
     {
         var generatedSource = GeneratorTestHelper.GenerateSource(
             """
@@ -1811,12 +1811,94 @@ public class SharedGeneratorBehaviorTests
         );
 
         Assert.Contains(
-            "ConfigurationBinder.Get<global::OptionsCase.MyOption>",
+            "services.Configure<global::OptionsCase.MyOption>",
             generatedSource,
             StringComparison.Ordinal
         );
         Assert.Contains(
             "GetSection(\"Features:MyOption\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "ConfigurationBinder.Get<global::OptionsCase.MyOption>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void OptionConfig_without_explicit_key_uses_options_type_name_as_section_key()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionsDefaultSectionCase;
+            using Microsoft.Extensions.Options;
+
+            [OptionConfig]
+            public sealed class MyOption
+            {
+                public string? Value { get; init; }
+            }
+
+            [Injectable]
+            public sealed class UsesOptions
+            {
+                [Inject]
+                public required IOptions<MyOption> Options { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.Configure<global::OptionsDefaultSectionCase.MyOption>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "GetSection(\"MyOption\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void OptionConfig_with_incompatible_constructor_does_not_generate_options_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionsInvalidTypeCase;
+            using Microsoft.Extensions.Options;
+
+            [OptionConfig("Features:MyOption")]
+            public sealed class MyOption
+            {
+                public MyOption(string value)
+                {
+                    Value = value;
+                }
+
+                public string Value { get; }
+            }
+
+            [Injectable]
+            public sealed class UsesOptions
+            {
+                [Inject]
+                public required IOptions<MyOption> Options { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.DoesNotContain(
+            "services.Configure<global::OptionsInvalidTypeCase.MyOption>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "ConfigurationBinder.Get<global::OptionsInvalidTypeCase.MyOption>",
             generatedSource,
             StringComparison.Ordinal
         );
@@ -1845,6 +1927,11 @@ public class SharedGeneratorBehaviorTests
             TestSettings.IncludeGeneratedCodeInCoverageAttribute
         );
 
+        Assert.DoesNotContain(
+            "services.Configure<global::OptionsWithoutConfigCase.MyOption>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
         Assert.DoesNotContain(
             "ConfigurationBinder.Get<global::OptionsWithoutConfigCase.MyOption>",
             generatedSource,

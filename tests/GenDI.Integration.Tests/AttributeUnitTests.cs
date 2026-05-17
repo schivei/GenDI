@@ -240,11 +240,21 @@ public class AttributeUnitTests
     }
 
     [Fact]
-    public void OptionConfigAttribute_ctor_stores_path()
+    public void OptionConfigAttribute_ctor_stores_explicit_key_and_path_alias()
     {
         var attr = new OptionConfigAttribute("App:Feature");
 
+        Assert.Equal("App:Feature", attr.Key);
         Assert.Equal("App:Feature", attr.Path);
+    }
+
+    [Fact]
+    public void OptionConfigAttribute_without_key_defaults_to_null_key_and_path()
+    {
+        var attr = new OptionConfigAttribute();
+
+        Assert.Null(attr.Key);
+        Assert.Null(attr.Path);
     }
 
     [Fact]

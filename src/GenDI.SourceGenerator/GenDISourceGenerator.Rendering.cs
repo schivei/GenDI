@@ -38,9 +38,12 @@ public sealed partial class GenDISourceGenerator
 
     private static string BuildRegistrationLine(ServiceRegistration registration)
     {
-        var registrationMethod = GetRegistrationMethod(registration.Lifetime);
-
-        var registrationStatement = BuildRegistrationStatement(registration, registrationMethod);
+        var registrationStatement = registration.DirectRegistrationStatement;
+        if (string.IsNullOrWhiteSpace(registrationStatement))
+        {
+            var registrationMethod = GetRegistrationMethod(registration.Lifetime);
+            registrationStatement = BuildRegistrationStatement(registration, registrationMethod);
+        }
         registrationStatement = WrapEnvironmentRegistration(registration, registrationStatement);
 
         return WrapModuleRegistration(registration, registrationStatement);

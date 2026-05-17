@@ -1119,7 +1119,8 @@ public sealed partial class GenDISourceGenerator
         registration = default!;
         if (
             !IsIOptionsContract(injectRequest.ContractSymbol, out var optionsType)
-            || !TryGetOptionConfigPath(optionsType, out var configPath)
+            || !TryGetOptionConfigSection(optionsType, out var configPath)
+            || !IsEligibleOptionConfigType(optionsType)
         )
         {
             return false;
@@ -1143,6 +1144,35 @@ public sealed partial class GenDISourceGenerator
             SymbolDisplayFormat.FullyQualifiedFormat
         );
         var escapedPath = EscapeStringLiteral(configPath);
+        var canUseConfigurePath =
+            string.IsNullOrWhiteSpace(injectRequest.KeyExpression)
+            && injectRequest.LifetimeOverride is null
+            && injectRequest.AllowMultipleOverride is null
+            && injectRequest.UseTryAddOverride is null;
+
+        if (canUseConfigurePath)
+        {
+            var directRegistrationStatement =
+                $"        services.Configure<{optionsTypeDisplay}>(serviceProvider.GetRequiredService<global::Microsoft.Extensions.Configuration.IConfiguration>().GetSection(\"{escapedPath}\"));";
+
+            registration = new ServiceRegistration(
+                optionsContractType,
+                optionsTypeDisplay,
+                SingletonLifetimeExpression,
+                allowMultiple: false,
+                useTryAdd: false,
+                threadIsolationLifetime: null,
+                factoryBody: string.Empty,
+                order: DefaultOrderingValue,
+                group: DefaultOrderingValue,
+                keyExpression: injectRequest.KeyExpression,
+                environmentName: null,
+                moduleName: injectRequest.ModuleName,
+                directRegistrationStatement
+            );
+            return true;
+        }
+
         var escapedTypeName = EscapeStringLiteral(optionsTypeDisplay);
         var factoryBody =
             $"global::Microsoft.Extensions.Options.Options.Create(global::Microsoft.Extensions.Configuration.ConfigurationBinder.Get<{optionsTypeDisplay}>(serviceProvider.GetRequiredService<global::Microsoft.Extensions.Configuration.IConfiguration>().GetSection(\"{escapedPath}\")) ?? throw new global::System.InvalidOperationException(\"Configuration section '{escapedPath}' for options type '{escapedTypeName}' returned null.\"))";
@@ -2264,7 +2294,7 @@ public sealed partial class GenDISourceGenerator
         return true;
     }
 
-    private static bool TryGetOptionConfigPath(INamedTypeSymbol optionsType, out string path)
+    private static bool TryGetOptionConfigSection(INamedTypeSymbol optionsType, out string path)
     {
         foreach (var attributeData in optionsType.GetAttributes())
         {
@@ -2282,9 +2312,59 @@ public sealed partial class GenDISourceGenerator
                 path = configuredPath;
                 return true;
             }
+
+            path = optionsType.Name;
+            return true;
         }
 
         path = string.Empty;
+        return false;
+    }
+
+    private static bool IsEligibleOptionConfigType(INamedTypeSymbol optionsType)
+    {
+        if (
+            optionsType.IsRefLikeType
+            || optionsType.DeclaredAccessibility == Accessibility.Private
+            || HasPrivateContainingType(optionsType)
+        )
+        {
+            return false;
+        }
+
+        switch (optionsType.TypeKind)
+        {
+            case TypeKind.Class:
+                return !optionsType.IsAbstract && HasCompatibleOptionClassConstructor(optionsType);
+            case TypeKind.Struct:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static bool HasCompatibleOptionClassConstructor(INamedTypeSymbol optionsType)
+    {
+        return optionsType.InstanceConstructors.Any(constructorSymbol =>
+            constructorSymbol.MethodKind == MethodKind.Constructor
+            && constructorSymbol.Parameters.Length == 0
+            && constructorSymbol.DeclaredAccessibility != Accessibility.Private
+        );
+    }
+
+    private static bool HasPrivateContainingType(INamedTypeSymbol symbol)
+    {
+        var containingType = symbol.ContainingType;
+        while (containingType is not null)
+        {
+            if (containingType.DeclaredAccessibility == Accessibility.Private)
+            {
+                return true;
+            }
+
+            containingType = containingType.ContainingType;
+        }
+
         return false;
     }
 
