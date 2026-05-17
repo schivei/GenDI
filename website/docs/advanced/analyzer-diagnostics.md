@@ -25,3 +25,31 @@ For the canonical details (message, trigger, fix), see:
 ## 🔗 IDE help links
 
 Each diagnostic now exposes `HelpLinkUri`, so IDEs can open the documentation page directly from the analyzer warning/info entry.
+
+## 🛠️ Practical `GENDI003` code-fix example
+
+Before:
+
+```csharp
+[Injectable]
+public sealed class CheckoutService
+{
+    private readonly IPaymentGateway _gateway;
+
+    public CheckoutService(IPaymentGateway gateway)
+    {
+        _gateway = gateway;
+    }
+}
+```
+
+After code-fix:
+
+```csharp
+[Injectable]
+public sealed class CheckoutService
+{
+    [Inject]
+    public required IPaymentGateway Gateway { get; init; }
+}
+```

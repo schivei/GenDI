@@ -2,6 +2,8 @@
 
 GenDI is built to avoid runtime reflection-heavy registration paths.
 
+This page is part of the Phase 6 documentation baseline aligned with `/home/runner/work/GenDI/GenDI/docs/ROTEIRO_FASE6.md`.
+
 ## 📁 What is included in this repository
 
 - 📄 `src/GenDI/ILLink.xml` descriptor support

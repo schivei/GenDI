@@ -2,6 +2,13 @@
 
 This page summarizes the platform/framework work delivered for Phase 6.
 
+## Phase 6 baseline alignment
+
+This page follows the canonical matrix in `/home/runner/work/GenDI/GenDI/docs/ROTEIRO_FASE6.md`:
+
+- Delivered tracks: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6
+- Pending tracks: 4.7, 4.8, 4.9
+
 ## Validation assets in this repository
 
 - `tests/GenDI.Phase6.MinimalApiValidation.App`
