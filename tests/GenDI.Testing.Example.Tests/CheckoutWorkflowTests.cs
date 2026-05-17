@@ -4,7 +4,7 @@ using GenDI.Testing.Example.Tests.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-[assembly: GenDI.GenDiCoveration(false)]
+[assembly: GenDI.GenDICoveration(false)]
 
 namespace GenDI.Testing.Example.Tests;
 

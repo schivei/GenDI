@@ -1,7 +1,7 @@
 using GenDI.Phase3.TrimValidation.App.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 
-[assembly: GenDI.GenDiCoveration(false)]
+[assembly: GenDI.GenDICoveration(false)]
 
 var services = new ServiceCollection();
 services.AddGenDIServices();

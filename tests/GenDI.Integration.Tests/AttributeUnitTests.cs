@@ -2,7 +2,7 @@ using System;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-[assembly: GenDI.GenDiCoveration(false)]
+[assembly: GenDI.GenDICoveration(false)]
 
 namespace GenDI.Integration.Tests;
 
@@ -322,7 +322,7 @@ public class AttributeUnitTests
     [Fact]
     public void GenDICoverationAttribute_default_is_true()
     {
-        var attr = new GenDiCoverationAttribute();
+        var attr = new GenDICoverationAttribute();
 
         Assert.True(attr.IncludeGeneratedCodeInCoverage);
     }
@@ -330,7 +330,7 @@ public class AttributeUnitTests
     [Fact]
     public void GenDICoverationAttribute_explicit_true()
     {
-        var attr = new GenDiCoverationAttribute();
+        var attr = new GenDICoverationAttribute();
 
         Assert.True(attr.IncludeGeneratedCodeInCoverage);
     }
@@ -338,7 +338,7 @@ public class AttributeUnitTests
     [Fact]
     public void GenDICoverationAttribute_explicit_false()
     {
-        var attr = new GenDiCoverationAttribute(false);
+        var attr = new GenDICoverationAttribute(false);
 
         Assert.False(attr.IncludeGeneratedCodeInCoverage);
     }

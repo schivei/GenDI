@@ -3,7 +3,7 @@ using GenDI.Phase6.BlazorWasmValidation.App.DependencyInjection;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
-[assembly: GenDI.GenDiCoveration(false)]
+[assembly: GenDI.GenDICoveration(false)]
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");

@@ -2,7 +2,7 @@ using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Running;
 using GenDI.Benchmarks;
 
-[assembly: GenDI.GenDiCoveration(false)]
+[assembly: GenDI.GenDICoveration(false)]
 
 BenchmarkSwitcher
     .FromAssembly(typeof(StartupRegistrationBenchmarks).Assembly)

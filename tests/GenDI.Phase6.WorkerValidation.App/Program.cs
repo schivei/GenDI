@@ -1,7 +1,7 @@
 using GenDI.Phase6.WorkerValidation.App;
 using GenDI.Phase6.WorkerValidation.App.DependencyInjection;
 
-[assembly: GenDI.GenDiCoveration(false)]
+[assembly: GenDI.GenDICoveration(false)]
 
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddSingleton(TimeProvider.System);

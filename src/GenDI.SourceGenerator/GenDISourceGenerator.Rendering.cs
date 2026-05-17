@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis;
 
 namespace GenDI.SourceGenerator;
 
-public sealed partial class GenDiSourceGenerator
+public sealed partial class GenDISourceGenerator
 {
     private const string TransientRegistrationMethod = "Transient";
 

@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace GenDI.SourceGenerator;
 
-public sealed partial class GenDiSourceGenerator
+public sealed partial class GenDISourceGenerator
 {
     private const string TransientLifetimeExpression = "ServiceLifetime.Transient";
     private const string SingletonLifetimeExpression = "ServiceLifetime.Singleton";
@@ -2330,8 +2330,7 @@ public sealed partial class GenDiSourceGenerator
     {
         if (
             optionsType.IsRefLikeType
-            || optionsType.DeclaredAccessibility == Accessibility.Private
-            || HasPrivateContainingType(optionsType)
+            || !IsOptionTypeDeclarationAccessibleFromGeneratedCode(optionsType)
         )
         {
             return false;
@@ -2353,24 +2352,33 @@ public sealed partial class GenDiSourceGenerator
         return optionsType.InstanceConstructors.Any(constructorSymbol =>
             constructorSymbol.MethodKind == MethodKind.Constructor
             && constructorSymbol.Parameters.Length == 0
-            && constructorSymbol.DeclaredAccessibility != Accessibility.Private
+            && constructorSymbol.DeclaredAccessibility == Accessibility.Public
         );
     }
 
-    private static bool HasPrivateContainingType(INamedTypeSymbol symbol)
+    private static bool IsOptionTypeDeclarationAccessibleFromGeneratedCode(INamedTypeSymbol symbol)
     {
+        var isDeclaredAccessibilitySupported = IsOptionTypeDeclaredAccessibilitySupported(
+            symbol.DeclaredAccessibility
+        );
+
         var containingType = symbol.ContainingType;
         while (containingType is not null)
         {
-            if (containingType.DeclaredAccessibility == Accessibility.Private)
+            if (!IsOptionTypeDeclaredAccessibilitySupported(containingType.DeclaredAccessibility))
             {
-                return true;
+                return false;
             }
 
             containingType = containingType.ContainingType;
         }
 
-        return false;
+        return isDeclaredAccessibilitySupported;
+    }
+
+    private static bool IsOptionTypeDeclaredAccessibilitySupported(Accessibility accessibility)
+    {
+        return accessibility is Accessibility.Public or Accessibility.Internal;
     }
 
     private static bool IsGeneratedCodeCoverageEnabled(Compilation compilation)
@@ -2382,7 +2390,9 @@ public sealed partial class GenDiSourceGenerator
                 continue;
             }
 
-            return attributeData.ConstructorArguments.FirstOrDefault().Value is not bool value || value;
+            return attributeData.ConstructorArguments.FirstOrDefault().Value
+                is not bool includeGeneratedCodeInCoverage
+                || includeGeneratedCodeInCoverage;
         }
 
         return true;

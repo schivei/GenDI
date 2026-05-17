@@ -1966,6 +1966,42 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
+    public void OptionConfig_with_internal_parameterless_constructor_does_not_generate_options_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionsInternalCtorCase;
+            using Microsoft.Extensions.Options;
+
+            [OptionConfig("Features:MyOption")]
+            public sealed class MyOption
+            {
+                internal MyOption() { }
+            }
+
+            [Injectable]
+            public sealed class UsesOptions
+            {
+                [Inject]
+                public required IOptions<MyOption> Options { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.DoesNotContain(
+            "services.AddOptions<global::OptionsInternalCtorCase.MyOption>().BindConfiguration(\"Features:MyOption\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "ConfigurationBinder.Get<global::OptionsInternalCtorCase.MyOption>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
     public void OptionConfig_private_nested_type_does_not_generate_options_registration()
     {
         var generatedSource = GeneratorTestHelper.GenerateSource(
@@ -1999,6 +2035,45 @@ public class SharedGeneratorBehaviorTests
         );
         Assert.DoesNotContain(
             "ConfigurationBinder.Get<global::OptionsPrivateTypeCase.Container.MyOption>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void OptionConfig_protected_nested_type_does_not_generate_options_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionsProtectedTypeCase;
+            using Microsoft.Extensions.Options;
+
+            public class Container
+            {
+                [OptionConfig("Features:MyOption")]
+                protected sealed class MyOption
+                {
+                    public MyOption() { }
+                }
+
+                [Injectable]
+                public sealed class UsesOptions
+                {
+                    [Inject]
+                    public required IOptions<MyOption> Options { get; init; }
+                }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.DoesNotContain(
+            "services.AddOptions<global::OptionsProtectedTypeCase.Container.MyOption>().BindConfiguration(\"Features:MyOption\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "ConfigurationBinder.Get<global::OptionsProtectedTypeCase.Container.MyOption>",
             generatedSource,
             StringComparison.Ordinal
         );
@@ -2540,22 +2615,27 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
-    public void ServiceRegistrationComparer_includes_strategy_and_module_in_equality()
+    public void ServiceRegistrationComparer_includes_strategy_module_and_direct_statement_in_equality()
     {
-        var generatorAssembly = typeof(GenDI.SourceGenerator.GenDiSourceGenerator).Assembly;
+        var generatorAssembly = typeof(GenDI.SourceGenerator.GenDISourceGenerator).Assembly;
         var registrationType = generatorAssembly.GetType(
-            "GenDI.SourceGenerator.ServiceRegistration",
+            "GenDI.SourceGenerator.Models.ServiceRegistration",
             throwOnError: true
         )!;
         var comparerType = generatorAssembly.GetType(
-            "GenDI.SourceGenerator.ServiceRegistrationComparer",
+            "GenDI.SourceGenerator.Models.ServiceRegistrationComparer",
             throwOnError: true
         )!;
         var registrationConstructor = registrationType.GetConstructors(
             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
         )[0];
 
-        object CreateRegistration(bool allowMultiple, bool useTryAdd, string? moduleName)
+        object CreateRegistration(
+            bool allowMultiple,
+            bool useTryAdd,
+            string? moduleName,
+            string? directRegistrationStatement = null
+        )
         {
             return registrationConstructor.Invoke(
                 [
@@ -2571,7 +2651,7 @@ public class SharedGeneratorBehaviorTests
                     null,
                     null,
                     moduleName,
-                    null,
+                    directRegistrationStatement,
                 ]
             );
         }
@@ -2592,6 +2672,12 @@ public class SharedGeneratorBehaviorTests
             allowMultiple: true,
             useTryAdd: true,
             moduleName: "Orders"
+        );
+        var differentDirectStatement = CreateRegistration(
+            allowMultiple: true,
+            useTryAdd: true,
+            moduleName: "Billing",
+            directRegistrationStatement: "services.AddOptions<global::TestNamespace.Impl>().BindConfiguration(\"MySection\")"
         );
 
         var comparer = comparerType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)!
@@ -2615,6 +2701,7 @@ public class SharedGeneratorBehaviorTests
         Assert.False((bool)equalsMethod.Invoke(comparer, [baseline, differentMultiplicity])!);
         Assert.False((bool)equalsMethod.Invoke(comparer, [baseline, differentEmission])!);
         Assert.False((bool)equalsMethod.Invoke(comparer, [baseline, differentModule])!);
+        Assert.False((bool)equalsMethod.Invoke(comparer, [baseline, differentDirectStatement])!);
 
         var baselineHash = (int)getHashCodeMethod.Invoke(comparer, [baseline])!;
         var sameHash = (int)getHashCodeMethod.Invoke(comparer, [same])!;
@@ -3019,7 +3106,7 @@ public class SharedGeneratorBehaviorTests
             """;
 
         var compilation = CreateCompilationForGeneratorCoverage(source);
-        var generatorType = typeof(GenDI.SourceGenerator.GenDiSourceGenerator);
+        var generatorType = typeof(GenDI.SourceGenerator.GenDISourceGenerator);
 
         var invalidOptionType = compilation.GetTypeByMetadataName("AnalysisCoverageCase.IInvalidOptions");
         Assert.NotNull(invalidOptionType);
@@ -3164,7 +3251,7 @@ public class SharedGeneratorBehaviorTests
         Assert.NotNull(openGenericImpl);
         Assert.NotNull(openBaseImpl);
         var warningType = generatorType.Assembly.GetType(
-            "GenDI.SourceGenerator.OpenGenericBypassWarning",
+            "GenDI.SourceGenerator.Models.OpenGenericBypassWarning",
             throwOnError: true
         )!;
         var warningListType = typeof(List<>).MakeGenericType(warningType);
@@ -3186,7 +3273,7 @@ public class SharedGeneratorBehaviorTests
         );
         Assert.NotNull(findIndirectImplementationCandidates);
         var injectableMetadataType = generatorType.Assembly.GetType(
-            "GenDI.SourceGenerator.InjectableMetadata",
+            "GenDI.SourceGenerator.Models.InjectableMetadata",
             throwOnError: true
         )!;
         var injectableMapType = typeof(Dictionary<,>).MakeGenericType(

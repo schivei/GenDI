@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace GenDI.SourceGenerator;
 
 [Generator]
-public sealed partial class GenDiSourceGenerator : IIncrementalGenerator
+public sealed partial class GenDISourceGenerator : IIncrementalGenerator
 {
     private const int DefaultOrderingValue = int.MaxValue;
     private static readonly DiagnosticDescriptor OpenGenericBypassWarningDescriptor = new(
