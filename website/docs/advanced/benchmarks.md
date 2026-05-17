@@ -47,6 +47,16 @@ _Updated by [CI run #177](https://github.com/schivei/GenDI/actions/runs/25988734
 - Compatibility note: this benchmark compares manual and generated registrations against a reflection scanner baseline; as documented below, reflection scanning is not suitable for trimming/NativeAOT scenarios, while manual and GenDI-generated registrations remain the supported path.
 <!-- benchmark-ci:end -->
 
+<!-- benchmark-sales:start -->
+## Why this benchmark matters
+
+> GenDI constructor injection is currently **20.1% faster than manual registration** in the latest CI snapshot.
+
+- You get compile-time DI registration without paying a startup penalty for reflection scanning.
+- You remove repetitive manual wiring while keeping generated code explicit and reviewable.
+- You stay aligned with trimming and NativeAOT-friendly deployment paths.
+<!-- benchmark-sales:end -->
+
 ## 🔍 What the numbers mean
 
 ### ✍️ Manual vs ⚡ GenDI generated

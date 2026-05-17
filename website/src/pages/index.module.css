@@ -25,6 +25,39 @@
   background-color: var(--ifm-background-surface-color);
 }
 
+.salesPitch {
+  padding: 4rem 0;
+  background: linear-gradient(135deg, rgba(37, 194, 160, 0.12), rgba(21, 101, 192, 0.08));
+}
+
+.salesPitchCard {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+  border: 1px solid rgba(37, 194, 160, 0.25);
+  border-radius: 18px;
+  background-color: var(--ifm-background-color);
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+}
+
+.salesPitchEyebrow {
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ifm-color-primary);
+}
+
+.salesPitchList {
+  margin: 1.5rem 0;
+  padding-left: 1.25rem;
+}
+
+.salesPitchList li + li {
+  margin-top: 0.5rem;
+}
+
 .badges {
   padding: 2rem 0;
   background-color: var(--ifm-background-color);
