@@ -1,11 +1,12 @@
 using System.Collections.Immutable;
+using GenDI.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace GenDI.SourceGenerator;
 
 [Generator]
-public sealed partial class GenDISourceGenerator : IIncrementalGenerator
+public sealed partial class GenDiSourceGenerator : IIncrementalGenerator
 {
     private const int DefaultOrderingValue = int.MaxValue;
     private static readonly DiagnosticDescriptor OpenGenericBypassWarningDescriptor = new(

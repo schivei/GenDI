@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using GenDI.Analyzers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
@@ -14,18 +13,20 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.Extensions.DependencyInjection;
 
+[assembly: GenDI.GenDiCoveration(false)]
+
 namespace GenDI.Analyzers.Tests;
 
 internal static class AnalyzerTestHelper
 {
     public static ImmutableArray<Diagnostic> Run(string userSource)
     {
-        var source = $$"""
+        var source = $"""
             using System;
             using GenDI;
             using Microsoft.Extensions.DependencyInjection;
 
-            {{userSource}}
+            {userSource}
             """;
 
         var syntaxTree = CSharpSyntaxTree.ParseText(
@@ -75,17 +76,17 @@ internal static class AnalyzerTestHelper
         );
         references.Add(MetadataReference.CreateFromFile(typeof(ServiceLifetime).Assembly.Location));
 
-        return references.ToImmutableArray();
+        return [..references];
     }
 
     public static async Task<string> ApplyConstructorInjectionCodeFixAsync(string userSource)
     {
-        var source = $$"""
+        var source = $"""
             using System;
             using GenDI;
             using Microsoft.Extensions.DependencyInjection;
 
-            {{userSource}}
+            {userSource}
             """;
 
         using var workspace = new AdhocWorkspace();

@@ -1,29 +1,20 @@
-namespace GenDI.SourceGenerator;
+namespace GenDI.SourceGenerator.Models;
 
-internal sealed class ServiceContractTarget
+internal sealed class ServiceContractTarget(
+    string serviceType,
+    string? fallbackLifetime,
+    string? fallbackThreadIsolationLifetime,
+    bool? fallbackAllowMultiple,
+    bool? fallbackUseTryAdd
+)
 {
-    public ServiceContractTarget(
-        string serviceType,
-        string? fallbackLifetime,
-        string? fallbackThreadIsolationLifetime,
-        bool? fallbackAllowMultiple,
-        bool? fallbackUseTryAdd
-    )
-    {
-        ServiceType = serviceType;
-        FallbackLifetime = fallbackLifetime;
-        FallbackThreadIsolationLifetime = fallbackThreadIsolationLifetime;
-        FallbackAllowMultiple = fallbackAllowMultiple;
-        FallbackUseTryAdd = fallbackUseTryAdd;
-    }
+    public string ServiceType { get; } = serviceType;
 
-    public string ServiceType { get; }
+    public string? FallbackLifetime { get; } = fallbackLifetime;
 
-    public string? FallbackLifetime { get; }
+    public string? FallbackThreadIsolationLifetime { get; } = fallbackThreadIsolationLifetime;
 
-    public string? FallbackThreadIsolationLifetime { get; }
+    public bool? FallbackAllowMultiple { get; } = fallbackAllowMultiple;
 
-    public bool? FallbackAllowMultiple { get; }
-
-    public bool? FallbackUseTryAdd { get; }
+    public bool? FallbackUseTryAdd { get; } = fallbackUseTryAdd;
 }

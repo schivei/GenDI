@@ -643,7 +643,7 @@ public class SharedGeneratorBehaviorTests
         Assert.Equal(
             1,
             generatedSource
-                .Split("new global::DecoratorMulti.LoggingDecorator(", StringSplitOptions.None)
+                .Split("new global::DecoratorMulti.LoggingDecorator(")
                 .Length - 1
         );
     }
@@ -785,8 +785,7 @@ public class SharedGeneratorBehaviorTests
             1,
             generatedSource
                 .Split(
-                    "services.AddTransient<global::IndirectDuplicatePaths.ISingleContract>",
-                    StringSplitOptions.None
+                    "services.AddTransient<global::IndirectDuplicatePaths.ISingleContract>"
                 )
                 .Length - 1
         );
@@ -794,8 +793,7 @@ public class SharedGeneratorBehaviorTests
             1,
             generatedSource
                 .Split(
-                    "services.AddTransient<global::IndirectDuplicatePaths.IMultipleContract>",
-                    StringSplitOptions.None
+                    "services.AddTransient<global::IndirectDuplicatePaths.IMultipleContract>"
                 )
                 .Length - 1
         );
@@ -1704,7 +1702,7 @@ public class SharedGeneratorBehaviorTests
         Assert.NotNull(captureUsingBasedInvocationMethod);
         captureUsingBasedInvocationMethod.Invoke(
             null,
-            new object[] { invocation, importedDependencyNamespaces, explicitlyChainedNamespaces }
+            [invocation, importedDependencyNamespaces, explicitlyChainedNamespaces]
         );
 
         Assert.Contains("ReferencedManualChainLibrary", explicitlyChainedNamespaces);
@@ -2298,7 +2296,7 @@ public class SharedGeneratorBehaviorTests
         var registrationLine = "services.AddTransient<global::DuplicateCase.IContract>";
         Assert.Equal(
             1,
-            generatedSource.Split(registrationLine, StringSplitOptions.None).Length - 1
+            generatedSource.Split(registrationLine).Length - 1
         );
     }
 
@@ -2339,8 +2337,7 @@ public class SharedGeneratorBehaviorTests
             1,
             generatedSource
                 .Split(
-                    "services.TryAddTransient<global::ExplicitSingleTryAddCase.IContract>",
-                    StringSplitOptions.None
+                    "services.TryAddTransient<global::ExplicitSingleTryAddCase.IContract>"
                 )
                 .Length - 1
         );
@@ -2545,7 +2542,7 @@ public class SharedGeneratorBehaviorTests
     [Fact]
     public void ServiceRegistrationComparer_includes_strategy_and_module_in_equality()
     {
-        var generatorAssembly = typeof(GenDI.SourceGenerator.GenDISourceGenerator).Assembly;
+        var generatorAssembly = typeof(GenDI.SourceGenerator.GenDiSourceGenerator).Assembly;
         var registrationType = generatorAssembly.GetType(
             "GenDI.SourceGenerator.ServiceRegistration",
             throwOnError: true
@@ -2561,8 +2558,7 @@ public class SharedGeneratorBehaviorTests
         object CreateRegistration(bool allowMultiple, bool useTryAdd, string? moduleName)
         {
             return registrationConstructor.Invoke(
-                new object?[]
-                {
+                [
                     "global::TestNamespace.IService",
                     "global::TestNamespace.Impl",
                     "ServiceLifetime.Transient",
@@ -2576,7 +2572,7 @@ public class SharedGeneratorBehaviorTests
                     null,
                     moduleName,
                     null,
-                }
+                ]
             );
         }
 
@@ -2604,24 +2600,24 @@ public class SharedGeneratorBehaviorTests
             "Equals",
             BindingFlags.Public | BindingFlags.Instance,
             binder: null,
-            new[] { registrationType, registrationType },
+            [registrationType, registrationType],
             modifiers: null
         )!;
         var getHashCodeMethod = comparerType.GetMethod(
             "GetHashCode",
             BindingFlags.Public | BindingFlags.Instance,
             binder: null,
-            new[] { registrationType },
+            [registrationType],
             modifiers: null
         )!;
 
-        Assert.True((bool)equalsMethod.Invoke(comparer, new[] { baseline, same })!);
-        Assert.False((bool)equalsMethod.Invoke(comparer, new[] { baseline, differentMultiplicity })!);
-        Assert.False((bool)equalsMethod.Invoke(comparer, new[] { baseline, differentEmission })!);
-        Assert.False((bool)equalsMethod.Invoke(comparer, new[] { baseline, differentModule })!);
+        Assert.True((bool)equalsMethod.Invoke(comparer, [baseline, same])!);
+        Assert.False((bool)equalsMethod.Invoke(comparer, [baseline, differentMultiplicity])!);
+        Assert.False((bool)equalsMethod.Invoke(comparer, [baseline, differentEmission])!);
+        Assert.False((bool)equalsMethod.Invoke(comparer, [baseline, differentModule])!);
 
-        var baselineHash = (int)getHashCodeMethod.Invoke(comparer, new[] { baseline })!;
-        var sameHash = (int)getHashCodeMethod.Invoke(comparer, new[] { same })!;
+        var baselineHash = (int)getHashCodeMethod.Invoke(comparer, [baseline])!;
+        var sameHash = (int)getHashCodeMethod.Invoke(comparer, [same])!;
         Assert.Equal(baselineHash, sameHash);
     }
 
@@ -2665,8 +2661,7 @@ public class SharedGeneratorBehaviorTests
         Assert.Contains(
             diagnostics,
             static diagnostic =>
-                diagnostic.Id == "GENDISG001"
-                && diagnostic.Severity == DiagnosticSeverity.Warning
+                diagnostic is { Id: "GENDISG001", Severity: DiagnosticSeverity.Warning }
                 && diagnostic
                     .GetMessage()
                     .Contains("InjectableFactory registration", StringComparison.Ordinal)
@@ -2715,8 +2710,7 @@ public class SharedGeneratorBehaviorTests
         Assert.Contains(
             diagnostics,
             static diagnostic =>
-                diagnostic.Id == "GENDISG001"
-                && diagnostic.Severity == DiagnosticSeverity.Warning
+                diagnostic is { Id: "GENDISG001", Severity: DiagnosticSeverity.Warning }
                 && diagnostic
                     .GetMessage()
                     .Contains("Injectable class registration", StringComparison.Ordinal)
@@ -2763,8 +2757,7 @@ public class SharedGeneratorBehaviorTests
         Assert.Contains(
             diagnostics,
             static diagnostic =>
-                diagnostic.Id == "GENDISG001"
-                && diagnostic.Severity == DiagnosticSeverity.Warning
+                diagnostic is { Id: "GENDISG001", Severity: DiagnosticSeverity.Warning }
                 && diagnostic
                     .GetMessage()
                     .Contains(DecoratorTargetDiscoveryWarning, StringComparison.Ordinal)
@@ -2801,8 +2794,7 @@ public class SharedGeneratorBehaviorTests
         Assert.Contains(
             diagnostics,
             static diagnostic =>
-                diagnostic.Id == "GENDISG001"
-                && diagnostic.Severity == DiagnosticSeverity.Warning
+                diagnostic is { Id: "GENDISG001", Severity: DiagnosticSeverity.Warning }
                 && diagnostic
                     .GetMessage()
                     .Contains(DecoratorTargetDiscoveryWarning, StringComparison.Ordinal)
@@ -2876,7 +2868,7 @@ public class SharedGeneratorBehaviorTests
             "services.AddOptions<global::OptionsDuplicateCase.MySettings>().BindConfiguration(\"MySettingsSection\")";
         Assert.Equal(
             1,
-            generatedSource.Split(expectedRegistration, StringSplitOptions.None).Length - 1
+            generatedSource.Split(expectedRegistration).Length - 1
         );
     }
 
@@ -2912,8 +2904,7 @@ public class SharedGeneratorBehaviorTests
         Assert.Contains(
             diagnostics,
             static diagnostic =>
-                diagnostic.Id == "GENDISG001"
-                && diagnostic.Severity == DiagnosticSeverity.Warning
+                diagnostic is { Id: "GENDISG001", Severity: DiagnosticSeverity.Warning }
                 && diagnostic
                     .GetMessage()
                     .Contains("Injectable explicit service contract", StringComparison.Ordinal)
@@ -3028,7 +3019,7 @@ public class SharedGeneratorBehaviorTests
             """;
 
         var compilation = CreateCompilationForGeneratorCoverage(source);
-        var generatorType = typeof(GenDI.SourceGenerator.GenDISourceGenerator);
+        var generatorType = typeof(GenDI.SourceGenerator.GenDiSourceGenerator);
 
         var invalidOptionType = compilation.GetTypeByMetadataName("AnalysisCoverageCase.IInvalidOptions");
         Assert.NotNull(invalidOptionType);
@@ -3037,11 +3028,11 @@ public class SharedGeneratorBehaviorTests
             BindingFlags.NonPublic | BindingFlags.Static
         );
         Assert.NotNull(isEligibleOptionConfigType);
-        Assert.False((bool)isEligibleOptionConfigType.Invoke(null, new object[] { invalidOptionType! })!);
+        Assert.False((bool)isEligibleOptionConfigType.Invoke(null, [invalidOptionType])!);
 
         var nestingConsumer = compilation.GetTypeByMetadataName("AnalysisCoverageCase.NestingConsumer");
         Assert.NotNull(nestingConsumer);
-        var nestedOptionType = nestingConsumer!
+        var nestedOptionType = nestingConsumer
             .GetTypeMembers("Container")
             .Single()
             .GetTypeMembers("Middle")
@@ -3049,21 +3040,21 @@ public class SharedGeneratorBehaviorTests
             .GetTypeMembers("PublicNestedOption")
             .Single();
         Assert.NotNull(nestedOptionType);
-        Assert.False((bool)isEligibleOptionConfigType.Invoke(null, new object[] { nestedOptionType! })!);
+        Assert.False((bool)isEligibleOptionConfigType.Invoke(null, [nestedOptionType])!);
 
         var isGeneratedCoverageEnabled = generatorType.GetMethod(
             "IsGeneratedCodeCoverageEnabled",
             BindingFlags.NonPublic | BindingFlags.Static
         );
         Assert.NotNull(isGeneratedCoverageEnabled);
-        Assert.True((bool)isGeneratedCoverageEnabled.Invoke(null, new object[] { compilation })!);
+        Assert.True((bool)isGeneratedCoverageEnabled.Invoke(null, [compilation])!);
 
         var escapeStringLiteral = generatorType.GetMethod(
             "EscapeStringLiteral",
             BindingFlags.NonPublic | BindingFlags.Static
         );
         Assert.NotNull(escapeStringLiteral);
-        var escaped = (string)escapeStringLiteral.Invoke(null, new object[] { "A\0B" })!;
+        var escaped = (string)escapeStringLiteral.Invoke(null, ["A\0B"])!;
         Assert.Equal("A\\0B", escaped);
 
         var buildTypedConstantExpression = generatorType.GetMethod(
@@ -3073,12 +3064,12 @@ public class SharedGeneratorBehaviorTests
         Assert.NotNull(buildTypedConstantExpression);
         Assert.Equal(
             "null",
-            (string?)buildTypedConstantExpression.Invoke(null, new object[] { default(TypedConstant) })
+            (string?)buildTypedConstantExpression.Invoke(null, [default(TypedConstant)])
         );
 
         var closedImplType = compilation.GetTypeByMetadataName("AnalysisCoverageCase.ClosedImpl");
         Assert.NotNull(closedImplType);
-        var injectAttribute = closedImplType!
+        var injectAttribute = closedImplType
             .GetMembers("Contract")
             .OfType<IPropertySymbol>()
             .Single()
@@ -3086,7 +3077,7 @@ public class SharedGeneratorBehaviorTests
             .Single();
         var typeKeyArgument = injectAttribute.NamedArguments.Single(argument => argument.Key == "Key").Value;
         Assert.Null(
-            (string?)buildTypedConstantExpression.Invoke(null, new object[] { typeKeyArgument })
+            (string?)buildTypedConstantExpression.Invoke(null, [typeKeyArgument])
         );
 
         var convertThreadIsolation = generatorType.GetMethod(
@@ -3096,14 +3087,14 @@ public class SharedGeneratorBehaviorTests
         Assert.NotNull(convertThreadIsolation);
         var threadContractType = compilation.GetTypeByMetadataName("AnalysisCoverageCase.IThreadContract");
         Assert.NotNull(threadContractType);
-        var threadIsolationArgument = threadContractType!
+        var threadIsolationArgument = threadContractType
             .GetAttributes()
             .Single()
             .NamedArguments.Single(argument => argument.Key == "ThreadIsolation")
             .Value;
         Assert.Equal(
             "ServiceLifetime.Singleton",
-            (string?)convertThreadIsolation.Invoke(null, new object[] { threadIsolationArgument })
+            (string?)convertThreadIsolation.Invoke(null, [threadIsolationArgument])
         );
 
         var tryGetServiceInjectionLifetime = generatorType.GetMethod(
@@ -3115,7 +3106,7 @@ public class SharedGeneratorBehaviorTests
         Assert.NotNull(contractType);
         Assert.Equal(
             "ServiceLifetime.Transient",
-            (string?)tryGetServiceInjectionLifetime.Invoke(null, new object[] { contractType! })
+            (string?)tryGetServiceInjectionLifetime.Invoke(null, [contractType])
         );
 
         var tryGetServiceInjectionThreadIsolation = generatorType.GetMethod(
@@ -3127,7 +3118,7 @@ public class SharedGeneratorBehaviorTests
             "ServiceLifetime.Singleton",
             (string?)tryGetServiceInjectionThreadIsolation.Invoke(
                 null,
-                new object[] { threadContractType! }
+                [threadContractType]
             )
         );
 
@@ -3139,7 +3130,7 @@ public class SharedGeneratorBehaviorTests
         Assert.Null(
             (string?)tryBuildDecoratorResolution.Invoke(
                 null,
-                new object[] { closedImplType!, "global::Different.Type", "new object()" }
+                [closedImplType, "global::Different.Type", "new object()"]
             )
         );
 
@@ -3147,7 +3138,7 @@ public class SharedGeneratorBehaviorTests
             "AnalysisCoverageCase.NoFactoryAttributeModule"
         );
         Assert.NotNull(noFactoryAttributeModule);
-        var methodWithoutFactoryAttribute = noFactoryAttributeModule!
+        var methodWithoutFactoryAttribute = noFactoryAttributeModule
             .GetMembers("Create")
             .OfType<IMethodSymbol>()
             .Single();
@@ -3180,11 +3171,11 @@ public class SharedGeneratorBehaviorTests
         var warnings = Activator.CreateInstance(warningListType)!;
         _ = getServiceTypes.Invoke(
             null,
-            new object?[] { compilation, openGenericImpl!, "global::AnalysisCoverageCase.GenericImpl`1", null, null, warnings }
+            [compilation, openGenericImpl, "global::AnalysisCoverageCase.GenericImpl`1", null, null, warnings]
         );
         _ = getServiceTypes.Invoke(
             null,
-            new object?[] { compilation, openBaseImpl!, "global::AnalysisCoverageCase.ConcreteFromOpenBase`1", null, null, warnings }
+            [compilation, openBaseImpl, "global::AnalysisCoverageCase.ConcreteFromOpenBase`1", null, null, warnings]
         );
         var warningsCount = (int)warningListType.GetProperty("Count")!.GetValue(warnings)!;
         Assert.True(warningsCount >= 1);
@@ -3205,19 +3196,18 @@ public class SharedGeneratorBehaviorTests
         var injectableMap = Activator.CreateInstance(injectableMapType)!;
         var indirectResult = findIndirectImplementationCandidates.Invoke(
             null,
-            new object?[]
-            {
+            [
                 compilation,
-                contractType!,
+                contractType,
                 "global::AnalysisCoverageCase.IContract",
-                System.Collections.Immutable.ImmutableArray.Create(closedImplType!),
+                System.Collections.Immutable.ImmutableArray.Create(closedImplType),
                 injectableMap,
                 null,
                 null,
-            }
+            ]
         );
         Assert.NotNull(indirectResult);
-        var indirectLength = (int)indirectResult!
+        var indirectLength = (int)indirectResult
             .GetType()
             .GetProperty("Length", BindingFlags.Instance | BindingFlags.Public)!
             .GetValue(indirectResult)!;
@@ -3233,7 +3223,7 @@ public class SharedGeneratorBehaviorTests
         Assert.NotNull(derivedContract);
         Assert.NotNull(baseContract);
         Assert.True(
-            (bool)implementsOrInherits.Invoke(null, new object[] { derivedContract!, baseContract! })!
+            (bool)implementsOrInherits.Invoke(null, [derivedContract, baseContract])!
         );
 
         var isTypeAccessibleFromGeneratedCode = generatorType.GetMethod(
@@ -3243,9 +3233,9 @@ public class SharedGeneratorBehaviorTests
         Assert.NotNull(isTypeAccessibleFromGeneratedCode);
         var genericType = compilation.GetTypeByMetadataName("AnalysisCoverageCase.GenericType`1");
         Assert.NotNull(genericType);
-        var typeParameter = genericType!.TypeParameters[0];
+        var typeParameter = genericType.TypeParameters[0];
         Assert.False(
-            (bool)isTypeAccessibleFromGeneratedCode.Invoke(null, new object[] { typeParameter, compilation })!
+            (bool)isTypeAccessibleFromGeneratedCode.Invoke(null, [typeParameter, compilation])!
         );
         var arrayType = compilation.GetTypeByMetadataName("AnalysisCoverageCase.ArrayHolder")!
             .GetMembers("Values")
@@ -3253,7 +3243,7 @@ public class SharedGeneratorBehaviorTests
             .Single()
             .Type;
         Assert.True(
-            (bool)isTypeAccessibleFromGeneratedCode.Invoke(null, new object[] { arrayType, compilation })!
+            (bool)isTypeAccessibleFromGeneratedCode.Invoke(null, [arrayType, compilation])!
         );
         var pointerType = compilation.GetTypeByMetadataName("AnalysisCoverageCase.PointerHolder")!
             .GetMembers("Value")
@@ -3263,14 +3253,14 @@ public class SharedGeneratorBehaviorTests
         Assert.True(
             (bool)isTypeAccessibleFromGeneratedCode.Invoke(
                 null,
-                new object[] { pointerType, compilation }
+                [pointerType, compilation]
             )!
         );
         var accessibilityConsumerType = compilation.GetTypeByMetadataName(
             "AnalysisCoverageCase.AccessibilityConsumer"
         );
         Assert.NotNull(accessibilityConsumerType);
-        var hiddenVisibleType = accessibilityConsumerType!
+        var hiddenVisibleType = accessibilityConsumerType
             .GetTypeMembers("Hidden")
             .Single()
             .GetTypeMembers("Visible")
@@ -3279,7 +3269,7 @@ public class SharedGeneratorBehaviorTests
         Assert.False(
             (bool)isTypeAccessibleFromGeneratedCode.Invoke(
                 null,
-                new object[] { hiddenVisibleType!, compilation }
+                [hiddenVisibleType, compilation]
             )!
         );
 
@@ -3303,7 +3293,7 @@ public class SharedGeneratorBehaviorTests
         Assert.True(
             (bool)isDeclaredSymbolAccessibleFromGeneratedCode.Invoke(
                 null,
-                new object[] { internalContract!, internalSourceCompilation }
+                [internalContract, internalSourceCompilation]
             )!
         );
 
@@ -3312,13 +3302,13 @@ public class SharedGeneratorBehaviorTests
             BindingFlags.NonPublic | BindingFlags.Static
         );
         Assert.NotNull(isClosedTypeArgument);
-        Assert.False((bool)isClosedTypeArgument.Invoke(null, new object[] { typeParameter })!);
+        Assert.False((bool)isClosedTypeArgument.Invoke(null, [typeParameter])!);
         var openGenericType = compilation.GetTypeByMetadataName("AnalysisCoverageCase.GenericType`1");
         Assert.NotNull(openGenericType);
-        var unboundGenericType = openGenericType!.ConstructUnboundGenericType();
-        Assert.False((bool)isClosedTypeArgument.Invoke(null, new object[] { unboundGenericType })!);
+        var unboundGenericType = openGenericType.ConstructUnboundGenericType();
+        Assert.False((bool)isClosedTypeArgument.Invoke(null, [unboundGenericType])!);
         Assert.True(
-            (bool)isClosedTypeArgument.Invoke(null, new object[] { compilation.GetSpecialType(SpecialType.System_Int32) })!
+            (bool)isClosedTypeArgument.Invoke(null, [compilation.GetSpecialType(SpecialType.System_Int32)])!
         );
 
         var isCandidateClassDeclaration = generatorType.GetMethod(
@@ -3359,12 +3349,12 @@ public class SharedGeneratorBehaviorTests
                 classDeclaration.Identifier.ValueText == "NonCandidateByAttribute"
             );
         Assert.True(
-            (bool)isCandidateClassDeclaration.Invoke(null, new object[] { candidateClass })!
+            (bool)isCandidateClassDeclaration.Invoke(null, [candidateClass])!
         );
         Assert.False(
             (bool)hasCandidateAttributeName.Invoke(
                 null,
-                new object[] { nonCandidateClass.AttributeLists }
+                [nonCandidateClass.AttributeLists]
             )!
         );
     }
@@ -3373,7 +3363,7 @@ public class SharedGeneratorBehaviorTests
     {
         var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
         var syntaxTree = CSharpSyntaxTree.ParseText(userSource, parseOptions);
-        var tpa = (AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string) ?? string.Empty;
+        var tpa = AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string ?? string.Empty;
         var references = tpa
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
             .Select(static path => MetadataReference.CreateFromFile(path))
@@ -3390,7 +3380,7 @@ public class SharedGeneratorBehaviorTests
 
         return CSharpCompilation.Create(
             assemblyName: "GeneratorCoverageReflection.Tests",
-            syntaxTrees: new[] { syntaxTree },
+            syntaxTrees: [syntaxTree],
             references: references,
             options: new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,

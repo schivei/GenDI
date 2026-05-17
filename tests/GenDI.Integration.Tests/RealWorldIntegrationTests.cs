@@ -1,16 +1,18 @@
 using System;
 using System.Threading;
-using GenDI;
 using GenDI.Integration.Tests.DependencyInjection;
 using GenDI.ReferenceLibrary;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+// ReSharper disable RedundantTypeArgumentsInsideNameof
+// ReSharper disable ClassNeverInstantiated.Global
+// ReSharper disable UnusedTypeParameter
 
 namespace GenDI.Integration.Tests;
 
 public class RealWorldIntegrationTests
 {
-    private static readonly object EnvironmentLock = new();
+    private static readonly Lock EnvironmentLock = new();
 
     [Fact]
     public void Generated_and_non_generated_services_resolve_together()
@@ -156,11 +158,15 @@ public class RealWorldIntegrationTests
         var mainThreadInstanceAgain = provider.GetRequiredService<IThreadIsolatedContract>();
         IThreadIsolatedContract? workerThreadInstance = null;
 
-        var workerThread = new Thread(() =>
+        var workerThread = new Thread(providerThread =>
         {
-            workerThreadInstance = provider.GetRequiredService<IThreadIsolatedContract>();
+            if (providerThread is IServiceProvider threadProvider)
+            {
+                workerThreadInstance = threadProvider.GetRequiredService<IThreadIsolatedContract>();
+            }
         });
-        workerThread.Start();
+        
+        workerThread.Start(provider);
         workerThread.Join();
 
         Assert.Same(mainThreadInstance, mainThreadInstanceAgain);
@@ -207,9 +213,7 @@ public class RealWorldIntegrationTests
         services.AddGenDIServices();
         using var provider = services.BuildServiceProvider();
 
-        var exception = Assert.Throws<InvalidOperationException>(() =>
-            provider.GetRequiredService<IUsesGenericIndirect>()
-        );
+        var exception = Assert.Throws<InvalidOperationException>(provider.GetRequiredService<IUsesGenericIndirect>);
         Assert.Contains(
             nameof(IGenericRepository<Order>),
             exception.Message,

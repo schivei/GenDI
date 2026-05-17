@@ -1,9 +1,10 @@
 using System.Collections.Immutable;
+using GenDI.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 
 namespace GenDI.SourceGenerator;
 
-public sealed partial class GenDISourceGenerator
+public sealed partial class GenDiSourceGenerator
 {
     private const string TransientRegistrationMethod = "Transient";
 
@@ -15,11 +16,11 @@ public sealed partial class GenDISourceGenerator
     )
     {
         var usings = includeExcludeFromCodeCoverage
-            ? GenDISourceTemplates.UsingsWithCoverage
-            : GenDISourceTemplates.UsingsWithoutCoverage;
+            ? GenDiSourceTemplates.UsingsWithCoverage
+            : GenDiSourceTemplates.UsingsWithoutCoverage;
 
         var excludeAttribute = includeExcludeFromCodeCoverage
-            ? GenDISourceTemplates.ExcludeFromCodeCoverageAttribute + "\n"
+            ? GenDiSourceTemplates.ExcludeFromCodeCoverageAttribute + "\n"
             : string.Empty;
 
         var registrationLines = string.Join("\n", registrations.Select(BuildRegistrationLine));
@@ -28,7 +29,7 @@ public sealed partial class GenDISourceGenerator
             chainedExtensionCalls.Select(static chainedCall => $"        {chainedCall}")
         );
 
-        return GenDISourceTemplates
+        return GenDiSourceTemplates
             .FileTemplate.Replace("{{USINGS}}", usings)
             .Replace("{{NAMESPACE}}", projectNamespace)
             .Replace("{{EXCLUDE_FROM_COVERAGE}}", excludeAttribute)
@@ -59,7 +60,7 @@ public sealed partial class GenDISourceGenerator
             : $"modules.Length == 0 || IsModuleEnabled(modules, \"{EscapeStringLiteral(registration.ModuleName)}\")";
 
         return string.Format(
-            GenDISourceTemplates.ModuleRegistrationTemplate,
+            GenDiSourceTemplates.ModuleRegistrationTemplate,
             moduleCondition,
             registrationStatement
         );
@@ -73,7 +74,7 @@ public sealed partial class GenDISourceGenerator
         return string.IsNullOrWhiteSpace(registration.EnvironmentName)
             ? registrationStatement
             : string.Format(
-                GenDISourceTemplates.ConditionalRegistrationTemplate,
+                GenDiSourceTemplates.ConditionalRegistrationTemplate,
                 EscapeStringLiteral(registration.EnvironmentName),
                 registrationStatement
             );
@@ -102,7 +103,7 @@ public sealed partial class GenDISourceGenerator
             if (!registration.UseTryAdd)
             {
                 return string.Format(
-                    GenDISourceTemplates.UnkeyedAddRegistrationTemplate,
+                    GenDiSourceTemplates.UnkeyedAddRegistrationTemplate,
                     registrationMethod,
                     registration.ServiceType,
                     registration.FactoryBody
@@ -112,7 +113,7 @@ public sealed partial class GenDISourceGenerator
             if (!registration.AllowMultiple)
             {
                 return string.Format(
-                    GenDISourceTemplates.UnkeyedTryAddRegistrationTemplate,
+                    GenDiSourceTemplates.UnkeyedTryAddRegistrationTemplate,
                     registrationMethod,
                     registration.ServiceType,
                     registration.FactoryBody
@@ -120,7 +121,7 @@ public sealed partial class GenDISourceGenerator
             }
 
             return string.Format(
-                GenDISourceTemplates.UnkeyedTryAddMultipleGuardTemplate,
+                GenDiSourceTemplates.UnkeyedTryAddMultipleGuardTemplate,
                 registration.ServiceType,
                 registration.ImplementationType,
                 registrationMethod,
@@ -131,7 +132,7 @@ public sealed partial class GenDISourceGenerator
         if (!registration.UseTryAdd)
         {
             return string.Format(
-                GenDISourceTemplates.KeyedAddRegistrationTemplate,
+                GenDiSourceTemplates.KeyedAddRegistrationTemplate,
                 registrationMethod,
                 registration.ServiceType,
                 registration.KeyExpression,
@@ -142,7 +143,7 @@ public sealed partial class GenDISourceGenerator
         if (!registration.AllowMultiple)
         {
             return string.Format(
-                GenDISourceTemplates.KeyedTryAddRegistrationTemplate,
+                GenDiSourceTemplates.KeyedTryAddRegistrationTemplate,
                 registrationMethod,
                 registration.ServiceType,
                 registration.KeyExpression,
@@ -151,7 +152,7 @@ public sealed partial class GenDISourceGenerator
         }
 
         return string.Format(
-            GenDISourceTemplates.KeyedTryAddMultipleGuardTemplate,
+            GenDiSourceTemplates.KeyedTryAddMultipleGuardTemplate,
             registration.ServiceType,
             registration.KeyExpression,
             registration.ImplementationType,
@@ -165,13 +166,13 @@ public sealed partial class GenDISourceGenerator
         var threadIsolationMethod = GetRegistrationMethod(registration.ThreadIsolationLifetime);
         var addPrefix = registration.UseTryAdd ? "TryAdd" : "Add";
         var cacheKey = string.Format(
-            GenDISourceTemplates.ThreadIsolationCacheKeyTemplate,
+            GenDiSourceTemplates.ThreadIsolationCacheKeyTemplate,
             EscapeStringLiteral(registration.ServiceType),
             EscapeStringLiteral(registration.ImplementationType),
             EscapeStringLiteral(registration.KeyExpression ?? "nokey")
         );
         var cacheRegistration = string.Format(
-            GenDISourceTemplates.ThreadIsolationCacheTemplate,
+            GenDiSourceTemplates.ThreadIsolationCacheTemplate,
             $"{addPrefix}Keyed{threadIsolationMethod}",
             registration.ServiceType,
             cacheKey,
@@ -180,13 +181,13 @@ public sealed partial class GenDISourceGenerator
 
         var accessRegistration = string.IsNullOrWhiteSpace(registration.KeyExpression)
             ? string.Format(
-                GenDISourceTemplates.ThreadIsolationUnkeyedAccessTemplate,
+                GenDiSourceTemplates.ThreadIsolationUnkeyedAccessTemplate,
                 $"{addPrefix}{TransientRegistrationMethod}",
                 registration.ServiceType,
                 cacheKey
             )
             : string.Format(
-                GenDISourceTemplates.ThreadIsolationKeyedAccessTemplate,
+                GenDiSourceTemplates.ThreadIsolationKeyedAccessTemplate,
                 $"{addPrefix}Keyed{TransientRegistrationMethod}",
                 registration.ServiceType,
                 registration.KeyExpression,

@@ -1,23 +1,16 @@
 using System.Collections.Immutable;
 
-namespace GenDI.SourceGenerator;
+namespace GenDI.SourceGenerator.Models;
 
-internal sealed class RegistrationBuildResult
+internal sealed class RegistrationBuildResult(
+    ImmutableArray<ServiceRegistration> registrations,
+    ImmutableArray<string> chainedExtensionCalls,
+    ImmutableArray<OpenGenericBypassWarning> warnings
+)
 {
-    public RegistrationBuildResult(
-        ImmutableArray<ServiceRegistration> registrations,
-        ImmutableArray<string> chainedExtensionCalls,
-        ImmutableArray<OpenGenericBypassWarning> warnings
-    )
-    {
-        Registrations = registrations;
-        ChainedExtensionCalls = chainedExtensionCalls;
-        Warnings = warnings;
-    }
+    public ImmutableArray<ServiceRegistration> Registrations { get; } = registrations;
 
-    public ImmutableArray<ServiceRegistration> Registrations { get; }
+    public ImmutableArray<string> ChainedExtensionCalls { get; } = chainedExtensionCalls;
 
-    public ImmutableArray<string> ChainedExtensionCalls { get; }
-
-    public ImmutableArray<OpenGenericBypassWarning> Warnings { get; }
+    public ImmutableArray<OpenGenericBypassWarning> Warnings { get; } = warnings;
 }

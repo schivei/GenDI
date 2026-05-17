@@ -2,12 +2,13 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
+using GenDI.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace GenDI.SourceGenerator;
 
-public sealed partial class GenDISourceGenerator
+public sealed partial class GenDiSourceGenerator
 {
     private const string TransientLifetimeExpression = "ServiceLifetime.Transient";
     private const string SingletonLifetimeExpression = "ServiceLifetime.Singleton";
@@ -99,18 +100,19 @@ public sealed partial class GenDISourceGenerator
         return new RegistrationBuildResult(
             normalizedRegistrations,
             chainedExtensionCalls,
-            warnings
-                .Where(static warning => warning.Location is { IsInSource: true })
-                .GroupBy(static warning =>
-                    (
-                        warning.Location.GetLineSpan().Path,
-                        warning.Location.SourceSpan.Start,
-                        warning.Context,
-                        warning.TypeDisplay
+            [
+                ..warnings
+                    .Where(static warning => warning.Location is { IsInSource: true })
+                    .GroupBy(static warning =>
+                        (
+                            warning.Location.GetLineSpan().Path,
+                            warning.Location.SourceSpan.Start,
+                            warning.Context,
+                            warning.TypeDisplay
+                        )
                     )
-                )
-                .Select(static group => group.First())
-                .ToImmutableArray()
+                    .Select(static group => group.First())
+            ]
         );
     }
 
@@ -170,7 +172,7 @@ public sealed partial class GenDISourceGenerator
                 continue;
             }
 
-            if (!HasGeneratedAddGenDIServicesMethod(referencedAssembly, dependencyNamespace))
+            if (!HasGeneratedAddGenDiServicesMethod(referencedAssembly, dependencyNamespace))
             {
                 continue;
             }
@@ -180,10 +182,11 @@ public sealed partial class GenDISourceGenerator
             );
         }
 
-        return chainedCalls
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(static call => call, StringComparer.Ordinal)
-            .ToImmutableArray();
+        return [
+            ..chainedCalls
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(static call => call, StringComparer.Ordinal)
+        ];
     }
 
     private static HashSet<string> GetExplicitlyChainedDependencyNamespaces(Compilation compilation)
@@ -223,7 +226,7 @@ public sealed partial class GenDISourceGenerator
                 var assemblySymbolValue = referencedAssembliesByName[assemblySymbol];
                 var hasGeneratedExtension =
                     !string.IsNullOrWhiteSpace(dependencyNamespace)
-                    && HasGeneratedAddGenDIServicesMethod(
+                    && HasGeneratedAddGenDiServicesMethod(
                         assemblySymbolValue,
                         dependencyNamespace
                     );
@@ -288,7 +291,7 @@ public sealed partial class GenDISourceGenerator
         }
 
         methodSymbol = methodSymbol.ReducedFrom ?? methodSymbol;
-        if (!IsGeneratedAddGenDIServicesMethodSymbol(methodSymbol))
+        if (!IsGeneratedAddGenDiServicesMethodSymbol(methodSymbol))
         {
             TryCaptureUsingBasedExtensionInvocation(
                 invocation,
@@ -345,10 +348,10 @@ public sealed partial class GenDISourceGenerator
         }
     }
 
-    private static bool IsGeneratedAddGenDIServicesMethodSymbol(IMethodSymbol methodSymbol)
+    private static bool IsGeneratedAddGenDiServicesMethodSymbol(IMethodSymbol methodSymbol)
     {
         var unboundMethod = methodSymbol.ReducedFrom ?? methodSymbol;
-        if (!HasGeneratedAddGenDIServicesMethodShape(unboundMethod, methodSymbol.MethodKind))
+        if (!HasGeneratedAddGenDiServicesMethodShape(unboundMethod, methodSymbol.MethodKind))
         {
             return false;
         }
@@ -366,7 +369,7 @@ public sealed partial class GenDISourceGenerator
     }
 
     [ExcludeFromCodeCoverage]
-    private static bool HasGeneratedAddGenDIServicesMethodShape(
+    private static bool HasGeneratedAddGenDiServicesMethodShape(
         IMethodSymbol unboundMethod,
         MethodKind methodKind
     )
@@ -377,7 +380,7 @@ public sealed partial class GenDISourceGenerator
             && unboundMethod.ContainingType.Name == "GenDIServiceCollectionExtensions";
     }
 
-    private static bool HasGeneratedAddGenDIServicesMethod(
+    private static bool HasGeneratedAddGenDiServicesMethod(
         IAssemblySymbol assemblySymbol,
         string dependencyNamespace
     )
@@ -399,12 +402,9 @@ public sealed partial class GenDISourceGenerator
             foreach (var method in typeMember.GetMembers("AddGenDIServices").OfType<IMethodSymbol>())
             {
                 if (
-                    method is { IsStatic: true, MethodKind: MethodKind.Ordinary }
-                    && method.Parameters.Length == 2
+                    method is { IsStatic: true, MethodKind: MethodKind.Ordinary, Parameters.Length: 2 }
                     && method.Parameters[0].Type.ToDisplayString() == "Microsoft.Extensions.DependencyInjection.IServiceCollection"
-                    && method.Parameters[1].Type is IArrayTypeSymbol arrayType
-                    && arrayType.ElementType.SpecialType == SpecialType.System_String
-                )
+                    && method.Parameters[1].Type is IArrayTypeSymbol { ElementType.SpecialType: SpecialType.System_String })
                 {
                     return true;
                 }
@@ -422,7 +422,7 @@ public sealed partial class GenDISourceGenerator
         var currentNamespace = rootNamespace;
         foreach (
             var namespaceSegment in fullNamespace.Split(
-                new[] { '.' },
+                ['.'],
                 StringSplitOptions.RemoveEmptyEntries
             )
         )
@@ -599,7 +599,7 @@ public sealed partial class GenDISourceGenerator
                 ),
             DefaultAllowMultipleIndirectRegistration
         );
-        var selectedCandidates = allowMultiple ? candidates : candidates.Take(1).ToImmutableArray();
+        var selectedCandidates = allowMultiple ? candidates : [..candidates.Take(1)];
 
         foreach (var candidate in selectedCandidates)
         {
@@ -1043,7 +1043,7 @@ public sealed partial class GenDISourceGenerator
 
             if (
                 attributeClass.Arity == 1
-                && attributeClass.TypeArguments[0] is ITypeSymbol explicitServiceTypeSymbol
+                && attributeClass.TypeArguments[0] is { } explicitServiceTypeSymbol
             )
             {
                 serviceType = explicitServiceTypeSymbol.ToDisplayString(
@@ -1060,8 +1060,7 @@ public sealed partial class GenDISourceGenerator
             {
                 var first = attributeData.ConstructorArguments[0];
                 if (
-                    first.Kind == TypedConstantKind.Type
-                    && first.Value is ITypeSymbol firstTypeSymbol
+                    first is { Kind: TypedConstantKind.Type, Value: ITypeSymbol firstTypeSymbol }
                 )
                 {
                     serviceType = firstTypeSymbol.ToDisplayString(
@@ -1116,7 +1115,7 @@ public sealed partial class GenDISourceGenerator
         out ServiceRegistration registration
     )
     {
-        registration = default!;
+        registration = null!;
         if (
             !IsIOptionsContract(injectRequest.ContractSymbol, out var optionsType)
             || !TryGetOptionConfigSection(optionsType, out var configPath)
@@ -1145,8 +1144,7 @@ public sealed partial class GenDISourceGenerator
         );
         var escapedPath = EscapeStringLiteral(configPath);
         var canUseConfigurePath =
-            optionsType.IsReferenceType
-            && !optionsType.IsValueType
+            optionsType is { IsReferenceType: true, IsValueType: false }
             && string.IsNullOrWhiteSpace(injectRequest.KeyExpression)
             && injectRequest.LifetimeOverride is null
             && injectRequest.AllowMultipleOverride is null
@@ -1279,7 +1277,7 @@ public sealed partial class GenDISourceGenerator
 
             if (
                 attributeClass.Arity == 1
-                && attributeClass.TypeArguments[0] is ITypeSymbol serviceTypeSymbol
+                && attributeClass.TypeArguments[0] is { } serviceTypeSymbol
             )
             {
                 explicitServiceTypeSymbol = serviceTypeSymbol;
@@ -1470,10 +1468,11 @@ public sealed partial class GenDISourceGenerator
             );
         }
 
-        return targets
-            .GroupBy(static target => (target.DisplayName, target.Order))
-            .Select(static group => group.First())
-            .ToImmutableArray();
+        return [
+            ..targets
+                .GroupBy(static target => (target.DisplayName, target.Order))
+                .Select(static group => group.First())
+        ];
     }
 
 #pragma warning disable S3776 // contract resolution intentionally handles multiple precedence branches
@@ -1579,15 +1578,16 @@ public sealed partial class GenDISourceGenerator
             serviceTypes.Add(new ServiceContractTarget(implementationType, null, null, null, null));
         }
 
-        return serviceTypes
-            .GroupBy(static target => target.ServiceType, StringComparer.Ordinal)
-            .Select(static group =>
-                group.FirstOrDefault(static target =>
-                    !string.IsNullOrWhiteSpace(target.FallbackLifetime)
-                    || !string.IsNullOrWhiteSpace(target.FallbackThreadIsolationLifetime)
-                ) ?? group.First()
-            )
-            .ToImmutableArray();
+        return [
+            ..serviceTypes
+                .GroupBy(static target => target.ServiceType, StringComparer.Ordinal)
+                .Select(static group =>
+                    group.FirstOrDefault(static target =>
+                        !string.IsNullOrWhiteSpace(target.FallbackLifetime)
+                        || !string.IsNullOrWhiteSpace(target.FallbackThreadIsolationLifetime)
+                    ) ?? group.First()
+                )
+        ];
     }
 #pragma warning restore S3776
 
@@ -1622,10 +1622,11 @@ public sealed partial class GenDISourceGenerator
             baseType = baseType.BaseType;
         }
 
-        return serviceTypes
-            .Distinct(SymbolEqualityComparer.Default)
-            .Cast<INamedTypeSymbol>()
-            .ToImmutableArray();
+        return [
+            ..serviceTypes
+                .Distinct(SymbolEqualityComparer.Default)
+                .Cast<INamedTypeSymbol>()
+        ];
     }
 
     private static ImmutableArray<INamedTypeSymbol> GetClosedServiceInjectionContracts(
@@ -1633,18 +1634,19 @@ public sealed partial class GenDISourceGenerator
         INamedTypeSymbol symbol
     )
     {
-        return GetAllServiceInjectionContracts(symbol)
-            .Where(contract =>
-                IsClosedType(contract) && IsTypeAccessibleFromGeneratedCode(contract, compilation)
-            )
-            .ToImmutableArray();
+        return [
+            ..GetAllServiceInjectionContracts(symbol)
+                .Where(contract =>
+                    IsClosedType(contract) && IsTypeAccessibleFromGeneratedCode(contract, compilation)
+                )
+        ];
     }
 
     private static int GetDecoratorOrder(INamedTypeSymbol symbol, AttributeData attributeData)
     {
         foreach (var namedArgument in attributeData.NamedArguments)
         {
-            if (namedArgument.Key == "Order" && namedArgument.Value.Value is int orderValue)
+            if (namedArgument is { Key: "Order", Value.Value: int orderValue })
             {
                 return orderValue;
             }
@@ -1973,34 +1975,35 @@ public sealed partial class GenDISourceGenerator
         INamedTypeSymbol symbol
     )
     {
-        return symbol
-            .GetMembers()
-            .OfType<IPropertySymbol>()
-            .Where(IsInjectableInitProperty)
-            .OrderBy(static property => property.Name, StringComparer.Ordinal)
-            .Select(property =>
-            {
-                var propertyType = property.Type.ToDisplayString(
-                    SymbolDisplayFormat.FullyQualifiedFormat
-                );
-                var injectMetadata = GetInjectPropertyMetadata(property);
-                var keyExpression =
-                    injectMetadata.KeyExpression ?? GetFromKeyedServicesKey(property);
-                return new InjectablePropertyInfo
+        return [
+            ..symbol
+                .GetMembers()
+                .OfType<IPropertySymbol>()
+                .Where(IsInjectableInitProperty)
+                .OrderBy(static property => property.Name, StringComparer.Ordinal)
+                .Select(property =>
                 {
-                    Name = property.Name,
-                    Type = propertyType,
-                    TypeSymbol = property.Type,
-                    KeyExpression = keyExpression,
-                    UseOptionalResolution = injectMetadata.HasInjectOptionalAttribute
-                        || ShouldUseOptionalResolution(property.Type),
-                    HasInjectAttribute = injectMetadata.HasInjectAttribute,
-                    LifetimeExpression = injectMetadata.LifetimeExpression,
-                    AllowMultipleOverride = injectMetadata.AllowMultipleOverride,
-                    UseTryAddOverride = injectMetadata.UseTryAddOverride,
-                };
-            })
-            .ToImmutableArray();
+                    var propertyType = property.Type.ToDisplayString(
+                        SymbolDisplayFormat.FullyQualifiedFormat
+                    );
+                    var injectMetadata = GetInjectPropertyMetadata(property);
+                    var keyExpression =
+                        injectMetadata.KeyExpression ?? GetFromKeyedServicesKey(property);
+                    return new InjectablePropertyInfo
+                    {
+                        Name = property.Name,
+                        Type = propertyType,
+                        TypeSymbol = property.Type,
+                        KeyExpression = keyExpression,
+                        UseOptionalResolution = injectMetadata.HasInjectOptionalAttribute
+                            || ShouldUseOptionalResolution(property.Type),
+                        HasInjectAttribute = injectMetadata.HasInjectAttribute,
+                        LifetimeExpression = injectMetadata.LifetimeExpression,
+                        AllowMultipleOverride = injectMetadata.AllowMultipleOverride,
+                        UseTryAddOverride = injectMetadata.UseTryAddOverride,
+                    };
+                })
+        ];
     }
 
     private static ImmutableArray<InjectContractRequest> GetInjectContractRequests(
@@ -2009,34 +2012,35 @@ public sealed partial class GenDISourceGenerator
         string? moduleName
     )
     {
-        return GetInjectableProperties(symbol)
-            .Where(static property => property.HasInjectAttribute)
-            .Where(static property => property.TypeSymbol is INamedTypeSymbol)
-            .Where(property => IsTypeAccessibleFromGeneratedCode(property.TypeSymbol, compilation))
-            .Select(static property => new InjectContractRequest(
-                (INamedTypeSymbol)property.TypeSymbol,
-                property.Type,
-                property.KeyExpression,
-                property.LifetimeExpression,
-                property.AllowMultipleOverride,
-                property.UseTryAddOverride,
-                null
-            ))
-            .Select(request => new InjectContractRequest(
-                request.ContractSymbol,
-                request.ServiceType,
-                request.KeyExpression,
-                request.LifetimeOverride,
-                request.AllowMultipleOverride,
-                request.UseTryAddOverride,
-                moduleName
-            ))
-            .GroupBy(
-                static request => $"{request.ServiceType}|{request.KeyExpression ?? string.Empty}",
-                StringComparer.Ordinal
-            )
-            .Select(static group => group.Last())
-            .ToImmutableArray();
+        return [
+            ..GetInjectableProperties(symbol)
+                .Where(static property => property.HasInjectAttribute)
+                .Where(static property => property.TypeSymbol is INamedTypeSymbol)
+                .Where(property => IsTypeAccessibleFromGeneratedCode(property.TypeSymbol, compilation))
+                .Select(static property => new InjectContractRequest(
+                    (INamedTypeSymbol)property.TypeSymbol,
+                    property.Type,
+                    property.KeyExpression,
+                    property.LifetimeExpression,
+                    property.AllowMultipleOverride,
+                    property.UseTryAddOverride,
+                    null
+                ))
+                .Select(request => new InjectContractRequest(
+                    request.ContractSymbol,
+                    request.ServiceType,
+                    request.KeyExpression,
+                    request.LifetimeOverride,
+                    request.AllowMultipleOverride,
+                    request.UseTryAddOverride,
+                    moduleName
+                ))
+                .GroupBy(
+                    static request => $"{request.ServiceType}|{request.KeyExpression ?? string.Empty}",
+                    StringComparer.Ordinal
+                )
+                .Select(static group => group.Last())
+        ];
     }
 
     private static bool IsInjectableInitProperty(IPropertySymbol property)
@@ -2547,12 +2551,13 @@ public sealed partial class GenDISourceGenerator
             );
         }
 
-        return candidates
-            .OrderByDescending(static candidate => LifetimePriority(candidate.Lifetime))
-            .ThenBy(static candidate => candidate.Group)
-            .ThenBy(static candidate => candidate.Order)
-            .ThenBy(static candidate => candidate.ImplementationType, StringComparer.Ordinal)
-            .ToImmutableArray();
+        return [
+            ..candidates
+                .OrderByDescending(static candidate => LifetimePriority(candidate.Lifetime))
+                .ThenBy(static candidate => candidate.Group)
+                .ThenBy(static candidate => candidate.Order)
+                .ThenBy(static candidate => candidate.ImplementationType, StringComparer.Ordinal)
+        ];
     }
 #pragma warning restore S3776
 
@@ -2701,7 +2706,7 @@ public sealed partial class GenDISourceGenerator
             return false;
         }
 
-        if (typeSymbol is INamedTypeSymbol namedType && namedType.IsGenericType)
+        if (typeSymbol is INamedTypeSymbol { IsGenericType: true } namedType)
         {
             return !namedType.IsUnboundGenericType
                 && namedType.TypeArguments.All(IsClosedTypeArgument);
@@ -2777,35 +2782,25 @@ public sealed partial class GenDISourceGenerator
         public bool? UseTryAddOverride { get; set; }
     }
 
-    private sealed class InjectPropertyMetadata
+    private sealed class InjectPropertyMetadata(
+        string? keyExpression,
+        bool hasInjectOptionalAttribute,
+        bool hasInjectAttribute,
+        string? lifetimeExpression,
+        bool? allowMultipleOverride,
+        bool? useTryAddOverride
+    )
     {
-        public InjectPropertyMetadata(
-            string? keyExpression,
-            bool hasInjectOptionalAttribute,
-            bool hasInjectAttribute,
-            string? lifetimeExpression,
-            bool? allowMultipleOverride,
-            bool? useTryAddOverride
-        )
-        {
-            KeyExpression = keyExpression;
-            HasInjectOptionalAttribute = hasInjectOptionalAttribute;
-            HasInjectAttribute = hasInjectAttribute;
-            LifetimeExpression = lifetimeExpression;
-            AllowMultipleOverride = allowMultipleOverride;
-            UseTryAddOverride = useTryAddOverride;
-        }
+        public string? KeyExpression { get; } = keyExpression;
 
-        public string? KeyExpression { get; }
+        public bool HasInjectOptionalAttribute { get; } = hasInjectOptionalAttribute;
 
-        public bool HasInjectOptionalAttribute { get; }
+        public bool HasInjectAttribute { get; } = hasInjectAttribute;
 
-        public bool HasInjectAttribute { get; }
+        public string? LifetimeExpression { get; } = lifetimeExpression;
 
-        public string? LifetimeExpression { get; }
+        public bool? AllowMultipleOverride { get; } = allowMultipleOverride;
 
-        public bool? AllowMultipleOverride { get; }
-
-        public bool? UseTryAddOverride { get; }
+        public bool? UseTryAddOverride { get; } = useTryAddOverride;
     }
 }

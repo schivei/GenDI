@@ -5,16 +5,16 @@ namespace GenDI;
 /// Apply this attribute at assembly level in the consuming project.
 /// </summary>
 [AttributeUsage(AttributeTargets.Assembly, Inherited = false, AllowMultiple = false)]
-public sealed class GenDICoverationAttribute : Attribute
+public sealed class GenDiCoverationAttribute : Attribute
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="GenDICoverationAttribute"/> class.
+    /// Initializes a new instance of the <see cref="GenDiCoverationAttribute"/> class.
     /// </summary>
     /// <param name="includeGeneratedCodeInCoverage">
     /// <see langword="true"/> to keep generated extension code included in coverage (default);
     /// <see langword="false"/> to mark generated extension code with <c>[ExcludeFromCodeCoverage]</c>.
     /// </param>
-    public GenDICoverationAttribute(bool includeGeneratedCodeInCoverage = true)
+    public GenDiCoverationAttribute(bool includeGeneratedCodeInCoverage = true)
     {
         IncludeGeneratedCodeInCoverage = includeGeneratedCodeInCoverage;
     }

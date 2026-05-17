@@ -1,19 +1,12 @@
 using Microsoft.CodeAnalysis;
 
-namespace GenDI.SourceGenerator;
+namespace GenDI.SourceGenerator.Models;
 
-internal sealed class DecoratorTarget
+internal sealed class DecoratorTarget(INamedTypeSymbol serviceType, string displayName, int order)
 {
-    public DecoratorTarget(INamedTypeSymbol serviceType, string displayName, int order)
-    {
-        ServiceType = serviceType;
-        DisplayName = displayName;
-        Order = order;
-    }
+    public INamedTypeSymbol ServiceType { get; } = serviceType;
 
-    public INamedTypeSymbol ServiceType { get; }
+    public string DisplayName { get; } = displayName;
 
-    public string DisplayName { get; }
-
-    public int Order { get; }
+    public int Order { get; } = order;
 }
