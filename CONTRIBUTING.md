@@ -56,6 +56,7 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
   git fetch origin
   git rebase origin/main
   ```
+- For documentation updates, keep repository docs and website docs aligned with the same Phase 6 baseline matrix (`docs/ROTEIRO_FASE6.md`).
 
 ---
 
@@ -98,5 +99,17 @@ docs: update README with usage examples
 2. Address any requested changes and update your branch.
 3. Once approved, a maintainer merges using **squash-and-merge**.
 4. Delete your feature branch after merging.
+
+---
+
+## Documentation consistency checklist
+
+Use this checklist whenever a change affects public behavior:
+
+- Update root docs (`README.md`, `ROADMAP.md`) with the same status semantics.
+- Update technical docs under `/docs` for canonical behavior and constraints.
+- Update mirrored website pages under `/website/docs` with equivalent wording and examples.
+- Ensure OptionConfig and registration strategy docs match current implementation (`RegistrationMultiplicity`, `RegistrationEmissionStrategy`, optional `OptionConfig` key).
+- Keep pending tracks (tooling, observability, community) explicitly marked as pending until delivered.
 
 Thank you for contributing to GenDI!

@@ -2,6 +2,13 @@
 
 This document tracks performance validation across registration strategies.
 
+## Scope note for Phase 6 documentation parity
+
+Benchmark scenarios focus on startup registration cost and activation shape. They do not attempt to benchmark every delivered Phase 6 feature (for example `RegistrationMultiplicity`/`RegistrationEmissionStrategy` policy combinations or `OptionConfig` section-selection behavior), which are documented in:
+
+- `/home/runner/work/GenDI/GenDI/docs/REGISTRATION_MODEL_RM01_RM12.md`
+- `/home/runner/work/GenDI/GenDI/docs/ROTEIRO_FASE6.md`
+
 ## Benchmark project
 
 - Project: `tests/GenDI.Benchmarks`

@@ -101,3 +101,24 @@ Assembly-level toggle for generated extension coverage behavior.
 
 - ✅ `true` => include generated extension in coverage
 - ⛔ `false` => append `[ExcludeFromCodeCoverage]` to generated extension
+
+## `OptionConfigAttribute`
+
+Marks options types for automatic `IOptions<T>` registration.
+
+```csharp
+[OptionConfig("Payments:Stripe")]
+public sealed class StripeOptions
+{
+    public required string ApiKey { get; init; }
+}
+```
+
+The key/path is optional; when omitted, GenDI uses the options type name as the section key.
+
+## `RegistrationMultiplicity` and `RegistrationEmissionStrategy`
+
+These enums let you configure generation policy across `ServiceInjection`, `Injectable`, and `Inject`:
+
+- `RegistrationMultiplicity.Single` / `Multiple`
+- `RegistrationEmissionStrategy.Add` / `TryAdd`

@@ -28,6 +28,34 @@ This page is the official reference for `GenDI.Analyzers` diagnostic IDs.
 - **When it appears**: A public constructor in an `[Injectable]` class has injectable parameters and no custom logic.
 - **How to fix**: Apply the provided code-fix to convert constructor parameters into `[Inject] required ... { get; init; }` properties.
 
+### Practical before/after for GENDI003
+
+Before:
+
+```csharp
+[Injectable]
+public sealed class CheckoutService
+{
+    private readonly IPaymentGateway _gateway;
+
+    public CheckoutService(IPaymentGateway gateway)
+    {
+        _gateway = gateway;
+    }
+}
+```
+
+After code-fix:
+
+```csharp
+[Injectable]
+public sealed class CheckoutService
+{
+    [Inject]
+    public required IPaymentGateway Gateway { get; init; }
+}
+```
+
 ## GENDI004 - Decorator attribute requires a resolvable service contract
 
 - **Category**: `GenDI.Usage`
@@ -43,3 +71,7 @@ This page is the official reference for `GenDI.Analyzers` diagnostic IDs.
 - **Message**: `Decorator '{0}' must declare a public constructor parameter or [Inject] init-only property of type '{1}'`
 - **When it appears**: A decorator does not expose the decorated contract as a public constructor parameter or `[Inject]` init-only property.
 - **How to fix**: Add a matching constructor parameter or injectable init-only property so GenDI can compose the pipeline statically.
+
+## IDE links and parity
+
+All diagnostics provide `HelpLinkUri` metadata so IDE warning entries can open the corresponding documentation page quickly. Keep this file and `website/docs/advanced/analyzer-diagnostics.md` synchronized when diagnostics change.

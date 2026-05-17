@@ -157,6 +157,32 @@ builder.Services.AddGenDIServices("Billing", "Orders");
 When module filters are provided, registrations without `Module` are omitted from the generated call.
 In the example above, `EmailNotificationService` and `OrderService` are only included when using `AddGenDIServices()` without module filters (or after assigning them to a module).
 
+### Registration strategy policy (`Single`/`Multiple`, `Add`/`TryAdd`)
+
+Use explicit strategy settings when you need deterministic overwrite/append behavior:
+
+```csharp
+[ServiceInjection(
+    RegistrationMultiplicity = RegistrationMultiplicity.Single,
+    RegistrationEmission = RegistrationEmissionStrategy.TryAdd)]
+public interface IClock
+{
+    DateTimeOffset UtcNow { get; }
+}
+```
+
+### `OptionConfig` with optional key fallback
+
+```csharp
+[OptionConfig]
+public sealed class CheckoutOptions
+{
+    public required string Currency { get; init; }
+}
+```
+
+Without an explicit key, GenDI binds `CheckoutOptions` from the `"CheckoutOptions"` configuration section.
+
 ## 📝 Common decisions
 
 - **Use `[Injectable<TService>]`** when you want explicit contract mapping.

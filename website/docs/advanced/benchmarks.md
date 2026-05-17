@@ -3,6 +3,10 @@
 GenDI includes a dedicated BenchmarkDotNet project to validate startup registration performance
 across four distinct strategies, giving developers the data to make an informed choice.
 
+## Scope note (Phase 6 parity)
+
+These benchmarks measure startup registration/activation cost. Feature-specific behavior introduced in Phase 6 (for example `RegistrationMultiplicity`/`RegistrationEmissionStrategy` combinations and `OptionConfig` section-selection evolution) is covered in functional docs and tests rather than this benchmark suite.
+
 ## 🎯 Scenarios
 
 | # | Description | How registration happens | How activation happens |

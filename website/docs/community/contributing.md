@@ -52,6 +52,14 @@ npm run build
 - 📚 Include updated documentation for public-facing changes.
 - ✅ Keep tests aligned with new behavior.
 
+### Documentation consistency checklist
+
+When behavior changes:
+
+- Update canonical repository docs in `/home/runner/work/GenDI/GenDI/docs`.
+- Keep website docs in `/home/runner/work/GenDI/GenDI/website/docs` semantically aligned.
+- Ensure Phase 6 track status remains consistent with `/home/runner/work/GenDI/GenDI/docs/ROTEIRO_FASE6.md`.
+
 ---
 
 ## ❤️ Sponsor GenDI
