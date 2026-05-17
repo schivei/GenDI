@@ -735,6 +735,200 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
+    public void Indirect_inject_duplicate_requests_are_deduplicated_for_single_and_multiple_paths()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace IndirectDuplicatePaths;
+
+            public interface ISingleContract
+            {
+            }
+
+            public interface IMultipleContract
+            {
+            }
+
+            [Injectable]
+            public sealed class FirstConsumer
+            {
+                [Inject]
+                public required ISingleContract SingleContract { get; init; }
+
+                [Inject(RegistrationMultiplicity = RegistrationMultiplicity.Multiple)]
+                public required IMultipleContract MultipleContract { get; init; }
+            }
+
+            [Injectable]
+            public sealed class SecondConsumer
+            {
+                [Inject]
+                public required ISingleContract SingleContract { get; init; }
+
+                [Inject(RegistrationMultiplicity = RegistrationMultiplicity.Multiple)]
+                public required IMultipleContract MultipleContract { get; init; }
+            }
+
+            public sealed class SingleImplementation : ISingleContract
+            {
+            }
+
+            public sealed class MultipleImplementation : IMultipleContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Equal(
+            1,
+            generatedSource
+                .Split(
+                    "services.AddTransient<global::IndirectDuplicatePaths.ISingleContract>",
+                    StringSplitOptions.None
+                )
+                .Length - 1
+        );
+        Assert.Equal(
+            1,
+            generatedSource
+                .Split(
+                    "services.AddTransient<global::IndirectDuplicatePaths.IMultipleContract>",
+                    StringSplitOptions.None
+                )
+                .Length - 1
+        );
+    }
+
+    [Fact]
+    public void Indirect_inject_supports_concrete_contracts()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace IndirectConcreteContract;
+
+            [Injectable]
+            public sealed class ConcreteDependency
+            {
+            }
+
+            [Injectable]
+            public sealed class Consumer
+            {
+                [Inject]
+                public required ConcreteDependency Dependency { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddTransient<global::IndirectConcreteContract.ConcreteDependency>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Inject_invalid_binary_enum_overrides_fall_back_to_default_behavior()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace InvalidInjectOverrideCase;
+
+            public interface IContract
+            {
+            }
+
+            [Injectable]
+            public sealed class Consumer
+            {
+                [Inject(
+                    RegistrationMultiplicity = (RegistrationMultiplicity)42,
+                    RegistrationEmission = (RegistrationEmissionStrategy)42
+                )]
+                public required IContract Contract { get; init; }
+            }
+
+            public sealed class ContractImplementation : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddTransient<global::InvalidInjectOverrideCase.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "services.TryAddTransient<global::InvalidInjectOverrideCase.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "if (!HasServiceImplementation(",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void ServiceInjection_without_explicit_lifetime_defaults_to_transient()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ServiceInjectionDefaultLifetime;
+
+            [ServiceInjection]
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>]
+            public sealed class ContractImplementation : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddTransient<global::ServiceInjectionDefaultLifetime.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Inferred_service_injection_without_explicit_lifetime_defaults_to_transient()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace InferredServiceInjectionDefaultLifetime;
+
+            [ServiceInjection]
+            public interface IContract
+            {
+            }
+
+            [Injectable]
+            public sealed class ContractImplementation : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddTransient<global::InferredServiceInjectionDefaultLifetime.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
     public void ThreadIsolation_lifetime_generates_thread_local_registration()
     {
         var generatedSource = GeneratorTestHelper.GenerateSource(
@@ -957,6 +1151,41 @@ public class SharedGeneratorBehaviorTests
 
         Assert.DoesNotContain(
             "services.AddSingleton<global::ReferencedImplementations.IPublicContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Inaccessible_base_service_injection_contract_is_ignored()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace InaccessibleBaseContractCase;
+
+            public sealed class Container
+            {
+                [ServiceInjection]
+                private abstract class HiddenContract
+                {
+                }
+
+                [Injectable]
+                public sealed class Implementation : HiddenContract
+                {
+                }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.DoesNotContain(
+            "HiddenContract",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "services.AddTransient<global::InaccessibleBaseContractCase.Container.Implementation>",
             generatedSource,
             StringComparison.Ordinal
         );

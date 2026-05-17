@@ -555,17 +555,6 @@ public sealed partial class GenDISourceGenerator
         InjectContractRequest injectRequest
     )
     {
-        if (!IsClosedType(injectRequest.ContractSymbol))
-        {
-            context.Warnings.Add(
-                BuildOpenGenericBypassWarning(
-                    injectRequest.ContractSymbol,
-                    "Indirect [Inject] contract discovery"
-                )
-            );
-            return;
-        }
-
         if (
             TryBuildOptionsRegistration(
                 injectRequest,
@@ -1101,19 +1090,6 @@ public sealed partial class GenDISourceGenerator
                     namedArgument,
                     commonSettings
                 );
-
-                if (
-                    namedArgument.Key == "ServiceType"
-                    && namedArgument.Value.Kind == TypedConstantKind.Type
-                    && namedArgument.Value.Value is INamedTypeSymbol namedServiceType
-                )
-                {
-                    serviceType = namedServiceType.ToDisplayString(
-                        SymbolDisplayFormat.FullyQualifiedFormat
-                    );
-                    serviceTypeSymbol = namedServiceType;
-                    hasOpenGenericServiceType = !IsClosedType(namedServiceType);
-                }
             }
 
             metadata = new InjectableFactoryMetadata(
@@ -2115,12 +2091,9 @@ public sealed partial class GenDISourceGenerator
 
     private static bool? ConvertBinaryEnumToBoolean(TypedConstant argument)
     {
-        if (argument.Value is null)
-        {
-            return null;
-        }
-
-        var enumValue = Convert.ToInt32(argument.Value, CultureInfo.InvariantCulture);
+        var enumValue = argument.Value is null
+            ? -1
+            : Convert.ToInt32(argument.Value, CultureInfo.InvariantCulture);
         return enumValue switch
         {
             0 => false,
