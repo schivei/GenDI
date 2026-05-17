@@ -1900,6 +1900,73 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
+    public void OptionConfig_with_whitespace_key_falls_back_to_options_type_name()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionsWhitespaceKeyCase;
+            using Microsoft.Extensions.Options;
+
+            [OptionConfig("   ")]
+            public sealed class MyOption
+            {
+                public string? Value { get; init; }
+            }
+
+            [Injectable]
+            public sealed class UsesOptions
+            {
+                [Inject]
+                public required IOptions<MyOption> Options { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddOptions<global::OptionsWhitespaceKeyCase.MyOption>().BindConfiguration(\"MyOption\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void OptionConfig_with_private_parameterless_constructor_does_not_generate_options_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionsPrivateCtorCase;
+            using Microsoft.Extensions.Options;
+
+            [OptionConfig("Features:MyOption")]
+            public sealed class MyOption
+            {
+                private MyOption() { }
+            }
+
+            [Injectable]
+            public sealed class UsesOptions
+            {
+                [Inject]
+                public required IOptions<MyOption> Options { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.DoesNotContain(
+            "services.AddOptions<global::OptionsPrivateCtorCase.MyOption>().BindConfiguration(\"Features:MyOption\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "ConfigurationBinder.Get<global::OptionsPrivateCtorCase.MyOption>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
     public void OptionConfig_private_nested_type_does_not_generate_options_registration()
     {
         var generatedSource = GeneratorTestHelper.GenerateSource(
