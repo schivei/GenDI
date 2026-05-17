@@ -30,27 +30,27 @@ dotnet run -c Release --project tests/GenDI.Benchmarks/GenDI.Benchmarks.csproj -
 ## ⚡ Latest result snapshot
 
 <!-- benchmark-ci:start -->
-_Updated by [CI run #180](https://github.com/schivei/GenDI/actions/runs/25992534772) on 2026-05-17 13:51 UTC_
+_Updated by [CI run #181](https://github.com/schivei/GenDI/actions/runs/25992899390) on 2026-05-17 14:04 UTC_
 
 | Method | Mean | Allocated |
 |---|---:|---:|
-| Manual registration (no GenDI) | 2.721 μs | 5.97 KB |
-| GenDI: constructor injection (generated) | 2.200 μs | 6.1 KB |
-| GenDI: property injection (generated) | 2.179 μs | 6.1 KB |
-| Reflection registration (no GenDI, assembly scan) | 48.477 μs | 18.24 KB |
+| Manual registration (no GenDI) | 2.771 μs | 5.97 KB |
+| GenDI: constructor injection (generated) | 2.156 μs | 6.1 KB |
+| GenDI: property injection (generated) | 2.155 μs | 6.1 KB |
+| Reflection registration (no GenDI, assembly scan) | 48.523 μs | 18.24 KB |
 
 ### CI analysis
 
-- GenDI constructor injection is **-19.1%** versus manual registration.
-- GenDI property injection is **-19.9%** versus manual registration.
-- Reflection scanning remains the outlier at **~17.8x slower** and **~3.1x higher allocation** than manual registration.
+- GenDI constructor injection is **-22.2%** versus manual registration.
+- GenDI property injection is **-22.2%** versus manual registration.
+- Reflection scanning remains the outlier at **~17.5x slower** and **~3.1x higher allocation** than manual registration.
 - Compatibility note: this benchmark compares manual and generated registrations against a reflection scanner baseline; as documented below, reflection scanning is not suitable for trimming/NativeAOT scenarios, while manual and GenDI-generated registrations remain the supported path.
 <!-- benchmark-ci:end -->
 
 <!-- benchmark-sales:start -->
 ## Why this benchmark matters
 
-> GenDI property injection is currently **19.9% faster than manual registration** in the latest CI snapshot.
+> GenDI property injection is currently **22.2% faster than manual registration** in the latest CI snapshot.
 
 - You get compile-time DI registration without paying a startup penalty for reflection scanning.
 - You remove repetitive manual wiring while keeping generated code explicit and reviewable.
