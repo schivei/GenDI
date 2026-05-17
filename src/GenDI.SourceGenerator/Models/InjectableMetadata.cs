@@ -12,6 +12,8 @@ internal sealed class InjectableMetadata
         bool hasOpenGenericExplicitServiceType,
         int order,
         int group,
+        bool? allowMultiple,
+        bool? useTryAdd,
         string? keyExpression,
         string? threadIsolationLifetime,
         string? moduleName
@@ -23,6 +25,8 @@ internal sealed class InjectableMetadata
         HasOpenGenericExplicitServiceType = hasOpenGenericExplicitServiceType;
         Order = order;
         Group = group;
+        AllowMultiple = allowMultiple;
+        UseTryAdd = useTryAdd;
         KeyExpression = keyExpression;
         ThreadIsolationLifetime = threadIsolationLifetime;
         ModuleName = moduleName;
@@ -39,6 +43,10 @@ internal sealed class InjectableMetadata
     public int Order { get; }
 
     public int Group { get; }
+
+    public bool? AllowMultiple { get; }
+
+    public bool? UseTryAdd { get; }
 
     public string? KeyExpression { get; }
 

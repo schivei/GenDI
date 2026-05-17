@@ -38,12 +38,7 @@ public sealed partial class GenDISourceGenerator
 
     private static string BuildRegistrationLine(ServiceRegistration registration)
     {
-        var registrationMethod = registration.Lifetime switch
-        {
-            "ServiceLifetime.Singleton" => "Singleton",
-            "ServiceLifetime.Scoped" => "Scoped",
-            _ => TransientRegistrationMethod,
-        };
+        var registrationMethod = GetRegistrationMethod(registration.Lifetime);
 
         var registrationStatement = BuildRegistrationStatement(registration, registrationMethod);
         registrationStatement = WrapEnvironmentRegistration(registration, registrationStatement);
@@ -99,20 +94,41 @@ public sealed partial class GenDISourceGenerator
         string registrationMethod
     )
     {
-        var registrationStatement = string.Empty;
         if (string.IsNullOrWhiteSpace(registration.KeyExpression))
         {
-            registrationStatement = string.Format(
-                GenDISourceTemplates.UnkeyedRegistrationTemplate,
-                registrationMethod,
+            if (!registration.UseTryAdd)
+            {
+                return string.Format(
+                    GenDISourceTemplates.UnkeyedAddRegistrationTemplate,
+                    registrationMethod,
+                    registration.ServiceType,
+                    registration.FactoryBody
+                );
+            }
+
+            if (!registration.AllowMultiple)
+            {
+                return string.Format(
+                    GenDISourceTemplates.UnkeyedTryAddRegistrationTemplate,
+                    registrationMethod,
+                    registration.ServiceType,
+                    registration.FactoryBody
+                );
+            }
+
+            return string.Format(
+                GenDISourceTemplates.UnkeyedTryAddMultipleGuardTemplate,
                 registration.ServiceType,
+                registration.ImplementationType,
+                registrationMethod,
                 registration.FactoryBody
             );
         }
-        else
+
+        if (!registration.UseTryAdd)
         {
-            registrationStatement = string.Format(
-                GenDISourceTemplates.KeyedRegistrationTemplate,
+            return string.Format(
+                GenDISourceTemplates.KeyedAddRegistrationTemplate,
                 registrationMethod,
                 registration.ServiceType,
                 registration.KeyExpression,
@@ -120,17 +136,31 @@ public sealed partial class GenDISourceGenerator
             );
         }
 
-        return registrationStatement;
+        if (!registration.AllowMultiple)
+        {
+            return string.Format(
+                GenDISourceTemplates.KeyedTryAddRegistrationTemplate,
+                registrationMethod,
+                registration.ServiceType,
+                registration.KeyExpression,
+                registration.FactoryBody
+            );
+        }
+
+        return string.Format(
+            GenDISourceTemplates.KeyedTryAddMultipleGuardTemplate,
+            registration.ServiceType,
+            registration.KeyExpression,
+            registration.ImplementationType,
+            registrationMethod,
+            registration.FactoryBody
+        );
     }
 
     private static string BuildThreadIsolationRegistrationStatement(ServiceRegistration registration)
     {
-        var threadIsolationMethod = registration.ThreadIsolationLifetime switch
-        {
-            "ServiceLifetime.Singleton" => "Singleton",
-            "ServiceLifetime.Scoped" => "Scoped",
-            _ => TransientRegistrationMethod,
-        };
+        var threadIsolationMethod = GetRegistrationMethod(registration.ThreadIsolationLifetime);
+        var addPrefix = registration.UseTryAdd ? "TryAdd" : "Add";
         var cacheKey = string.Format(
             GenDISourceTemplates.ThreadIsolationCacheKeyTemplate,
             EscapeStringLiteral(registration.ServiceType),
@@ -139,7 +169,7 @@ public sealed partial class GenDISourceGenerator
         );
         var cacheRegistration = string.Format(
             GenDISourceTemplates.ThreadIsolationCacheTemplate,
-            threadIsolationMethod,
+            $"{addPrefix}Keyed{threadIsolationMethod}",
             registration.ServiceType,
             cacheKey,
             registration.FactoryBody
@@ -148,19 +178,29 @@ public sealed partial class GenDISourceGenerator
         var accessRegistration = string.IsNullOrWhiteSpace(registration.KeyExpression)
             ? string.Format(
                 GenDISourceTemplates.ThreadIsolationUnkeyedAccessTemplate,
-                TransientRegistrationMethod,
+                $"{addPrefix}{TransientRegistrationMethod}",
                 registration.ServiceType,
                 cacheKey
             )
             : string.Format(
                 GenDISourceTemplates.ThreadIsolationKeyedAccessTemplate,
-                TransientRegistrationMethod,
+                $"{addPrefix}Keyed{TransientRegistrationMethod}",
                 registration.ServiceType,
                 registration.KeyExpression,
                 cacheKey
             );
 
         return $"{cacheRegistration}\n{accessRegistration}";
+    }
+
+    private static string GetRegistrationMethod(string? lifetime)
+    {
+        return lifetime switch
+        {
+            "ServiceLifetime.Singleton" => "Singleton",
+            "ServiceLifetime.Scoped" => "Scoped",
+            _ => TransientRegistrationMethod,
+        };
     }
 
     private static string GetProjectNamespace(Compilation compilation)

@@ -735,6 +735,200 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
+    public void Indirect_inject_duplicate_requests_are_deduplicated_for_single_and_multiple_paths()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace IndirectDuplicatePaths;
+
+            public interface ISingleContract
+            {
+            }
+
+            public interface IMultipleContract
+            {
+            }
+
+            [Injectable]
+            public sealed class FirstConsumer
+            {
+                [Inject]
+                public required ISingleContract SingleContract { get; init; }
+
+                [Inject(RegistrationMultiplicity = RegistrationMultiplicity.Multiple)]
+                public required IMultipleContract MultipleContract { get; init; }
+            }
+
+            [Injectable]
+            public sealed class SecondConsumer
+            {
+                [Inject]
+                public required ISingleContract SingleContract { get; init; }
+
+                [Inject(RegistrationMultiplicity = RegistrationMultiplicity.Multiple)]
+                public required IMultipleContract MultipleContract { get; init; }
+            }
+
+            public sealed class SingleImplementation : ISingleContract
+            {
+            }
+
+            public sealed class MultipleImplementation : IMultipleContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Equal(
+            1,
+            generatedSource
+                .Split(
+                    "services.AddTransient<global::IndirectDuplicatePaths.ISingleContract>",
+                    StringSplitOptions.None
+                )
+                .Length - 1
+        );
+        Assert.Equal(
+            1,
+            generatedSource
+                .Split(
+                    "services.AddTransient<global::IndirectDuplicatePaths.IMultipleContract>",
+                    StringSplitOptions.None
+                )
+                .Length - 1
+        );
+    }
+
+    [Fact]
+    public void Indirect_inject_supports_concrete_contracts()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace IndirectConcreteContract;
+
+            [Injectable]
+            public sealed class ConcreteDependency
+            {
+            }
+
+            [Injectable]
+            public sealed class Consumer
+            {
+                [Inject]
+                public required ConcreteDependency Dependency { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddTransient<global::IndirectConcreteContract.ConcreteDependency>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Inject_invalid_binary_enum_overrides_fall_back_to_default_behavior()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace InvalidInjectOverrideCase;
+
+            public interface IContract
+            {
+            }
+
+            [Injectable]
+            public sealed class Consumer
+            {
+                [Inject(
+                    RegistrationMultiplicity = (RegistrationMultiplicity)42,
+                    RegistrationEmission = (RegistrationEmissionStrategy)42
+                )]
+                public required IContract Contract { get; init; }
+            }
+
+            public sealed class ContractImplementation : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddTransient<global::InvalidInjectOverrideCase.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "services.TryAddTransient<global::InvalidInjectOverrideCase.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "if (!HasServiceImplementation(",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void ServiceInjection_without_explicit_lifetime_defaults_to_transient()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ServiceInjectionDefaultLifetime;
+
+            [ServiceInjection]
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>]
+            public sealed class ContractImplementation : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddTransient<global::ServiceInjectionDefaultLifetime.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Inferred_service_injection_without_explicit_lifetime_defaults_to_transient()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace InferredServiceInjectionDefaultLifetime;
+
+            [ServiceInjection]
+            public interface IContract
+            {
+            }
+
+            [Injectable]
+            public sealed class ContractImplementation : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddTransient<global::InferredServiceInjectionDefaultLifetime.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
     public void ThreadIsolation_lifetime_generates_thread_local_registration()
     {
         var generatedSource = GeneratorTestHelper.GenerateSource(
@@ -957,6 +1151,41 @@ public class SharedGeneratorBehaviorTests
 
         Assert.DoesNotContain(
             "services.AddSingleton<global::ReferencedImplementations.IPublicContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Inaccessible_base_service_injection_contract_is_ignored()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace InaccessibleBaseContractCase;
+
+            public sealed class Container
+            {
+                [ServiceInjection]
+                private abstract class HiddenContract
+                {
+                }
+
+                [Injectable]
+                public sealed class Implementation : HiddenContract
+                {
+                }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.DoesNotContain(
+            "HiddenContract",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "services.AddTransient<global::InaccessibleBaseContractCase.Container.Implementation>",
             generatedSource,
             StringComparison.Ordinal
         );
@@ -1809,6 +2038,328 @@ public class SharedGeneratorBehaviorTests
             1,
             generatedSource.Split(registrationLine, StringSplitOptions.None).Length - 1
         );
+    }
+
+    [Fact]
+    public void ServiceInjection_single_tryadd_emits_single_tryadd_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ExplicitSingleTryAddCase;
+
+            [ServiceInjection(
+                RegistrationMultiplicity = RegistrationMultiplicity.Single,
+                RegistrationEmission = RegistrationEmissionStrategy.TryAdd
+            )]
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>]
+            public sealed class FirstImpl : IContract
+            {
+            }
+
+            [Injectable<IContract>]
+            public sealed class SecondImpl : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.TryAddTransient<global::ExplicitSingleTryAddCase.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Equal(
+            1,
+            generatedSource
+                .Split(
+                    "services.TryAddTransient<global::ExplicitSingleTryAddCase.IContract>",
+                    StringSplitOptions.None
+                )
+                .Length - 1
+        );
+    }
+
+    [Fact]
+    public void Injectable_multiple_tryadd_emits_multiple_guarded_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ExplicitMultipleTryAddCase;
+
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>(
+                RegistrationMultiplicity = RegistrationMultiplicity.Multiple,
+                RegistrationEmission = RegistrationEmissionStrategy.TryAdd
+            )]
+            public sealed class Impl : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "if (!HasServiceImplementation(services, typeof(global::ExplicitMultipleTryAddCase.IContract), typeof(global::ExplicitMultipleTryAddCase.Impl)))",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "services.AddTransient<global::ExplicitMultipleTryAddCase.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Inferred_flow_without_serviceInjection_allows_multiple_tryadd_strategy()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace InferredMultipleTryAddCase;
+
+            public interface IContract
+            {
+            }
+
+            [Injectable]
+            public sealed class Consumer
+            {
+                [Inject(
+                    RegistrationMultiplicity = RegistrationMultiplicity.Multiple,
+                    RegistrationEmission = RegistrationEmissionStrategy.TryAdd
+                )]
+                public required IContract Contract { get; init; }
+            }
+
+            public sealed class FirstImpl : IContract
+            {
+            }
+
+            public sealed class SecondImpl : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "typeof(global::InferredMultipleTryAddCase.FirstImpl)",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "typeof(global::InferredMultipleTryAddCase.SecondImpl)",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "HasServiceImplementation(services, typeof(global::InferredMultipleTryAddCase.IContract)",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void ServiceInjection_strategy_prevails_over_injectable_strategy_when_contract_chain_exists()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace ServiceInjectionPrecedenceCase;
+
+            [ServiceInjection(
+                RegistrationMultiplicity = RegistrationMultiplicity.Single,
+                RegistrationEmission = RegistrationEmissionStrategy.TryAdd
+            )]
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>(
+                RegistrationMultiplicity = RegistrationMultiplicity.Multiple,
+                RegistrationEmission = RegistrationEmissionStrategy.Add
+            )]
+            public sealed class Impl : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.TryAddTransient<global::ServiceInjectionPrecedenceCase.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "HasServiceImplementation(services, typeof(global::ServiceInjectionPrecedenceCase.IContract)",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "services.AddTransient<global::ServiceInjectionPrecedenceCase.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void ServiceInjection_single_tryadd_with_key_emits_tryadd_keyed_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace KeyedSingleTryAddCase;
+
+            [ServiceInjection(
+                RegistrationMultiplicity = RegistrationMultiplicity.Single,
+                RegistrationEmission = RegistrationEmissionStrategy.TryAdd
+            )]
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>(Key = "contract-key")]
+            public sealed class Impl : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.TryAddKeyedTransient<global::KeyedSingleTryAddCase.IContract>(\"contract-key\"",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void ServiceInjection_multiple_tryadd_with_key_emits_guarded_keyed_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace KeyedMultipleTryAddCase;
+
+            [ServiceInjection(
+                RegistrationMultiplicity = RegistrationMultiplicity.Multiple,
+                RegistrationEmission = RegistrationEmissionStrategy.TryAdd
+            )]
+            public interface IContract
+            {
+            }
+
+            [Injectable<IContract>(Key = "contract-key")]
+            public sealed class FirstImpl : IContract
+            {
+            }
+
+            [Injectable<IContract>(Key = "contract-key")]
+            public sealed class SecondImpl : IContract
+            {
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "if (!HasKeyedServiceImplementation(services, typeof(global::KeyedMultipleTryAddCase.IContract), \"contract-key\", typeof(global::KeyedMultipleTryAddCase.FirstImpl)))",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "services.AddKeyedTransient<global::KeyedMultipleTryAddCase.IContract>(\"contract-key\"",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void ServiceRegistrationComparer_includes_strategy_and_module_in_equality()
+    {
+        var generatorAssembly = typeof(GenDI.SourceGenerator.GenDISourceGenerator).Assembly;
+        var registrationType = generatorAssembly.GetType(
+            "GenDI.SourceGenerator.ServiceRegistration",
+            throwOnError: true
+        )!;
+        var comparerType = generatorAssembly.GetType(
+            "GenDI.SourceGenerator.ServiceRegistrationComparer",
+            throwOnError: true
+        )!;
+        var registrationConstructor = registrationType.GetConstructors(
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
+        )[0];
+
+        object CreateRegistration(bool allowMultiple, bool useTryAdd, string? moduleName)
+        {
+            return registrationConstructor.Invoke(
+                new object?[]
+                {
+                    "global::TestNamespace.IService",
+                    "global::TestNamespace.Impl",
+                    "ServiceLifetime.Transient",
+                    allowMultiple,
+                    useTryAdd,
+                    null,
+                    "new global::TestNamespace.Impl()",
+                    0,
+                    0,
+                    null,
+                    null,
+                    moduleName,
+                }
+            );
+        }
+
+        var baseline = CreateRegistration(allowMultiple: true, useTryAdd: true, moduleName: "Billing");
+        var same = CreateRegistration(allowMultiple: true, useTryAdd: true, moduleName: "Billing");
+        var differentMultiplicity = CreateRegistration(
+            allowMultiple: false,
+            useTryAdd: true,
+            moduleName: "Billing"
+        );
+        var differentEmission = CreateRegistration(
+            allowMultiple: true,
+            useTryAdd: false,
+            moduleName: "Billing"
+        );
+        var differentModule = CreateRegistration(
+            allowMultiple: true,
+            useTryAdd: true,
+            moduleName: "Orders"
+        );
+
+        var comparer = comparerType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)!
+            .GetValue(null)!;
+        var equalsMethod = comparerType.GetMethod(
+            "Equals",
+            BindingFlags.Public | BindingFlags.Instance,
+            binder: null,
+            new[] { registrationType, registrationType },
+            modifiers: null
+        )!;
+        var getHashCodeMethod = comparerType.GetMethod(
+            "GetHashCode",
+            BindingFlags.Public | BindingFlags.Instance,
+            binder: null,
+            new[] { registrationType },
+            modifiers: null
+        )!;
+
+        Assert.True((bool)equalsMethod.Invoke(comparer, new[] { baseline, same })!);
+        Assert.False((bool)equalsMethod.Invoke(comparer, new[] { baseline, differentMultiplicity })!);
+        Assert.False((bool)equalsMethod.Invoke(comparer, new[] { baseline, differentEmission })!);
+        Assert.False((bool)equalsMethod.Invoke(comparer, new[] { baseline, differentModule })!);
+
+        var baselineHash = (int)getHashCodeMethod.Invoke(comparer, new[] { baseline })!;
+        var sameHash = (int)getHashCodeMethod.Invoke(comparer, new[] { same })!;
+        Assert.Equal(baselineHash, sameHash);
     }
 
     [Fact]

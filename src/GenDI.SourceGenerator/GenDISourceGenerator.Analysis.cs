@@ -11,6 +11,12 @@ public sealed partial class GenDISourceGenerator
 {
     private const string TransientLifetimeExpression = "ServiceLifetime.Transient";
     private const string SingletonLifetimeExpression = "ServiceLifetime.Singleton";
+    private const string ServiceInjectionAttributeMetadataName = "GenDI.ServiceInjectionAttribute";
+    private const string InjectAttributeMetadataName = "GenDI.InjectAttribute";
+    private const string InjectOptionalAttributeMetadataName = "GenDI.InjectOptionalAttribute";
+    private const bool DefaultAllowMultipleDirectRegistration = true;
+    private const bool DefaultAllowMultipleIndirectRegistration = false;
+    private const bool DefaultUseTryAddRegistration = false;
 
     private static RegistrationBuildResult BuildRegistrations(
         Compilation compilation,
@@ -88,9 +94,10 @@ public sealed partial class GenDISourceGenerator
             referencedDecoratorIdentities
         );
         var chainedExtensionCalls = BuildChainedExtensionCalls(compilation);
+        var normalizedRegistrations = NormalizeRegistrationMultiplicity(registrations);
 
         return new RegistrationBuildResult(
-            registrations.ToImmutableArray(),
+            normalizedRegistrations,
             chainedExtensionCalls,
             warnings
                 .Where(static warning => warning.Location is { IsInSource: true })
@@ -105,6 +112,41 @@ public sealed partial class GenDISourceGenerator
                 .Select(static group => group.First())
                 .ToImmutableArray()
         );
+    }
+
+    private static ImmutableArray<ServiceRegistration> NormalizeRegistrationMultiplicity(
+        IEnumerable<ServiceRegistration> registrations
+    )
+    {
+        var normalized = ImmutableArray.CreateBuilder<ServiceRegistration>();
+        foreach (
+            var group in registrations.GroupBy(
+                static registration => BuildRegistrationIdentity(
+                    registration.ServiceType,
+                    registration.KeyExpression,
+                    registration.EnvironmentName,
+                    registration.ModuleName
+                ),
+                StringComparer.Ordinal
+            )
+        )
+        {
+            if (group.Any(static registration => registration.AllowMultiple))
+            {
+                normalized.AddRange(group);
+                continue;
+            }
+
+            var selectedRegistration = group
+                .OrderByDescending(static registration => LifetimePriority(registration.Lifetime))
+                .ThenBy(static registration => registration.Group)
+                .ThenBy(static registration => registration.Order)
+                .ThenBy(static registration => registration.ImplementationType, StringComparer.Ordinal)
+                .First();
+            normalized.Add(selectedRegistration);
+        }
+
+        return normalized.ToImmutable();
     }
 
     private static ImmutableArray<string> BuildChainedExtensionCalls(Compilation compilation)
@@ -424,11 +466,22 @@ public sealed partial class GenDISourceGenerator
         var factoryBody = BuildFactoryBody(symbol, implementationType, constructor, null, null);
         var environmentName = GetConditionalEnvironmentName(symbol);
         var moduleName = injectableMetadata.ModuleName ?? GetModuleName(symbol);
+        var hasServiceInjectionContracts = GetClosedServiceInjectionContracts(compilation, symbol).Length > 0;
 
         return serviceTypes.Select(serviceType => new ServiceRegistration(
             serviceType.ServiceType,
             implementationType,
             ResolveRegistrationLifetime(injectableMetadata.Lifetime, serviceType.FallbackLifetime),
+            ResolveAllowMultiple(
+                hasServiceInjectionContracts ? null : injectableMetadata.AllowMultiple,
+                serviceType.FallbackAllowMultiple,
+                DefaultAllowMultipleDirectRegistration
+            ),
+            ResolveUseTryAdd(
+                hasServiceInjectionContracts ? null : injectableMetadata.UseTryAdd,
+                serviceType.FallbackUseTryAdd,
+                DefaultUseTryAddRegistration
+            ),
             ResolveThreadIsolationLifetime(
                 injectableMetadata.ThreadIsolationLifetime,
                 serviceType.FallbackThreadIsolationLifetime
@@ -455,6 +508,10 @@ public sealed partial class GenDISourceGenerator
             existingRegistrations.Select(BuildRegistrationIdentity),
             StringComparer.Ordinal
         );
+        var existingImplementationKeys = new HashSet<string>(
+            existingRegistrations.Select(BuildRegistrationImplementationIdentity),
+            StringComparer.Ordinal
+        );
         var injectRequests = injectableTypes
             .SelectMany(pair =>
                 GetInjectContractRequests(
@@ -464,94 +521,190 @@ public sealed partial class GenDISourceGenerator
                 )
             )
             .ToImmutableArray();
+        var context = (
+            Warnings: warnings,
+            ExistingKeys: existingKeys,
+            ExistingImplementationKeys: existingImplementationKeys,
+            Registrations: registrations
+        );
 
         foreach (var injectRequest in injectRequests)
         {
-            if (!IsClosedType(injectRequest.ContractSymbol))
-            {
-                warnings.Add(
-                    BuildOpenGenericBypassWarning(
-                        injectRequest.ContractSymbol,
-                        "Indirect [Inject] contract discovery"
-                    )
-                );
-                continue;
-            }
-
-            if (
-                TryBuildOptionsRegistration(
-                    injectRequest,
-                    existingKeys,
-                    out var optionsRegistration
-                )
-            )
-            {
-                registrations.Add(optionsRegistration);
-                existingKeys.Add(BuildRegistrationIdentity(optionsRegistration));
-                continue;
-            }
-
-            var registrationIdentity = BuildRegistrationIdentity(
-                injectRequest.ServiceType,
-                injectRequest.KeyExpression,
-                environmentName: null,
-                moduleName: injectRequest.ModuleName
-            );
-            if (existingKeys.Contains(registrationIdentity))
-            {
-                continue;
-            }
-
-            var contractFallbackLifetime = TryGetServiceInjectionLifetime(
-                injectRequest.ContractSymbol
-            );
-            var contractFallbackThreadIsolation = TryGetServiceInjectionThreadIsolationLifetime(
-                injectRequest.ContractSymbol
-            );
-            var bestCandidate = FindIndirectImplementationCandidate(
+            ProcessIndirectInjectRequest(
                 compilation,
-                injectRequest.ContractSymbol,
-                injectRequest.ServiceType,
                 concreteTypes,
                 injectableTypes,
-                contractFallbackLifetime,
-                contractFallbackThreadIsolation
+                context,
+                injectRequest
             );
+        }
 
-            if (bestCandidate is null)
+        return registrations;
+    }
+
+    private static void ProcessIndirectInjectRequest(
+        Compilation compilation,
+        ImmutableArray<INamedTypeSymbol> concreteTypes,
+        IDictionary<INamedTypeSymbol, InjectableMetadata> injectableTypes,
+        (
+            IList<OpenGenericBypassWarning> Warnings,
+            HashSet<string> ExistingKeys,
+            HashSet<string> ExistingImplementationKeys,
+            IList<ServiceRegistration> Registrations
+        ) context,
+        InjectContractRequest injectRequest
+    )
+    {
+        if (
+            TryBuildOptionsRegistration(
+                injectRequest,
+                context.ExistingKeys,
+                out var optionsRegistration
+            )
+        )
+        {
+            context.Registrations.Add(optionsRegistration);
+            context.ExistingKeys.Add(BuildRegistrationIdentity(optionsRegistration));
+            return;
+        }
+
+        var contractFallbackLifetime = TryGetServiceInjectionLifetime(injectRequest.ContractSymbol);
+        var contractFallbackThreadIsolation = TryGetServiceInjectionThreadIsolationLifetime(
+            injectRequest.ContractSymbol
+        );
+        var contractFallbackAllowMultiple = TryGetServiceInjectionAllowMultiple(
+            injectRequest.ContractSymbol
+        );
+        var contractFallbackUseTryAdd = TryGetServiceInjectionUseTryAdd(injectRequest.ContractSymbol);
+        var candidates = FindIndirectImplementationCandidates(
+            compilation,
+            injectRequest.ContractSymbol,
+            injectRequest.ServiceType,
+            concreteTypes,
+            injectableTypes,
+            contractFallbackLifetime,
+            contractFallbackThreadIsolation
+        );
+
+        if (candidates.Length == 0)
+        {
+            return;
+        }
+
+        var allowMultiple = ResolveAllowMultiple(
+            injectRequest.AllowMultipleOverride,
+            contractFallbackAllowMultiple
+                ?? candidates.Select(static candidate => candidate.AllowMultiple).FirstOrDefault(
+                    static value => value.HasValue
+                ),
+            DefaultAllowMultipleIndirectRegistration
+        );
+        var selectedCandidates = allowMultiple ? candidates : candidates.Take(1).ToImmutableArray();
+
+        foreach (var candidate in selectedCandidates)
+        {
+            AddIndirectCandidateRegistration(
+                injectRequest,
+                candidate,
+                allowMultiple,
+                contractFallbackUseTryAdd,
+                context.ExistingKeys,
+                context.ExistingImplementationKeys,
+                context.Registrations
+            );
+        }
+    }
+
+    private static void AddIndirectCandidateRegistration(
+        InjectContractRequest injectRequest,
+        ImplementationCandidate candidate,
+        bool allowMultiple,
+        bool? contractFallbackUseTryAdd,
+        ISet<string> existingKeys,
+        ISet<string> existingImplementationKeys,
+        IList<ServiceRegistration> registrations
+    )
+    {
+        var constructor = FindBestPublicConstructor(candidate.Symbol);
+        var factoryBody = BuildFactoryBody(
+            candidate.Symbol,
+            candidate.ImplementationType,
+            constructor,
+            null,
+            null
+        );
+        var finalLifetime = injectRequest.LifetimeOverride ?? candidate.Lifetime;
+        var environmentName = GetConditionalEnvironmentName(candidate.Symbol);
+        var moduleName = injectRequest.ModuleName ?? candidate.ModuleName;
+        var useTryAdd =
+            injectRequest.UseTryAddOverride
+            ?? contractFallbackUseTryAdd
+            ?? candidate.UseTryAdd
+            ?? DefaultUseTryAddRegistration;
+        var registrationImplementationIdentity = BuildRegistrationImplementationIdentity(
+            injectRequest.ServiceType,
+            candidate.ImplementationType,
+            injectRequest.KeyExpression,
+            environmentName,
+            moduleName
+        );
+
+        if (allowMultiple)
+        {
+            if (existingImplementationKeys.Contains(registrationImplementationIdentity))
             {
-                continue;
+                return;
             }
-
-            var constructor = FindBestPublicConstructor(bestCandidate.Symbol);
-            var factoryBody = BuildFactoryBody(
-                bestCandidate.Symbol,
-                bestCandidate.ImplementationType,
-                constructor,
-                null,
-                null
-            );
-            var finalLifetime = injectRequest.LifetimeOverride ?? bestCandidate.Lifetime;
-            var environmentName = GetConditionalEnvironmentName(bestCandidate.Symbol);
 
             registrations.Add(
                 new ServiceRegistration(
                     injectRequest.ServiceType,
-                    bestCandidate.ImplementationType,
+                    candidate.ImplementationType,
                     finalLifetime,
-                    bestCandidate.ThreadIsolationLifetime,
+                    allowMultiple: true,
+                    useTryAdd,
+                    candidate.ThreadIsolationLifetime,
                     factoryBody,
-                    bestCandidate.Order,
-                    bestCandidate.Group,
+                    candidate.Order,
+                    candidate.Group,
                     injectRequest.KeyExpression,
                     environmentName,
-                    injectRequest.ModuleName ?? bestCandidate.ModuleName
+                    moduleName
                 )
             );
-            existingKeys.Add(registrationIdentity);
+            existingImplementationKeys.Add(registrationImplementationIdentity);
+            return;
         }
 
-        return registrations;
+        var registrationIdentity = BuildRegistrationIdentity(
+            injectRequest.ServiceType,
+            injectRequest.KeyExpression,
+            environmentName,
+            moduleName
+        );
+        if (existingKeys.Contains(registrationIdentity))
+        {
+            return;
+        }
+
+        registrations.Add(
+            new ServiceRegistration(
+                injectRequest.ServiceType,
+                candidate.ImplementationType,
+                finalLifetime,
+                allowMultiple: false,
+                useTryAdd,
+                candidate.ThreadIsolationLifetime,
+                factoryBody,
+                candidate.Order,
+                candidate.Group,
+                injectRequest.KeyExpression,
+                environmentName,
+                moduleName
+            )
+        );
+        existingKeys.Add(registrationIdentity);
+        existingImplementationKeys.Add(registrationImplementationIdentity);
     }
 
     private static void ApplyDecorators(
@@ -622,6 +775,8 @@ public sealed partial class GenDISourceGenerator
                     existingRegistration.ServiceType,
                     implementationType,
                     existingRegistration.Lifetime,
+                    existingRegistration.AllowMultiple,
+                    existingRegistration.UseTryAdd,
                     existingRegistration.ThreadIsolationLifetime,
                     factoryBody,
                     existingRegistration.Order,
@@ -806,6 +961,8 @@ public sealed partial class GenDISourceGenerator
                             SymbolDisplayFormat.FullyQualifiedFormat
                         ),
                         factoryMetadata.Lifetime,
+                        DefaultAllowMultipleDirectRegistration,
+                        DefaultUseTryAddRegistration,
                         factoryMetadata.ThreadIsolationLifetime,
                         factoryCall,
                         factoryMetadata.Order,
@@ -882,11 +1039,7 @@ public sealed partial class GenDISourceGenerator
             var serviceType = default(string);
             var serviceTypeSymbol = default(ITypeSymbol);
             var hasOpenGenericServiceType = false;
-            var order = DefaultOrderingValue;
-            var group = DefaultOrderingValue;
-            var keyExpression = default(string);
-            var threadIsolationLifetime = default(string);
-            var moduleName = default(string);
+            var commonSettings = new CommonRegistrationSettings();
 
             if (
                 attributeClass.Arity == 1
@@ -935,25 +1088,8 @@ public sealed partial class GenDISourceGenerator
             {
                 ApplyCommonRegistrationNamedArgument(
                     namedArgument,
-                    ref order,
-                    ref group,
-                    ref keyExpression,
-                    ref threadIsolationLifetime,
-                    ref moduleName
+                    commonSettings
                 );
-
-                if (
-                    namedArgument.Key == "ServiceType"
-                    && namedArgument.Value.Kind == TypedConstantKind.Type
-                    && namedArgument.Value.Value is INamedTypeSymbol namedServiceType
-                )
-                {
-                    serviceType = namedServiceType.ToDisplayString(
-                        SymbolDisplayFormat.FullyQualifiedFormat
-                    );
-                    serviceTypeSymbol = namedServiceType;
-                    hasOpenGenericServiceType = !IsClosedType(namedServiceType);
-                }
             }
 
             metadata = new InjectableFactoryMetadata(
@@ -961,11 +1097,11 @@ public sealed partial class GenDISourceGenerator
                 serviceType,
                 serviceTypeSymbol,
                 hasOpenGenericServiceType,
-                order,
-                group,
-                keyExpression,
-                threadIsolationLifetime,
-                moduleName
+                commonSettings.Order,
+                commonSettings.Group,
+                commonSettings.KeyExpression,
+                commonSettings.ThreadIsolationLifetime,
+                commonSettings.ModuleName
             );
             return true;
         }
@@ -1015,6 +1151,8 @@ public sealed partial class GenDISourceGenerator
             optionsContractType,
             optionsTypeDisplay,
             injectRequest.LifetimeOverride ?? SingletonLifetimeExpression,
+            injectRequest.AllowMultipleOverride ?? DefaultAllowMultipleIndirectRegistration,
+            injectRequest.UseTryAddOverride ?? DefaultUseTryAddRegistration,
             threadIsolationLifetime: null,
             factoryBody,
             order: DefaultOrderingValue,
@@ -1046,6 +1184,28 @@ public sealed partial class GenDISourceGenerator
         return $"{serviceType}|{keyExpression ?? string.Empty}|{environmentName ?? string.Empty}|{moduleName ?? string.Empty}";
     }
 
+    private static string BuildRegistrationImplementationIdentity(ServiceRegistration registration)
+    {
+        return BuildRegistrationImplementationIdentity(
+            registration.ServiceType,
+            registration.ImplementationType,
+            registration.KeyExpression,
+            registration.EnvironmentName,
+            registration.ModuleName
+        );
+    }
+
+    private static string BuildRegistrationImplementationIdentity(
+        string serviceType,
+        string implementationType,
+        string? keyExpression,
+        string? environmentName,
+        string? moduleName
+    )
+    {
+        return $"{BuildRegistrationIdentity(serviceType, keyExpression, environmentName, moduleName)}|{implementationType}";
+    }
+
 #pragma warning disable S3776 // registration extraction logic is intentionally centralized
     private static bool TryGetInjectableAttribute(
         INamedTypeSymbol symbol,
@@ -1059,6 +1219,8 @@ public sealed partial class GenDISourceGenerator
             hasOpenGenericExplicitServiceType: false,
             order: DefaultOrderingValue,
             group: DefaultOrderingValue,
+            allowMultiple: null,
+            useTryAdd: null,
             keyExpression: null,
             threadIsolationLifetime: null,
             moduleName: null
@@ -1076,11 +1238,7 @@ public sealed partial class GenDISourceGenerator
             var explicitServiceType = default(string);
             var explicitServiceTypeSymbol = default(ITypeSymbol);
             var hasOpenGenericExplicitServiceType = false;
-            var order = DefaultOrderingValue;
-            var group = DefaultOrderingValue;
-            var keyExpression = default(string);
-            var threadIsolationLifetime = default(string);
-            var moduleName = default(string);
+            var commonSettings = new CommonRegistrationSettings();
 
             if (attributeData.ConstructorArguments.Length > 0)
             {
@@ -1106,11 +1264,7 @@ public sealed partial class GenDISourceGenerator
             {
                 ApplyCommonRegistrationNamedArgument(
                     namedArgument,
-                    ref order,
-                    ref group,
-                    ref keyExpression,
-                    ref threadIsolationLifetime,
-                    ref moduleName
+                    commonSettings
                 );
             }
 
@@ -1119,11 +1273,13 @@ public sealed partial class GenDISourceGenerator
                 explicitServiceType,
                 explicitServiceTypeSymbol,
                 hasOpenGenericExplicitServiceType,
-                order,
-                group,
-                keyExpression,
-                threadIsolationLifetime,
-                moduleName ?? GetModuleName(symbol)
+                commonSettings.Order,
+                commonSettings.Group,
+                commonSettings.AllowMultiple,
+                commonSettings.UseTryAdd,
+                commonSettings.KeyExpression,
+                commonSettings.ThreadIsolationLifetime,
+                commonSettings.ModuleName ?? GetModuleName(symbol)
             );
             return true;
         }
@@ -1139,31 +1295,35 @@ public sealed partial class GenDISourceGenerator
 
     private static void ApplyCommonRegistrationNamedArgument(
         KeyValuePair<string, TypedConstant> namedArgument,
-        ref int order,
-        ref int group,
-        ref string? keyExpression,
-        ref string? threadIsolationLifetime,
-        ref string? moduleName
+        CommonRegistrationSettings settings
     )
     {
         switch (namedArgument.Key)
         {
             case "Order" when namedArgument.Value.Value is int orderValue:
-                order = orderValue;
+                settings.Order = orderValue;
                 break;
             case "Group" when namedArgument.Value.Value is int groupValue:
-                group = groupValue;
+                settings.Group = groupValue;
+                break;
+            case "RegistrationMultiplicity":
+                settings.AllowMultiple = ConvertRegistrationMultiplicityToAllowMultiple(
+                    namedArgument.Value
+                );
+                break;
+            case "RegistrationEmission":
+                settings.UseTryAdd = ConvertRegistrationEmissionToUseTryAdd(namedArgument.Value);
                 break;
             case "Key":
-                keyExpression = BuildTypedConstantExpression(namedArgument.Value);
+                settings.KeyExpression = BuildTypedConstantExpression(namedArgument.Value);
                 break;
             case "ThreadIsolation":
-                threadIsolationLifetime = ConvertThreadIsolationPolicyToLifetimeExpression(
+                settings.ThreadIsolationLifetime = ConvertThreadIsolationPolicyToLifetimeExpression(
                     namedArgument.Value
                 );
                 break;
             case "Module" when namedArgument.Value.Value is string moduleValue:
-                moduleName = moduleValue;
+                settings.ModuleName = moduleValue;
                 break;
         }
     }
@@ -1305,7 +1465,7 @@ public sealed partial class GenDISourceGenerator
                 && IsTypeAccessibleFromGeneratedCode(explicitServiceTypeSymbol, compilation)
             )
             {
-                serviceTypes.Add(new ServiceContractTarget(explicitServiceType, null, null));
+                serviceTypes.Add(new ServiceContractTarget(explicitServiceType, null, null, null, null));
             }
         }
 
@@ -1337,7 +1497,9 @@ public sealed partial class GenDISourceGenerator
                 new ServiceContractTarget(
                     interfaceSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                     TryGetServiceInjectionLifetime(interfaceSymbol),
-                    TryGetServiceInjectionThreadIsolationLifetime(interfaceSymbol)
+                    TryGetServiceInjectionThreadIsolationLifetime(interfaceSymbol),
+                    TryGetServiceInjectionAllowMultiple(interfaceSymbol),
+                    TryGetServiceInjectionUseTryAdd(interfaceSymbol)
                 )
             );
         }
@@ -1370,7 +1532,9 @@ public sealed partial class GenDISourceGenerator
                     new ServiceContractTarget(
                         baseType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                         TryGetServiceInjectionLifetime(baseType),
-                        TryGetServiceInjectionThreadIsolationLifetime(baseType)
+                        TryGetServiceInjectionThreadIsolationLifetime(baseType),
+                        TryGetServiceInjectionAllowMultiple(baseType),
+                        TryGetServiceInjectionUseTryAdd(baseType)
                     )
                 );
             }
@@ -1380,7 +1544,7 @@ public sealed partial class GenDISourceGenerator
 
         if (!hasAnyContract)
         {
-            serviceTypes.Add(new ServiceContractTarget(implementationType, null, null));
+            serviceTypes.Add(new ServiceContractTarget(implementationType, null, null, null, null));
         }
 
         return serviceTypes
@@ -1400,7 +1564,7 @@ public sealed partial class GenDISourceGenerator
         return symbol
             .GetAttributes()
             .Any(attributeData =>
-                attributeData.AttributeClass?.ToDisplayString() == "GenDI.ServiceInjectionAttribute"
+                attributeData.AttributeClass?.ToDisplayString() == ServiceInjectionAttributeMetadataName
             );
     }
 
@@ -1472,6 +1636,24 @@ public sealed partial class GenDISourceGenerator
         return string.IsNullOrWhiteSpace(fallbackLifetime) ? injectableLifetime : fallbackLifetime;
     }
 
+    private static bool ResolveAllowMultiple(
+        bool? implementationAllowMultiple,
+        bool? fallbackAllowMultiple,
+        bool defaultValue
+    )
+    {
+        return implementationAllowMultiple ?? fallbackAllowMultiple ?? defaultValue;
+    }
+
+    private static bool ResolveUseTryAdd(
+        bool? implementationUseTryAdd,
+        bool? fallbackUseTryAdd,
+        bool defaultValue
+    )
+    {
+        return implementationUseTryAdd ?? fallbackUseTryAdd ?? defaultValue;
+    }
+
     private static string? ResolveThreadIsolationLifetime(
         string? injectableThreadIsolationLifetime,
         string? fallbackThreadIsolationLifetime
@@ -1487,7 +1669,7 @@ public sealed partial class GenDISourceGenerator
         foreach (var attributeData in symbol.GetAttributes())
         {
             if (
-                attributeData.AttributeClass?.ToDisplayString() != "GenDI.ServiceInjectionAttribute"
+                attributeData.AttributeClass?.ToDisplayString() != ServiceInjectionAttributeMetadataName
             )
             {
                 continue;
@@ -1509,7 +1691,7 @@ public sealed partial class GenDISourceGenerator
         foreach (var attributeData in symbol.GetAttributes())
         {
             if (
-                attributeData.AttributeClass?.ToDisplayString() != "GenDI.ServiceInjectionAttribute"
+                attributeData.AttributeClass?.ToDisplayString() != ServiceInjectionAttributeMetadataName
             )
             {
                 continue;
@@ -1524,6 +1706,52 @@ public sealed partial class GenDISourceGenerator
             }
 
             return null;
+        }
+
+        return null;
+    }
+
+    private static bool? TryGetServiceInjectionAllowMultiple(ITypeSymbol symbol)
+    {
+        foreach (var attributeData in symbol.GetAttributes())
+        {
+            if (
+                attributeData.AttributeClass?.ToDisplayString() != ServiceInjectionAttributeMetadataName
+            )
+            {
+                continue;
+            }
+
+            foreach (var namedArgument in attributeData.NamedArguments)
+            {
+                if (namedArgument.Key == "RegistrationMultiplicity")
+                {
+                    return ConvertRegistrationMultiplicityToAllowMultiple(namedArgument.Value);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static bool? TryGetServiceInjectionUseTryAdd(ITypeSymbol symbol)
+    {
+        foreach (var attributeData in symbol.GetAttributes())
+        {
+            if (
+                attributeData.AttributeClass?.ToDisplayString() != ServiceInjectionAttributeMetadataName
+            )
+            {
+                continue;
+            }
+
+            foreach (var namedArgument in attributeData.NamedArguments)
+            {
+                if (namedArgument.Key == "RegistrationEmission")
+                {
+                    return ConvertRegistrationEmissionToUseTryAdd(namedArgument.Value);
+                }
+            }
         }
 
         return null;
@@ -1727,16 +1955,19 @@ public sealed partial class GenDISourceGenerator
                 var injectMetadata = GetInjectPropertyMetadata(property);
                 var keyExpression =
                     injectMetadata.KeyExpression ?? GetFromKeyedServicesKey(property);
-                return new InjectablePropertyInfo(
-                    property.Name,
-                    propertyType,
-                    property.Type,
-                    keyExpression,
-                    injectMetadata.HasInjectOptionalAttribute
+                return new InjectablePropertyInfo
+                {
+                    Name = property.Name,
+                    Type = propertyType,
+                    TypeSymbol = property.Type,
+                    KeyExpression = keyExpression,
+                    UseOptionalResolution = injectMetadata.HasInjectOptionalAttribute
                         || ShouldUseOptionalResolution(property.Type),
-                    injectMetadata.HasInjectAttribute,
-                    injectMetadata.LifetimeExpression
-                );
+                    HasInjectAttribute = injectMetadata.HasInjectAttribute,
+                    LifetimeExpression = injectMetadata.LifetimeExpression,
+                    AllowMultipleOverride = injectMetadata.AllowMultipleOverride,
+                    UseTryAddOverride = injectMetadata.UseTryAddOverride,
+                };
             })
             .ToImmutableArray();
     }
@@ -1756,6 +1987,8 @@ public sealed partial class GenDISourceGenerator
                 property.Type,
                 property.KeyExpression,
                 property.LifetimeExpression,
+                property.AllowMultipleOverride,
+                property.UseTryAddOverride,
                 null
             ))
             .Select(request => new InjectContractRequest(
@@ -1763,6 +1996,8 @@ public sealed partial class GenDISourceGenerator
                 request.ServiceType,
                 request.KeyExpression,
                 request.LifetimeOverride,
+                request.AllowMultipleOverride,
+                request.UseTryAddOverride,
                 moduleName
             ))
             .GroupBy(
@@ -1806,7 +2041,13 @@ public sealed partial class GenDISourceGenerator
     private static bool IsInjectPropertyAttribute(INamedTypeSymbol? attributeClass)
     {
         var attributeDisplayName = attributeClass?.ToDisplayString();
-        return attributeDisplayName is "GenDI.InjectAttribute" or "GenDI.InjectOptionalAttribute";
+        return IsInjectPropertyAttribute(attributeDisplayName);
+    }
+
+    private static bool IsInjectPropertyAttribute(string? attributeDisplayName)
+    {
+        return attributeDisplayName
+            is InjectAttributeMetadataName or InjectOptionalAttributeMetadataName;
     }
 
     private static string ConvertLifetimeEnumToExpression(TypedConstant argument)
@@ -1835,6 +2076,29 @@ public sealed partial class GenDISourceGenerator
             0 => SingletonLifetimeExpression,
             1 => "ServiceLifetime.Scoped",
             _ => TransientLifetimeExpression,
+        };
+    }
+
+    private static bool? ConvertRegistrationMultiplicityToAllowMultiple(TypedConstant argument)
+    {
+        return ConvertBinaryEnumToBoolean(argument);
+    }
+
+    private static bool? ConvertRegistrationEmissionToUseTryAdd(TypedConstant argument)
+    {
+        return ConvertBinaryEnumToBoolean(argument);
+    }
+
+    private static bool? ConvertBinaryEnumToBoolean(TypedConstant argument)
+    {
+        var enumValue = argument.Value is null
+            ? -1
+            : Convert.ToInt32(argument.Value, CultureInfo.InvariantCulture);
+        return enumValue switch
+        {
+            0 => false,
+            1 => true,
+            _ => null,
         };
     }
 
@@ -1875,48 +2139,87 @@ public sealed partial class GenDISourceGenerator
         var hasInjectOptionalAttribute = false;
         var hasInjectAttribute = false;
         var lifetimeExpression = default(string);
+        var allowMultipleOverride = default(bool?);
+        var useTryAddOverride = default(bool?);
 
         foreach (var attributeData in property.GetAttributes())
         {
             var attributeDisplayName = attributeData.AttributeClass?.ToDisplayString();
-            if (
-                attributeDisplayName
-                is not ("GenDI.InjectAttribute" or "GenDI.InjectOptionalAttribute")
-            )
+            if (!IsInjectPropertyAttribute(attributeDisplayName))
             {
                 continue;
             }
 
-            if (attributeDisplayName == "GenDI.InjectOptionalAttribute")
-            {
-                hasInjectOptionalAttribute = true;
-            }
-            else if (attributeDisplayName == "GenDI.InjectAttribute")
-            {
-                hasInjectAttribute = true;
-                if (attributeData.ConstructorArguments.Length > 0)
-                {
-                    lifetimeExpression = ConvertLifetimeEnumToExpression(
-                        attributeData.ConstructorArguments[0]
-                    );
-                }
-            }
-
-            foreach (var namedArgument in attributeData.NamedArguments)
-            {
-                if (namedArgument.Key == "Key")
-                {
-                    keyExpression = BuildTypedConstantExpression(namedArgument.Value);
-                }
-            }
+            ApplyInjectPropertyAttributeKind(
+                attributeData,
+                attributeDisplayName!,
+                ref hasInjectOptionalAttribute,
+                ref hasInjectAttribute,
+                ref lifetimeExpression
+            );
+            ApplyInjectPropertyNamedArguments(
+                attributeData,
+                ref keyExpression,
+                ref allowMultipleOverride,
+                ref useTryAddOverride
+            );
         }
 
         return new InjectPropertyMetadata(
             keyExpression,
             hasInjectOptionalAttribute,
             hasInjectAttribute,
-            lifetimeExpression
+            lifetimeExpression,
+            allowMultipleOverride,
+            useTryAddOverride
         );
+    }
+
+    private static void ApplyInjectPropertyAttributeKind(
+        AttributeData attributeData,
+        string attributeDisplayName,
+        ref bool hasInjectOptionalAttribute,
+        ref bool hasInjectAttribute,
+        ref string? lifetimeExpression
+    )
+    {
+        if (attributeDisplayName == InjectOptionalAttributeMetadataName)
+        {
+            hasInjectOptionalAttribute = true;
+            return;
+        }
+
+        hasInjectAttribute = true;
+        if (attributeData.ConstructorArguments.Length > 0)
+        {
+            lifetimeExpression = ConvertLifetimeEnumToExpression(attributeData.ConstructorArguments[0]);
+        }
+    }
+
+    private static void ApplyInjectPropertyNamedArguments(
+        AttributeData attributeData,
+        ref string? keyExpression,
+        ref bool? allowMultipleOverride,
+        ref bool? useTryAddOverride
+    )
+    {
+        foreach (var namedArgument in attributeData.NamedArguments)
+        {
+            switch (namedArgument.Key)
+            {
+                case "Key":
+                    keyExpression = BuildTypedConstantExpression(namedArgument.Value);
+                    break;
+                case "RegistrationMultiplicity":
+                    allowMultipleOverride = ConvertRegistrationMultiplicityToAllowMultiple(
+                        namedArgument.Value
+                    );
+                    break;
+                case "RegistrationEmission":
+                    useTryAddOverride = ConvertRegistrationEmissionToUseTryAdd(namedArgument.Value);
+                    break;
+            }
+        }
     }
 
     private static string? GetFromKeyedServicesKey(ISymbol symbol)
@@ -2100,7 +2403,7 @@ public sealed partial class GenDISourceGenerator
     }
 
 #pragma warning disable S3776 // indirect candidate resolution intentionally evaluates multiple contract scenarios
-    private static ImplementationCandidate? FindIndirectImplementationCandidate(
+    private static ImmutableArray<ImplementationCandidate> FindIndirectImplementationCandidates(
         Compilation compilation,
         INamedTypeSymbol contractSymbol,
         string contractDisplayName,
@@ -2164,6 +2467,8 @@ public sealed partial class GenDISourceGenerator
                     candidateType,
                     implementationType,
                     resolvedLifetime,
+                    injectableMetadata?.AllowMultiple,
+                    injectableMetadata?.UseTryAdd,
                     ResolveThreadIsolationLifetime(
                         injectableMetadata?.ThreadIsolationLifetime,
                         contractFallbackThreadIsolationLifetime
@@ -2180,7 +2485,7 @@ public sealed partial class GenDISourceGenerator
             .ThenBy(static candidate => candidate.Group)
             .ThenBy(static candidate => candidate.Order)
             .ThenBy(static candidate => candidate.ImplementationType, StringComparer.Ordinal)
-            .FirstOrDefault();
+            .ToImmutableArray();
     }
 #pragma warning restore S3776
 
@@ -2367,40 +2672,42 @@ public sealed partial class GenDISourceGenerator
             .FirstOrDefault();
     }
 
+    private sealed class CommonRegistrationSettings
+    {
+        public int Order { get; set; } = DefaultOrderingValue;
+
+        public int Group { get; set; } = DefaultOrderingValue;
+
+        public bool? AllowMultiple { get; set; }
+
+        public bool? UseTryAdd { get; set; }
+
+        public string? KeyExpression { get; set; }
+
+        public string? ThreadIsolationLifetime { get; set; }
+
+        public string? ModuleName { get; set; }
+    }
+
     private sealed class InjectablePropertyInfo
     {
-        public InjectablePropertyInfo(
-            string name,
-            string type,
-            ITypeSymbol typeSymbol,
-            string? keyExpression,
-            bool useOptionalResolution,
-            bool hasInjectAttribute,
-            string? lifetimeExpression
-        )
-        {
-            Name = name;
-            Type = type;
-            TypeSymbol = typeSymbol;
-            KeyExpression = keyExpression;
-            UseOptionalResolution = useOptionalResolution;
-            HasInjectAttribute = hasInjectAttribute;
-            LifetimeExpression = lifetimeExpression;
-        }
+        public string Name { get; set; } = string.Empty;
 
-        public string Name { get; }
+        public string Type { get; set; } = string.Empty;
 
-        public string Type { get; }
+        public ITypeSymbol TypeSymbol { get; set; } = null!;
 
-        public ITypeSymbol TypeSymbol { get; }
+        public string? KeyExpression { get; set; }
 
-        public string? KeyExpression { get; }
+        public bool UseOptionalResolution { get; set; }
 
-        public bool UseOptionalResolution { get; }
+        public bool HasInjectAttribute { get; set; }
 
-        public bool HasInjectAttribute { get; }
+        public string? LifetimeExpression { get; set; }
 
-        public string? LifetimeExpression { get; }
+        public bool? AllowMultipleOverride { get; set; }
+
+        public bool? UseTryAddOverride { get; set; }
     }
 
     private sealed class InjectPropertyMetadata
@@ -2409,13 +2716,17 @@ public sealed partial class GenDISourceGenerator
             string? keyExpression,
             bool hasInjectOptionalAttribute,
             bool hasInjectAttribute,
-            string? lifetimeExpression
+            string? lifetimeExpression,
+            bool? allowMultipleOverride,
+            bool? useTryAddOverride
         )
         {
             KeyExpression = keyExpression;
             HasInjectOptionalAttribute = hasInjectOptionalAttribute;
             HasInjectAttribute = hasInjectAttribute;
             LifetimeExpression = lifetimeExpression;
+            AllowMultipleOverride = allowMultipleOverride;
+            UseTryAddOverride = useTryAddOverride;
         }
 
         public string? KeyExpression { get; }
@@ -2425,5 +2736,9 @@ public sealed partial class GenDISourceGenerator
         public bool HasInjectAttribute { get; }
 
         public string? LifetimeExpression { get; }
+
+        public bool? AllowMultipleOverride { get; }
+
+        public bool? UseTryAddOverride { get; }
     }
 }

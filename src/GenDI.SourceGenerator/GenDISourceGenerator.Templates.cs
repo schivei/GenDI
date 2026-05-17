@@ -3,27 +3,47 @@ namespace GenDI.SourceGenerator;
 internal static class GenDISourceTemplates
 {
     internal const string UsingsWithoutCoverage =
-        "using System;\nusing System.Threading;\nusing Microsoft.Extensions.DependencyInjection;\n";
+        "using System;\nusing System.Collections.Generic;\nusing System.Threading;\nusing Microsoft.Extensions.DependencyInjection;\nusing Microsoft.Extensions.DependencyInjection.Extensions;\n";
 
     internal const string UsingsWithCoverage =
-        "using System;\nusing System.Diagnostics.CodeAnalysis;\nusing System.Threading;\nusing Microsoft.Extensions.DependencyInjection;\n";
+        "using System;\nusing System.Collections.Generic;\nusing System.Diagnostics.CodeAnalysis;\nusing System.Threading;\nusing Microsoft.Extensions.DependencyInjection;\nusing Microsoft.Extensions.DependencyInjection.Extensions;\n";
 
     internal const string ExcludeFromCodeCoverageAttribute = "[ExcludeFromCodeCoverage]";
 
-    internal const string UnkeyedRegistrationTemplate =
+    internal const string UnkeyedAddRegistrationTemplate =
         "        services.Add{0}<{1}>(static serviceProvider => {2});";
 
-    internal const string KeyedRegistrationTemplate =
+    internal const string KeyedAddRegistrationTemplate =
         "        services.AddKeyed{0}<{1}>({2}, static (serviceProvider, _) => {3});";
 
+    internal const string UnkeyedTryAddRegistrationTemplate =
+        "        services.TryAdd{0}<{1}>(static serviceProvider => {2});";
+
+    internal const string KeyedTryAddRegistrationTemplate =
+        "        services.TryAddKeyed{0}<{1}>({2}, static (serviceProvider, _) => {3});";
+
+    internal const string UnkeyedTryAddMultipleGuardTemplate = """
+                if (!HasServiceImplementation(services, typeof({0}), typeof({1})))
+                {{
+                    services.Add{2}<{0}>(static serviceProvider => {3});
+                }}
+        """;
+
+    internal const string KeyedTryAddMultipleGuardTemplate = """
+                if (!HasKeyedServiceImplementation(services, typeof({0}), {1}, typeof({2})))
+                {{
+                    services.AddKeyed{3}<{0}>({1}, static (serviceProvider, _) => {4});
+                }}
+        """;
+
     internal const string ThreadIsolationCacheTemplate =
-        "        services.AddKeyed{0}<ThreadLocal<{1}>>({2}, static (serviceProvider, _) => new ThreadLocal<{1}>(() => {3}, trackAllValues: false));";
+        "        services.{0}<ThreadLocal<{1}>>({2}, static (serviceProvider, _) => new ThreadLocal<{1}>(() => {3}, trackAllValues: false));";
 
     internal const string ThreadIsolationUnkeyedAccessTemplate =
-        "        services.Add{0}<{1}>(static serviceProvider => serviceProvider.GetRequiredKeyedService<ThreadLocal<{1}>>({2}).Value!);";
+        "        services.{0}<{1}>(static serviceProvider => serviceProvider.GetRequiredKeyedService<ThreadLocal<{1}>>({2}).Value!);";
 
     internal const string ThreadIsolationKeyedAccessTemplate =
-        "        services.AddKeyed{0}<{1}>({2}, static (serviceProvider, _) => serviceProvider.GetRequiredKeyedService<ThreadLocal<{1}>>({3}).Value!);";
+        "        services.{0}<{1}>({2}, static (serviceProvider, _) => serviceProvider.GetRequiredKeyedService<ThreadLocal<{1}>>({3}).Value!);";
 
     internal const string ThreadIsolationCacheKeyTemplate = "\"gendi:thread:{0}:{1}:{2}\"";
 
@@ -55,6 +75,52 @@ internal static class GenDISourceTemplates
         /// </summary>
         {{EXCLUDE_FROM_COVERAGE}}public static class GenDIServiceCollectionExtensions
         {
+            private static bool HasServiceImplementation(IServiceCollection services, Type serviceType, Type implementationType)
+            {
+                for (var i = 0; i < services.Count; i++)
+                {
+                    var descriptor = services[i];
+                    if (
+                        descriptor.IsKeyedService
+                        || descriptor.ServiceType != serviceType
+                        || descriptor.ImplementationType != implementationType
+                    )
+                    {
+                        continue;
+                    }
+
+                    return true;
+                }
+
+                return false;
+            }
+
+            private static bool HasKeyedServiceImplementation(
+                IServiceCollection services,
+                Type serviceType,
+                object? serviceKey,
+                Type implementationType
+            )
+            {
+                for (var i = 0; i < services.Count; i++)
+                {
+                    var descriptor = services[i];
+                    if (
+                        !descriptor.IsKeyedService
+                        || descriptor.ServiceType != serviceType
+                        || !EqualityComparer<object?>.Default.Equals(descriptor.ServiceKey, serviceKey)
+                        || descriptor.KeyedImplementationType != implementationType
+                    )
+                    {
+                        continue;
+                    }
+
+                    return true;
+                }
+
+                return false;
+            }
+
             private static bool IsModuleEnabled(string[] modules, string module)
             {
                 for (var i = 0; i < modules.Length; i++)

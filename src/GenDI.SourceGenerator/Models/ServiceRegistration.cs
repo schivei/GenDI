@@ -7,6 +7,8 @@ internal sealed class ServiceRegistration
         string serviceType,
         string implementationType,
         string lifetime,
+        bool allowMultiple,
+        bool useTryAdd,
         string? threadIsolationLifetime,
         string factoryBody,
         int order,
@@ -19,6 +21,8 @@ internal sealed class ServiceRegistration
         ServiceType = serviceType;
         ImplementationType = implementationType;
         Lifetime = lifetime;
+        AllowMultiple = allowMultiple;
+        UseTryAdd = useTryAdd;
         ThreadIsolationLifetime = threadIsolationLifetime;
         FactoryBody = factoryBody;
         Order = order;
@@ -33,6 +37,10 @@ internal sealed class ServiceRegistration
     public string ImplementationType { get; }
 
     public string Lifetime { get; }
+
+    public bool AllowMultiple { get; }
+
+    public bool UseTryAdd { get; }
 
     public string? ThreadIsolationLifetime { get; }
 
