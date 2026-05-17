@@ -1811,17 +1811,17 @@ public class SharedGeneratorBehaviorTests
         );
 
         Assert.Contains(
-            "services.Configure<global::OptionsCase.MyOption>",
-            generatedSource,
-            StringComparison.Ordinal
-        );
-        Assert.Contains(
-            "GetSection(\"Features:MyOption\")",
+            "services.AddOptions<global::OptionsCase.MyOption>().BindConfiguration(\"Features:MyOption\")",
             generatedSource,
             StringComparison.Ordinal
         );
         Assert.DoesNotContain(
             "ConfigurationBinder.Get<global::OptionsCase.MyOption>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            "serviceProvider.GetRequiredService<global::Microsoft.Extensions.Configuration.IConfiguration>()",
             generatedSource,
             StringComparison.Ordinal
         );
@@ -1852,12 +1852,7 @@ public class SharedGeneratorBehaviorTests
         );
 
         Assert.Contains(
-            "services.Configure<global::OptionsDefaultSectionCase.MyOption>",
-            generatedSource,
-            StringComparison.Ordinal
-        );
-        Assert.Contains(
-            "GetSection(\"MyOption\")",
+            "services.AddOptions<global::OptionsDefaultSectionCase.MyOption>().BindConfiguration(\"MyOption\")",
             generatedSource,
             StringComparison.Ordinal
         );
@@ -1893,7 +1888,7 @@ public class SharedGeneratorBehaviorTests
         );
 
         Assert.DoesNotContain(
-            "services.Configure<global::OptionsInvalidTypeCase.MyOption>",
+            "services.AddOptions<global::OptionsInvalidTypeCase.MyOption>().BindConfiguration(\"Features:MyOption\")",
             generatedSource,
             StringComparison.Ordinal
         );
@@ -1932,7 +1927,7 @@ public class SharedGeneratorBehaviorTests
         );
 
         Assert.DoesNotContain(
-            "services.Configure<global::OptionsPrivateTypeCase.Container.MyOption>",
+            "services.AddOptions<global::OptionsPrivateTypeCase.Container.MyOption>().BindConfiguration(\"Features:MyOption\")",
             generatedSource,
             StringComparison.Ordinal
         );
@@ -1968,7 +1963,7 @@ public class SharedGeneratorBehaviorTests
         );
 
         Assert.DoesNotContain(
-            "services.Configure<global::OptionsStructCase.MyStructOption>",
+            "services.AddOptions<global::OptionsStructCase.MyStructOption>().BindConfiguration(\"Features:MyStructOption\")",
             generatedSource,
             StringComparison.Ordinal
         );
@@ -2040,7 +2035,7 @@ public class SharedGeneratorBehaviorTests
         );
 
         Assert.DoesNotContain(
-            "services.Configure<global::OptionsWithoutConfigCase.MyOption>",
+            "services.AddOptions<global::OptionsWithoutConfigCase.MyOption>().BindConfiguration(\"MyOption\")",
             generatedSource,
             StringComparison.Ordinal
         );

@@ -1155,7 +1155,7 @@ public sealed partial class GenDISourceGenerator
         if (canUseConfigurePath)
         {
             var directRegistrationStatement =
-                $"        services.Configure<{optionsTypeDisplay}>(serviceProvider.GetRequiredService<global::Microsoft.Extensions.Configuration.IConfiguration>().GetSection(\"{escapedPath}\"));";
+                $"        services.AddOptions<{optionsTypeDisplay}>().BindConfiguration(\"{escapedPath}\");";
 
             registration = new ServiceRegistration(
                 optionsContractType,
