@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
-using GenDI.Testing;
 using GenDI.Testing.Example.Tests.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+
+[assembly: GenDI.GenDICoveration(false)]
 
 namespace GenDI.Testing.Example.Tests;
 
@@ -19,7 +20,7 @@ public class CheckoutWorkflowTests
 
         var builder = ServiceBuilder
             .Create()
-            .AddGenDI(services => services.AddGenDIServices())
+            .AddGenDi(services => services.AddGenDIServices())
             .AddSingleton<IProductCatalog>(productCatalog)
             .AddSingleton<ISystemClock>(fixedClock);
 

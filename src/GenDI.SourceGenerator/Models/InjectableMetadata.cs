@@ -1,57 +1,42 @@
 using Microsoft.CodeAnalysis;
 
-namespace GenDI.SourceGenerator;
+namespace GenDI.SourceGenerator.Models;
 
 #pragma warning disable S107 // model constructors intentionally capture all immutable registration data
-internal sealed class InjectableMetadata
+internal sealed class InjectableMetadata(
+    string lifetime,
+    string? explicitServiceType,
+    ITypeSymbol? explicitServiceTypeSymbol,
+    bool hasOpenGenericExplicitServiceType,
+    int order,
+    int group,
+    bool? allowMultiple,
+    bool? useTryAdd,
+    string? keyExpression,
+    string? threadIsolationLifetime,
+    string? moduleName
+)
 {
-    public InjectableMetadata(
-        string lifetime,
-        string? explicitServiceType,
-        ITypeSymbol? explicitServiceTypeSymbol,
-        bool hasOpenGenericExplicitServiceType,
-        int order,
-        int group,
-        bool? allowMultiple,
-        bool? useTryAdd,
-        string? keyExpression,
-        string? threadIsolationLifetime,
-        string? moduleName
-    )
-    {
-        Lifetime = lifetime;
-        ExplicitServiceType = explicitServiceType;
-        ExplicitServiceTypeSymbol = explicitServiceTypeSymbol;
-        HasOpenGenericExplicitServiceType = hasOpenGenericExplicitServiceType;
-        Order = order;
-        Group = group;
-        AllowMultiple = allowMultiple;
-        UseTryAdd = useTryAdd;
-        KeyExpression = keyExpression;
-        ThreadIsolationLifetime = threadIsolationLifetime;
-        ModuleName = moduleName;
-    }
+    public string Lifetime { get; } = lifetime;
 
-    public string Lifetime { get; }
+    public string? ExplicitServiceType { get; } = explicitServiceType;
 
-    public string? ExplicitServiceType { get; }
+    public ITypeSymbol? ExplicitServiceTypeSymbol { get; } = explicitServiceTypeSymbol;
 
-    public ITypeSymbol? ExplicitServiceTypeSymbol { get; }
+    public bool HasOpenGenericExplicitServiceType { get; } = hasOpenGenericExplicitServiceType;
 
-    public bool HasOpenGenericExplicitServiceType { get; }
+    public int Order { get; } = order;
 
-    public int Order { get; }
+    public int Group { get; } = group;
 
-    public int Group { get; }
+    public bool? AllowMultiple { get; } = allowMultiple;
 
-    public bool? AllowMultiple { get; }
+    public bool? UseTryAdd { get; } = useTryAdd;
 
-    public bool? UseTryAdd { get; }
+    public string? KeyExpression { get; } = keyExpression;
 
-    public string? KeyExpression { get; }
+    public string? ThreadIsolationLifetime { get; } = threadIsolationLifetime;
 
-    public string? ThreadIsolationLifetime { get; }
-
-    public string? ModuleName { get; }
+    public string? ModuleName { get; } = moduleName;
 }
 #pragma warning restore S107

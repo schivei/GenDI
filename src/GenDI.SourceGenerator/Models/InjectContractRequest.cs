@@ -1,41 +1,30 @@
 using Microsoft.CodeAnalysis;
 
-namespace GenDI.SourceGenerator;
+namespace GenDI.SourceGenerator.Models;
 
 #pragma warning disable S107 // model constructors intentionally capture all immutable registration data
-internal sealed class InjectContractRequest
+internal sealed class InjectContractRequest(
+    INamedTypeSymbol contractSymbol,
+    string serviceType,
+    string? keyExpression,
+    string? lifetimeOverride,
+    bool? allowMultipleOverride,
+    bool? useTryAddOverride,
+    string? moduleName
+)
 {
-    public InjectContractRequest(
-        INamedTypeSymbol contractSymbol,
-        string serviceType,
-        string? keyExpression,
-        string? lifetimeOverride,
-        bool? allowMultipleOverride,
-        bool? useTryAddOverride,
-        string? moduleName
-    )
-    {
-        ContractSymbol = contractSymbol;
-        ServiceType = serviceType;
-        KeyExpression = keyExpression;
-        LifetimeOverride = lifetimeOverride;
-        AllowMultipleOverride = allowMultipleOverride;
-        UseTryAddOverride = useTryAddOverride;
-        ModuleName = moduleName;
-    }
+    public INamedTypeSymbol ContractSymbol { get; } = contractSymbol;
 
-    public INamedTypeSymbol ContractSymbol { get; }
+    public string ServiceType { get; } = serviceType;
 
-    public string ServiceType { get; }
+    public string? KeyExpression { get; } = keyExpression;
 
-    public string? KeyExpression { get; }
+    public string? LifetimeOverride { get; } = lifetimeOverride;
 
-    public string? LifetimeOverride { get; }
+    public bool? AllowMultipleOverride { get; } = allowMultipleOverride;
 
-    public bool? AllowMultipleOverride { get; }
+    public bool? UseTryAddOverride { get; } = useTryAddOverride;
 
-    public bool? UseTryAddOverride { get; }
-
-    public string? ModuleName { get; }
+    public string? ModuleName { get; } = moduleName;
 }
 #pragma warning restore S107

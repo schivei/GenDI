@@ -31,7 +31,8 @@ For the full phase-by-phase checklist, see [`ROADMAP.md`](https://github.com/sch
 - ✅ Thread-isolation registration policy configurable via `Injectable` / `ServiceInjection`
 - ✅ Dependency scanning across referenced libraries for centralized registration
 - ✅ Closed-generic indirect inference for inferable concrete implementations
-- ✅ `OptionConfigAttribute` for `IOptions<>` registration with required key/path
+- ✅ Explicit registration policy control via `RegistrationMultiplicity` and `RegistrationEmissionStrategy` (`Single`/`Multiple`, `Add`/`TryAdd`)
+- ✅ `OptionConfigAttribute` evolution: optional key fallback to type name + eligible-type constraints + `AddOptions<T>().BindConfiguration(section)` fast-path
 - ✅ Static factory registration with `[InjectableFactory]`
 - ✅ Module-based grouping with `[InjectableModule]`
 
@@ -62,3 +63,9 @@ Detailed notes for delivered RM-01..RM-12:
 ---
 
 Want to help make any of these real? See [Contributing](./contributing) to get started.
+
+## Canonical status matrix
+
+The canonical source-of-truth matrix is maintained in repository docs:
+
+- [Phase 6 roadmap execution file](https://github.com/schivei/GenDI/blob/main/docs/ROTEIRO_FASE6.md)

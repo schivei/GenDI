@@ -39,3 +39,16 @@ The repository includes integration tests validating both directions:
 
 - generated service depending on manually registered services
 - manually registered service depending on generated services
+
+## 🧩 Registration strategy control (Phase 6)
+
+GenDI supports explicit generation policy through:
+
+- `RegistrationMultiplicity` (`Single` / `Multiple`)
+- `RegistrationEmissionStrategy` (`Add` / `TryAdd`)
+
+These controls can be declared in `ServiceInjection`, `Injectable`, and `Inject` attributes and are resolved deterministically during generation.
+
+## ⚙️ OptionConfig evolution summary
+
+`[OptionConfig]` now supports optional key fallback (`options type name`) and emits optimized options registration via `AddOptions<T>().BindConfiguration(section)` when compatible.

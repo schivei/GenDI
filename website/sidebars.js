@@ -28,6 +28,7 @@ const sidebars = {
       type: 'category',
       label: 'Advanced',
       items: [
+        'advanced/phase6-delivery-status',
         'advanced/nativeaot-and-trimming',
         'advanced/platform-and-framework-support',
         'advanced/benchmarks',

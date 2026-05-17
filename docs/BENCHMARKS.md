@@ -2,6 +2,13 @@
 
 This document tracks performance validation across registration strategies.
 
+## Scope note for Phase 6 documentation parity
+
+Benchmark scenarios focus on startup registration cost and activation shape. They do not attempt to benchmark every delivered Phase 6 feature (for example `RegistrationMultiplicity`/`RegistrationEmissionStrategy` policy combinations or `OptionConfig` section-selection behavior), which are documented in:
+
+- `/home/runner/work/GenDI/GenDI/docs/REGISTRATION_MODEL_RM01_RM12.md`
+- `/home/runner/work/GenDI/GenDI/docs/ROTEIRO_FASE6.md`
+
 ## Benchmark project
 
 - Project: `tests/GenDI.Benchmarks`
@@ -27,21 +34,25 @@ dotnet run -c Release --project tests/GenDI.Benchmarks/GenDI.Benchmarks.csproj -
 
 ---
 
-## Latest local run
+## Latest CI benchmark snapshot
 
-Environment captured by BenchmarkDotNet:
+<!-- benchmark-ci:start -->
+_Updated by [CI run #177](https://github.com/schivei/GenDI/actions/runs/25988734252) on 2026-05-17 11:09 UTC_
 
-- OS: Linux Ubuntu 24.04.4 LTS
-- CPU: AMD EPYC 7763
-- SDK: .NET 10.0.201
-- Runtime: .NET 10.0.5
+| Method | Mean | Allocated |
+|---|---:|---:|
+| Manual registration (no GenDI) | 2.693 μs | 5.97 KB |
+| GenDI: constructor injection (generated) | 2.151 μs | 6.1 KB |
+| GenDI: property injection (generated) | 2.216 μs | 6.1 KB |
+| Reflection registration (no GenDI, assembly scan) | 48.171 μs | 18.24 KB |
 
-| Method | Job | Mean | Median | Allocated |
-|---|---|---:|---:|---:|
-| Manual registration (no GenDI) | ShortRun | 1.842 μs | 1.838 μs | 5.21 KB |
-| GenDI: constructor injection (generated) | ShortRun | 2.007 μs | 2.001 μs | 5.68 KB |
-| GenDI: property injection (generated) | ShortRun | 2.031 μs | 2.027 μs | 5.71 KB |
-| Reflection registration (no GenDI, assembly scan) | ShortRun | 37.901 μs | 37.850 μs | 14.54 KB |
+### CI analysis
+
+- GenDI constructor injection is **-20.1%** versus manual registration.
+- GenDI property injection is **-17.7%** versus manual registration.
+- Reflection scanning remains the outlier at **~17.9x slower** and **~3.1x higher allocation** than manual registration.
+- Compatibility note: this benchmark compares manual and generated registrations against a reflection scanner baseline; as documented below, reflection scanning is not suitable for trimming/NativeAOT scenarios, while manual and GenDI-generated registrations remain the supported path.
+<!-- benchmark-ci:end -->
 
 ---
 

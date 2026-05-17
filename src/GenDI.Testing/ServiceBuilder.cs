@@ -7,7 +7,7 @@ namespace GenDI.Testing;
 /// </summary>
 public sealed class ServiceBuilder
 {
-    private readonly IServiceCollection services;
+    private readonly IServiceCollection _services;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ServiceBuilder"/> class.
@@ -22,13 +22,13 @@ public sealed class ServiceBuilder
     public ServiceBuilder(IServiceCollection services)
     {
         ThrowIfNull(services, nameof(services));
-        this.services = services;
+        this._services = services;
     }
 
     /// <summary>
     /// Gets the backing service collection.
     /// </summary>
-    public IServiceCollection Services => services;
+    public IServiceCollection Services => _services;
 
     /// <summary>
     /// Creates a new <see cref="ServiceBuilder"/> instance.
@@ -44,19 +44,19 @@ public sealed class ServiceBuilder
     public ServiceBuilder ConfigureServices(Action<IServiceCollection> configure)
     {
         ThrowIfNull(configure, nameof(configure));
-        configure(services);
+        configure(_services);
         return this;
     }
 
     /// <summary>
     /// Applies generated GenDI registration delegate (for example, <c>services.AddGenDIServices()</c>).
     /// </summary>
-    /// <param name="addGenDIServices">Delegate that invokes generated GenDI registration.</param>
+    /// <param name="addGenDiServices">Delegate that invokes generated GenDI registration.</param>
     /// <returns>The current <see cref="ServiceBuilder"/>.</returns>
-    public ServiceBuilder AddGenDI(Action<IServiceCollection> addGenDIServices)
+    public ServiceBuilder AddGenDi(Action<IServiceCollection> addGenDiServices)
     {
-        ThrowIfNull(addGenDIServices, nameof(addGenDIServices));
-        addGenDIServices(services);
+        ThrowIfNull(addGenDiServices, nameof(addGenDiServices));
+        addGenDiServices(_services);
         return this;
     }
 
@@ -70,7 +70,7 @@ public sealed class ServiceBuilder
         where TService : class
         where TImplementation : class, TService
     {
-        services.AddSingleton<TService, TImplementation>();
+        _services.AddSingleton<TService, TImplementation>();
         return this;
     }
 
@@ -84,7 +84,7 @@ public sealed class ServiceBuilder
         where TService : class
     {
         ThrowIfNull(instance, nameof(instance));
-        services.AddSingleton(instance);
+        _services.AddSingleton(instance);
         return this;
     }
 
@@ -98,7 +98,7 @@ public sealed class ServiceBuilder
         where TService : class
         where TImplementation : class, TService
     {
-        services.AddScoped<TService, TImplementation>();
+        _services.AddScoped<TService, TImplementation>();
         return this;
     }
 
@@ -112,7 +112,7 @@ public sealed class ServiceBuilder
         where TService : class
         where TImplementation : class, TService
     {
-        services.AddTransient<TService, TImplementation>();
+        _services.AddTransient<TService, TImplementation>();
         return this;
     }
 
@@ -126,7 +126,7 @@ public sealed class ServiceBuilder
         bool validateScopes = true,
         bool validateOnBuild = true
     ) =>
-        services.BuildServiceProvider(
+        _services.BuildServiceProvider(
             new ServiceProviderOptions
             {
                 ValidateScopes = validateScopes,

@@ -2,6 +2,8 @@ using System;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
+[assembly: GenDI.GenDICoveration(false)]
+
 namespace GenDI.Integration.Tests;
 
 public class AttributeUnitTests
@@ -240,11 +242,21 @@ public class AttributeUnitTests
     }
 
     [Fact]
-    public void OptionConfigAttribute_ctor_stores_path()
+    public void OptionConfigAttribute_ctor_stores_explicit_key_and_path_alias()
     {
         var attr = new OptionConfigAttribute("App:Feature");
 
+        Assert.Equal("App:Feature", attr.Key);
         Assert.Equal("App:Feature", attr.Path);
+    }
+
+    [Fact]
+    public void OptionConfigAttribute_without_key_defaults_to_null_key_and_path()
+    {
+        var attr = new OptionConfigAttribute();
+
+        Assert.Null(attr.Key);
+        Assert.Null(attr.Path);
     }
 
     [Fact]
@@ -290,12 +302,12 @@ public class AttributeUnitTests
     public void InjectableFactoryAttribute_typeof_ctor_stores_service_type_and_lifetime()
     {
         var ctor = typeof(InjectableFactoryAttribute).GetConstructor(
-            new[] { typeof(Type), typeof(ServiceLifetime) }
+            [typeof(Type), typeof(ServiceLifetime)]
         );
         Assert.NotNull(ctor);
 
         var attr = Assert.IsType<InjectableFactoryAttribute>(
-            ctor!.Invoke(new object[] { typeof(IServiceContract), ServiceLifetime.Scoped })
+            ctor.Invoke([typeof(IServiceContract), ServiceLifetime.Scoped])
         );
 
         Assert.Equal(typeof(IServiceContract), attr.ServiceType);
@@ -318,7 +330,7 @@ public class AttributeUnitTests
     [Fact]
     public void GenDICoverationAttribute_explicit_true()
     {
-        var attr = new GenDICoverationAttribute(true);
+        var attr = new GenDICoverationAttribute();
 
         Assert.True(attr.IncludeGeneratedCodeInCoverage);
     }
