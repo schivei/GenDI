@@ -394,24 +394,18 @@ public sealed partial class GenDISourceGenerator
             return false;
         }
 
-        var extensionType = dependencyInjectionNamespace.GetTypeMembers(
-            "GenDIServiceCollectionExtensions"
-        );
-        foreach (var typeMember in extensionType)
-        {
-            foreach (var method in typeMember.GetMembers("AddGenDIServices").OfType<IMethodSymbol>())
-            {
-                if (
-                    method is { IsStatic: true, MethodKind: MethodKind.Ordinary, Parameters.Length: 2 }
-                    && method.Parameters[0].Type.ToDisplayString() == "Microsoft.Extensions.DependencyInjection.IServiceCollection"
-                    && method.Parameters[1].Type is IArrayTypeSymbol { ElementType.SpecialType: SpecialType.System_String })
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return dependencyInjectionNamespace
+            .GetTypeMembers("GenDIServiceCollectionExtensions")
+            .SelectMany(static typeMember =>
+                typeMember.GetMembers("AddGenDIServices").OfType<IMethodSymbol>()
+            )
+            .Any(static method =>
+                method is { IsStatic: true, MethodKind: MethodKind.Ordinary, Parameters.Length: 2 }
+                && method.Parameters[0].Type.ToDisplayString()
+                    == "Microsoft.Extensions.DependencyInjection.IServiceCollection"
+                && method.Parameters[1].Type
+                    is IArrayTypeSymbol { ElementType.SpecialType: SpecialType.System_String }
+            );
     }
 
     private static INamespaceSymbol? GetNamespaceSymbol(
@@ -917,17 +911,7 @@ public sealed partial class GenDISourceGenerator
                     continue;
                 }
 
-                if (
-                    method.IsGenericMethod
-                    || !IsClosedType(method.ContainingType)
-                    || method.ReturnType is INamedTypeSymbol namedReturnType
-                        && !IsClosedType(namedReturnType)
-                    || method.Parameters.Any(static parameter =>
-                        parameter.Type is INamedTypeSymbol namedParameterType
-                        && !IsClosedType(namedParameterType)
-                    )
-                    || factoryMetadata.HasOpenGenericServiceType
-                )
+                if (ShouldBypassInjectableFactoryMethod(method, factoryMetadata))
                 {
                     warnings.Add(
                         BuildOpenGenericBypassWarning(method, "InjectableFactory registration")
@@ -976,6 +960,22 @@ public sealed partial class GenDISourceGenerator
         }
 
         return registrations;
+    }
+
+    private static bool ShouldBypassInjectableFactoryMethod(
+        IMethodSymbol method,
+        InjectableFactoryMetadata factoryMetadata
+    )
+    {
+        return method.IsGenericMethod
+            || !IsClosedType(method.ContainingType)
+            || method.ReturnType is INamedTypeSymbol namedReturnType
+                && !IsClosedType(namedReturnType)
+            || method.Parameters.Any(static parameter =>
+                parameter.Type is INamedTypeSymbol namedParameterType
+                && !IsClosedType(namedParameterType)
+            )
+            || factoryMetadata.HasOpenGenericServiceType;
     }
 
     private static string BuildMethodParameters(IMethodSymbol method)
