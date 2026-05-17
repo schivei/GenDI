@@ -3183,6 +3183,13 @@ public class SharedGeneratorBehaviorTests
         );
         Assert.NotNull(isGeneratedCoverageEnabled);
         Assert.True((bool)isGeneratedCoverageEnabled.Invoke(null, [compilation])!);
+        Assert.True(
+            (bool)
+                isGeneratedCoverageEnabled.Invoke(
+                    null,
+                    [CreateCompilationWithoutGenDIReference("public sealed class PlainType { }")]
+                )!
+        );
 
         var escapeStringLiteral = generatorType.GetMethod(
             "EscapeStringLiteral",
@@ -3521,6 +3528,26 @@ public class SharedGeneratorBehaviorTests
                 OutputKind.DynamicallyLinkedLibrary,
                 allowUnsafe: true
             )
+        );
+    }
+
+    private static CSharpCompilation CreateCompilationWithoutGenDIReference(string userSource)
+    {
+        var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
+        var syntaxTree = CSharpSyntaxTree.ParseText(userSource, parseOptions);
+        var tpa = AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string ?? string.Empty;
+        var genDIAssemblyPath = typeof(InjectableAttribute).Assembly.Location;
+        var references = tpa
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Where(path => !string.Equals(path, genDIAssemblyPath, StringComparison.OrdinalIgnoreCase))
+            .Select(static path => MetadataReference.CreateFromFile(path))
+            .ToList();
+
+        return CSharpCompilation.Create(
+            assemblyName: "CoverageWithoutGenDIReference.Tests",
+            syntaxTrees: [syntaxTree],
+            references: references,
+            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
     }
 }
