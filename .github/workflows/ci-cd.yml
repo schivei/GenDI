@@ -301,6 +301,8 @@ jobs:
           github.event_name == 'pull_request' &&
           !github.event.pull_request.head.repo.fork &&
           github.actor != 'github-actions[bot]'
+        env:
+          PR_HEAD_REF: ${{ github.head_ref }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -310,7 +312,11 @@ jobs:
             exit 0
           fi
           git commit -m "docs: update benchmark snapshot from CI run #${{ github.run_number }}"
-          git push origin "HEAD:${{ github.head_ref }}"
+          if [ -z "${PR_HEAD_REF}" ] || ! echo "${PR_HEAD_REF}" | grep -Eq '^[A-Za-z0-9._/-]+$'; then
+            echo "Invalid PR_HEAD_REF value for push target."
+            exit 1
+          fi
+          git push origin "HEAD:${PR_HEAD_REF}"
 
       - name: SonarQube end analysis (.NET scanner)
         if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork) && env.SONAR_TOKEN != '' }}
