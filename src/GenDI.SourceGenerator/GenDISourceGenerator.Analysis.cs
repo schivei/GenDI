@@ -399,13 +399,14 @@ public sealed partial class GenDISourceGenerator
             .SelectMany(static typeMember =>
                 typeMember.GetMembers("AddGenDIServices").OfType<IMethodSymbol>()
             )
-            .Any(static method =>
+            .Where(static method =>
                 method is { IsStatic: true, MethodKind: MethodKind.Ordinary, Parameters.Length: 2 }
                 && method.Parameters[0].Type.ToDisplayString()
                     == "Microsoft.Extensions.DependencyInjection.IServiceCollection"
                 && method.Parameters[1].Type
                     is IArrayTypeSymbol { ElementType.SpecialType: SpecialType.System_String }
-            );
+            )
+            .Any();
     }
 
     private static INamespaceSymbol? GetNamespaceSymbol(

@@ -621,6 +621,13 @@ public class InjectableUsageAnalyzerTests
     }
 
     [Fact]
+    public void Constructor_injection_code_fix_provider_exposes_supported_diagnostic_id()
+    {
+        var provider = new ConstructorInjectionCodeFixProvider();
+        Assert.Contains("GENDI003", provider.FixableDiagnosticIds);
+    }
+
+    [Fact]
     public void Code_fix_pascal_case_fallback_handles_empty_value()
     {
         var method = typeof(ConstructorInjectionCodeFixProvider).GetMethod(
