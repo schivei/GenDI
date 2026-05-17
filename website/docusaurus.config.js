@@ -63,6 +63,7 @@ const config = {
             { label: 'Introduction', to: '/docs/intro' },
             { label: 'Getting Started', to: '/docs/getting-started/installation' },
             { label: 'Attribute Reference', to: '/docs/core-concepts/attributes' },
+            { label: 'Phase 6 Status', to: '/docs/advanced/phase6-delivery-status' },
           ],
         },
         {

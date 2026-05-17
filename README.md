@@ -4,9 +4,10 @@
 
 [![CI/CD Pipeline](https://github.com/schivei/GenDI/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/schivei/GenDI/actions/workflows/ci-cd.yml)
 [![Deploy Documentation](https://github.com/schivei/GenDI/actions/workflows/deploy-docs.yml/badge.svg)](https://github.com/schivei/GenDI/actions/workflows/deploy-docs.yml)
-[![NuGet GenDI](https://img.shields.io/nuget/v/GenDI.svg)](https://www.nuget.org/packages/GenDI)
-[![NuGet GenDI.SourceGenerator](https://img.shields.io/nuget/v/GenDI.SourceGenerator.svg)](https://www.nuget.org/packages/GenDI.SourceGenerator)
-
+[![NuGet GenDI](https://img.shields.io/nuget/v/GenDI.svg?style=flat&label=GenDI&logo=nuget)](https://www.nuget.org/packages/GenDI)
+[![NuGet GenDI.SourceGenerator](https://img.shields.io/nuget/v/GenDI.SourceGenerator.svg?style=flat&label=GenDI.SourceGenerator&logo=nuget)](https://www.nuget.org/packages/GenDI.SourceGenerator)
+[![NuGet GenDI.Testing](https://img.shields.io/nuget/v/GenDI.Testing.svg?style=flat&label=GenDI.Testing&logo=nuget)](https://www.nuget.org/packages/GenDI.Testing)
+[![NuGet GenDI.Analyzers](https://img.shields.io/nuget/v/GenDI.Analyzers.svg?style=flat&label=GenDI.Analyzers&logo=nuget)](https://www.nuget.org/packages/GenDI.Analyzers)
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=schivei_GenDI&metric=bugs)](https://sonarcloud.io/summary/new_code?id=schivei_GenDI)
@@ -84,7 +85,8 @@ No private fields. No constructor ceremony. No manual wiring. Just declare your 
 - **Keyed services support**: works with both native `[FromKeyedServices]` and GenDI `[Inject(Key = ...)]`.
 - **Factory-first registration**: use `[InjectableFactory<TService>]` on static methods when construction should be centralized.
 - **Module filtering**: group registrations with `[InjectableModule]` / `Module` and load only selected modules.
-- **Options mapping**: `[OptionConfig("Path")]` enables automatic `IOptions<T>` registration from configuration.
+- **Registration strategy control**: `RegistrationMultiplicity` + `RegistrationEmissionStrategy` let you choose `Single`/`Multiple` and `Add`/`TryAdd` generation semantics.
+- **Options mapping evolution**: `[OptionConfig]` supports optional key fallback (`type name`) plus optimized `AddOptions<T>().BindConfiguration(section)` registration.
 - **Testing ergonomics**: `GenDI.Testing` includes a fluent `ServiceBuilder` for xUnit/unit-test composition.
 - **Open-generic safety**: open-generic registrations are bypassed and reported as generator warnings (`GENDISG001`).
 - **No runtime scanning cost**: compile-time generation eliminates startup overhead from reflection-based scanning.
@@ -424,6 +426,27 @@ For fresh clones, `src/GenDI/GenDI.csproj` runs a pre-restore target that execut
 | 6     | Developer experience and ecosystem expansion              | In Progress |
 
 See the full plan in [ROADMAP.md](ROADMAP.md).
+
+## Phase 6 delivery baseline (single status source)
+
+The canonical track status is maintained in `/home/runner/work/GenDI/GenDI/docs/ROTEIRO_FASE6.md` and mirrored here:
+
+| Track | Status |
+|---|---|
+| 4.1 Source-generator quality | Delivered |
+| 4.2 Registration model (RM-01..RM-12) | Delivered |
+| 4.3 Platform/framework support | Delivered |
+| 4.4 Testing ergonomics | Delivered |
+| 4.5 Explicit registration strategies (Add/TryAdd) | Delivered |
+| 4.6 OptionConfig evolution | Delivered |
+| 4.7 Tooling/IDE | Pending |
+| 4.8 Observability | Pending |
+| 4.9 Community/ecosystem | Pending |
+
+Detailed references:
+- [docs/ROTEIRO_FASE6.md](docs/ROTEIRO_FASE6.md)
+- [docs/REGISTRATION_MODEL_RM01_RM12.md](docs/REGISTRATION_MODEL_RM01_RM12.md)
+- [docs/PLATFORM_FRAMEWORK_SUPPORT.md](docs/PLATFORM_FRAMEWORK_SUPPORT.md)
 
 Detailed RM-01..RM-12 documentation:
 - [docs/REGISTRATION_MODEL_RM01_RM12.md](docs/REGISTRATION_MODEL_RM01_RM12.md)

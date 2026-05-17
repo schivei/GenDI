@@ -90,6 +90,8 @@ Traditional runtime scanning is practical, but adds startup cost and can break w
 - `[Injectable]` and `[Injectable<TService>]` to mark concrete services
 - `[ServiceInjection]` to mark interfaces/abstract contracts
 - `[Inject]` for init-only property injection (`get; init;`) — the idiomatic GenDI way
+- `RegistrationMultiplicity` + `RegistrationEmissionStrategy` to control `Single`/`Multiple` and `Add`/`TryAdd` generation
+- `[OptionConfig]` with optional key fallback to type name for `IOptions<T>` binding
 - `[assembly: GenDICoveration(...)]` to control generated extension coverage behavior
 - Ordering by `Group`, then `Order`, then service type name (ordinal)
 
@@ -111,3 +113,9 @@ Each registration uses generated `new` expressions and `GetRequiredService<T>()`
 - 🔬 **Advanced**: NativeAOT/trimming validation, benchmarks and test strategy
 - 🧭 **Analyzer diagnostics**: reference list for `GENDI001+` and IDE help links
 - 🌍 **Community**: contribution, roadmap and sponsorship
+
+## 📌 Phase 6 status baseline
+
+Phase 6 track status is synchronized with:
+
+- `/home/runner/work/GenDI/GenDI/docs/ROTEIRO_FASE6.md` (repository canonical matrix)

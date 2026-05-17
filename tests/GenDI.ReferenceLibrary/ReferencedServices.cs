@@ -1,5 +1,6 @@
-using GenDI;
 using Microsoft.Extensions.DependencyInjection;
+
+[assembly: GenDI.GenDICoveration(false)]
 
 namespace GenDI.ReferenceLibrary;
 

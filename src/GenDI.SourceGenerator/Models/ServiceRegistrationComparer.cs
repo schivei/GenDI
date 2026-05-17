@@ -1,4 +1,4 @@
-namespace GenDI.SourceGenerator;
+namespace GenDI.SourceGenerator.Models;
 
 internal sealed class ServiceRegistrationComparer : IEqualityComparer<ServiceRegistration>
 {
@@ -13,7 +13,8 @@ internal sealed class ServiceRegistrationComparer : IEqualityComparer<ServiceReg
             && x?.ThreadIsolationLifetime == y?.ThreadIsolationLifetime
             && x?.AllowMultiple == y?.AllowMultiple
             && x?.UseTryAdd == y?.UseTryAdd
-            && x?.ModuleName == y?.ModuleName;
+            && x?.ModuleName == y?.ModuleName
+            && x?.DirectRegistrationStatement == y?.DirectRegistrationStatement;
     }
 
     public int GetHashCode(ServiceRegistration obj)
@@ -21,14 +22,15 @@ internal sealed class ServiceRegistrationComparer : IEqualityComparer<ServiceReg
         unchecked
         {
             var hashCode =
-                ((obj.ServiceType?.GetHashCode() ?? 0) * 397)
-                ^ (obj.ImplementationType?.GetHashCode() ?? 0);
-            hashCode = (hashCode * 397) ^ (obj.KeyExpression?.GetHashCode() ?? 0);
-            hashCode = (hashCode * 397) ^ (obj.EnvironmentName?.GetHashCode() ?? 0);
-            hashCode = (hashCode * 397) ^ (obj.ThreadIsolationLifetime?.GetHashCode() ?? 0);
-            hashCode = (hashCode * 397) ^ obj.AllowMultiple.GetHashCode();
-            hashCode = (hashCode * 397) ^ obj.UseTryAdd.GetHashCode();
-            return (hashCode * 397) ^ (obj.ModuleName?.GetHashCode() ?? 0);
+                obj.ServiceType.GetHashCode() * 397
+                ^ obj.ImplementationType.GetHashCode();
+            hashCode = hashCode * 397 ^ (obj.KeyExpression?.GetHashCode() ?? 0);
+            hashCode = hashCode * 397 ^ (obj.EnvironmentName?.GetHashCode() ?? 0);
+            hashCode = hashCode * 397 ^ (obj.ThreadIsolationLifetime?.GetHashCode() ?? 0);
+            hashCode = hashCode * 397 ^ obj.AllowMultiple.GetHashCode();
+            hashCode = hashCode * 397 ^ obj.UseTryAdd.GetHashCode();
+            hashCode = hashCode * 397 ^ (obj.ModuleName?.GetHashCode() ?? 0);
+            return hashCode * 397 ^ (obj.DirectRegistrationStatement?.GetHashCode() ?? 0);
         }
     }
 }

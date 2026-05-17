@@ -1,59 +1,46 @@
-namespace GenDI.SourceGenerator;
+namespace GenDI.SourceGenerator.Models;
 
 #pragma warning disable S107 // model constructors intentionally capture all immutable registration data
-internal sealed class ServiceRegistration
+internal sealed class ServiceRegistration(
+    string serviceType,
+    string implementationType,
+    string lifetime,
+    bool allowMultiple,
+    bool useTryAdd,
+    string? threadIsolationLifetime,
+    string factoryBody,
+    int order,
+    int group,
+    string? keyExpression,
+    string? environmentName,
+    string? moduleName,
+    string? directRegistrationStatement = null
+)
 {
-    public ServiceRegistration(
-        string serviceType,
-        string implementationType,
-        string lifetime,
-        bool allowMultiple,
-        bool useTryAdd,
-        string? threadIsolationLifetime,
-        string factoryBody,
-        int order,
-        int group,
-        string? keyExpression,
-        string? environmentName,
-        string? moduleName
-    )
-    {
-        ServiceType = serviceType;
-        ImplementationType = implementationType;
-        Lifetime = lifetime;
-        AllowMultiple = allowMultiple;
-        UseTryAdd = useTryAdd;
-        ThreadIsolationLifetime = threadIsolationLifetime;
-        FactoryBody = factoryBody;
-        Order = order;
-        Group = group;
-        KeyExpression = keyExpression;
-        EnvironmentName = environmentName;
-        ModuleName = moduleName;
-    }
+    public string ServiceType { get; } = serviceType;
 
-    public string ServiceType { get; }
+    public string ImplementationType { get; } = implementationType;
 
-    public string ImplementationType { get; }
+    public string Lifetime { get; } = lifetime;
 
-    public string Lifetime { get; }
+    public bool AllowMultiple { get; } = allowMultiple;
 
-    public bool AllowMultiple { get; }
+    public bool UseTryAdd { get; } = useTryAdd;
 
-    public bool UseTryAdd { get; }
+    public string? ThreadIsolationLifetime { get; } = threadIsolationLifetime;
 
-    public string? ThreadIsolationLifetime { get; }
+    public string FactoryBody { get; } = factoryBody;
 
-    public string FactoryBody { get; }
+    public int Order { get; } = order;
 
-    public int Order { get; }
+    public int Group { get; } = group;
 
-    public int Group { get; }
+    public string? KeyExpression { get; } = keyExpression;
 
-    public string? KeyExpression { get; }
+    public string? EnvironmentName { get; } = environmentName;
 
-    public string? EnvironmentName { get; }
+    public string? ModuleName { get; } = moduleName;
 
-    public string? ModuleName { get; }
+    public string? DirectRegistrationStatement { get; } = directRegistrationStatement;
 }
 #pragma warning restore S107

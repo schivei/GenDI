@@ -2,6 +2,8 @@
 
 GenDI uses layered validation:
 
+This validation matrix aligns with the canonical Phase 6 status source in `/home/runner/work/GenDI/GenDI/docs/ROTEIRO_FASE6.md` (including 4.6 marked as delivered).
+
 ## 1️⃣ Generator behavior tests
 
 Projects:
@@ -16,6 +18,8 @@ Coverage includes:
 - ✅ constructor/init-property activation generation
 - ✅ ordering rules (`Group`, `Order`, name)
 - ✅ contract discovery and fallback behavior
+- ✅ registration strategy policy coverage (`RegistrationMultiplicity`, `RegistrationEmissionStrategy`)
+- ✅ OptionConfig evolution scenarios (optional key fallback and eligibility constraints)
 
 ## 2️⃣ Runtime integration tests
 

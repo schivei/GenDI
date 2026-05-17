@@ -5,6 +5,7 @@
     <IsTestProject>true</IsTestProject>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+    <RootNamespace>GenDI.SourceGenerator.Tests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

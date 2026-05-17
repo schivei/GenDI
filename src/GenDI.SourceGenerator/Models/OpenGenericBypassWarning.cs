@@ -1,19 +1,12 @@
 using Microsoft.CodeAnalysis;
 
-namespace GenDI.SourceGenerator;
+namespace GenDI.SourceGenerator.Models;
 
-internal sealed class OpenGenericBypassWarning
+internal sealed class OpenGenericBypassWarning(Location location, string context, string typeDisplay)
 {
-    public OpenGenericBypassWarning(Location location, string context, string typeDisplay)
-    {
-        Location = location;
-        Context = context;
-        TypeDisplay = typeDisplay;
-    }
+    public Location Location { get; } = location;
 
-    public Location Location { get; }
+    public string Context { get; } = context;
 
-    public string Context { get; }
-
-    public string TypeDisplay { get; }
+    public string TypeDisplay { get; } = typeDisplay;
 }

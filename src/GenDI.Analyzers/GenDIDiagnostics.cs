@@ -2,7 +2,7 @@ using Microsoft.CodeAnalysis;
 
 namespace GenDI.Analyzers;
 
-internal static class GenDIDiagnostics
+internal static class GenDiDiagnostics
 {
 #pragma warning disable S1075 // external diagnostics documentation URL is intentionally fixed
     private const string AnalyzerDiagnosticsDocBaseUrl =

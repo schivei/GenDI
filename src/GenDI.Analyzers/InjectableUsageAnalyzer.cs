@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -11,11 +10,11 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
 {
     private static readonly ImmutableArray<DiagnosticDescriptor> SupportedRules =
     [
-        GenDIDiagnostics.InjectRequiresInitOnlyProperty,
-        GenDIDiagnostics.InjectableRequiresConcreteClass,
-        GenDIDiagnostics.ConstructorInjectionCanBeConverted,
-        GenDIDiagnostics.DecoratorRequiresResolvableContract,
-        GenDIDiagnostics.DecoratorRequiresInnerDependency,
+        GenDiDiagnostics.InjectRequiresInitOnlyProperty,
+        GenDiDiagnostics.InjectableRequiresConcreteClass,
+        GenDiDiagnostics.ConstructorInjectionCanBeConverted,
+        GenDiDiagnostics.DecoratorRequiresResolvableContract,
+        GenDiDiagnostics.DecoratorRequiresInnerDependency,
     ];
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => SupportedRules;
@@ -56,7 +55,7 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
 
         context.ReportDiagnostic(
             Diagnostic.Create(
-                GenDIDiagnostics.InjectRequiresInitOnlyProperty,
+                GenDiDiagnostics.InjectRequiresInitOnlyProperty,
                 property.Locations.FirstOrDefault(),
                 property.Name
             )
@@ -72,12 +71,12 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
 
         if (
             HasInjectableAttribute(typeSymbol)
-            && !(typeSymbol.TypeKind == TypeKind.Class && !typeSymbol.IsAbstract)
+            && !(typeSymbol is { TypeKind: TypeKind.Class, IsAbstract: false })
         )
         {
             context.ReportDiagnostic(
                 Diagnostic.Create(
-                    GenDIDiagnostics.InjectableRequiresConcreteClass,
+                    GenDiDiagnostics.InjectableRequiresConcreteClass,
                     typeSymbol.Locations.FirstOrDefault(),
                     typeSymbol.Name
                 )
@@ -163,7 +162,7 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
 
         context.ReportDiagnostic(
             Diagnostic.Create(
-                GenDIDiagnostics.ConstructorInjectionCanBeConverted,
+                GenDiDiagnostics.ConstructorInjectionCanBeConverted,
                 constructorDeclaration.GetLocation(),
                 constructorSymbol.ContainingType.Name
             )
@@ -191,7 +190,7 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
             {
                 context.ReportDiagnostic(
                     Diagnostic.Create(
-                        GenDIDiagnostics.DecoratorRequiresResolvableContract,
+                        GenDiDiagnostics.DecoratorRequiresResolvableContract,
                         typeSymbol.Locations.FirstOrDefault(),
                         typeSymbol.Name
                     )
@@ -211,7 +210,7 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
 
             context.ReportDiagnostic(
                 Diagnostic.Create(
-                    GenDIDiagnostics.DecoratorRequiresInnerDependency,
+                    GenDiDiagnostics.DecoratorRequiresInnerDependency,
                     typeSymbol.Locations.FirstOrDefault(),
                     typeSymbol.Name,
                     decoratedContract.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)
@@ -296,10 +295,11 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
             baseType = baseType.BaseType;
         }
 
-        return serviceContracts
-            .Distinct(SymbolEqualityComparer.Default)
-            .Cast<INamedTypeSymbol>()
-            .ToImmutableArray();
+        return [
+            ..serviceContracts
+                .Distinct(SymbolEqualityComparer.Default)
+                .Cast<INamedTypeSymbol>()
+        ];
     }
 
     private static bool HasServiceInjectionAttribute(ITypeSymbol symbol)
@@ -317,11 +317,9 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
     )
     {
         var constructor = GetPreferredPublicConstructor(decoratorType);
-        return (
-                constructor is not null
-                && constructor.Parameters.Any(parameter =>
-                    SymbolEqualityComparer.Default.Equals(parameter.Type, serviceType)
-                )
+        return constructor is not null
+            && constructor.Parameters.Any(parameter =>
+                SymbolEqualityComparer.Default.Equals(parameter.Type, serviceType)
             )
             || decoratorType
                 .GetMembers()

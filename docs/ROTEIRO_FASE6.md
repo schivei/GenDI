@@ -18,6 +18,20 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
 8. Observability
 9. Community and ecosystem
 
+## 2.1) Official Phase 6 baseline matrix (single source of truth)
+
+| Track | Status | Notes |
+|---|---|---|
+| 4.1 Source-generator quality | Delivered | Analyzer package, diagnostics, code-fix, and incremental optimization are in place. |
+| 4.2 Registration model (RM-01..RM-12) | Delivered | Optional injection, conditional registration, decorators, factory/module support, thread isolation, and cross-assembly discovery are documented and tested. |
+| 4.3 Platform/framework support | Delivered | Minimal API, Worker Service, Blazor WASM validation, MAUI manual validation guidance, and F# limitation notes are covered. |
+| 4.4 Testing ergonomics | Delivered | `GenDI.Testing` + `ServiceBuilder` and xUnit example suite are present. |
+| 4.5 Explicit registration strategies (Add/TryAdd) | Delivered | `RegistrationMultiplicity` + `RegistrationEmissionStrategy` support across attributes is implemented and tested. |
+| 4.6 OptionConfig evolution | Delivered | Optional key fallback, eligibility constraints, and `AddOptions<T>().BindConfiguration(section)` fast-path are implemented. |
+| 4.7 Tooling/IDE | Pending | VS item template, Rider live template, and `dotnet new` template remain open. |
+| 4.8 Observability | Pending | Observable service spans, startup summary log, and graph export remain open. |
+| 4.9 Community/ecosystem | Pending | Public changelog, localization, sample repository, and benchmark expansion remain open. |
+
 ## 3) Estratégia de entrega incremental
 
 ### Incremento 6.1 (este PR) — Fundação de DX com analyzers
@@ -102,7 +116,7 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
 - [x] **RM-07** Thread isolation no registro por `Injectable`/`ServiceInjection` com os três lifetimes.
 - [x] **RM-08** Varredura de dependências entre bibliotecas referenciadas na solução para registro centralizado.
 - [x] **RM-09** Suporte a injeção indireta para tipos genéricos fechados quando a implementação concreta for inferível.
-- [x] **RM-10** `OptionConfigAttribute` para mapear tipo concreto em `IOptions<>` com chave/path obrigatório.
+- [x] **RM-10** `OptionConfigAttribute` para mapear tipo concreto em `IOptions<>` com chave/path opcional (fallback para nome do tipo).
 - [x] **RM-11** `[InjectableFactory]` em métodos estáticos.
 - [x] **RM-12** `[InjectableModule]` para agrupamento.
 
@@ -135,17 +149,17 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
 
 ## 4.6 OptionConfig evolution
 
-- [ ] **OP-01** Allow an optional key in options to select the configuration section.
+- [x] **OP-01** Allow an optional key in options to select the configuration section.
   - Criteria:
     - When a key is defined, use the specified section.
     - When no key is defined, use the options type name as the default section.
-- [ ] **OP-02** Restrict options to eligible types and compatible constructors.
+- [x] **OP-02** Restrict options to eligible types and compatible constructors.
   - Criteria:
     - Concrete classes (including sealed), non-private.
     - Non-ref and non-private structs.
     - Non-ref and non-private records.
     - Parameterless constructor or implicit/default constructor.
-- [ ] **OP-03** Register options using the most performant path between `services.Configure()` and equivalent binding for `IOptions<>`.
+- [x] **OP-03** Register options using the most performant path between `services.Configure()` and equivalent binding for `IOptions<>`.
   - Criteria:
     - Resulting registration must expose `IOptions<TOptions>`.
     - Test coverage for explicit key, default key by type name, and invalid types.
@@ -214,6 +228,7 @@ Consolidar o GenDI como solução de DI para uso amplo no ecossistema .NET, elev
 - **v1.7**: implementação da trilha 4.3 com exemplos/validações para Minimal API, Worker Service e Blazor WASM, documentação de validação mobile AOT e exploração de suporte F#.
 - **v1.8**: implementação da trilha 4.4 com pacote `GenDI.Testing`, integração com helpers de DI abstractions e exemplo real em xUnit.
 - **v1.9**: added tracks 4.5 and 4.6 (Add/TryAdd registration strategies and OptionConfig evolution), with subsequent renumbering to 4.7, 4.8, and 4.9.
+- **v2.0**: baseline aligned with PR #24, marking 4.6 as delivered and formalizing the single Phase 6 status matrix used by all documentation entry points.
 
 ## 8) Referência detalhada das entregas RM-01..RM-12
 
