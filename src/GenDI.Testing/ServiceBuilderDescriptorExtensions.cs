@@ -8,49 +8,49 @@ namespace GenDI.Testing;
 /// </summary>
 public static class ServiceBuilderDescriptorExtensions
 {
-    /// <summary>
-    /// Adds the descriptor only when the same service type is not already registered.
-    /// </summary>
     /// <param name="builder">Target service builder.</param>
-    /// <param name="descriptor">Descriptor to attempt to add.</param>
-    /// <returns>The current <see cref="ServiceBuilder"/>.</returns>
-    public static ServiceBuilder TryAdd(this ServiceBuilder builder, ServiceDescriptor descriptor)
+    extension(ServiceBuilder builder)
     {
-        ThrowIfNull(builder, nameof(builder));
-        ThrowIfNull(descriptor, nameof(descriptor));
-        builder.Services.TryAdd(descriptor);
-        return builder;
-    }
+        /// <summary>
+        /// Adds the descriptor only when the same service type is not already registered.
+        /// </summary>
+        /// <param name="descriptor">Descriptor to attempt to add.</param>
+        /// <returns>The current <see cref="ServiceBuilder"/>.</returns>
+        public ServiceBuilder TryAdd(ServiceDescriptor descriptor)
+        {
+            ThrowIfNull(builder, nameof(builder));
+            ThrowIfNull(descriptor, nameof(descriptor));
+            builder.Services.TryAdd(descriptor);
+            return builder;
+        }
 
-    /// <summary>
-    /// Replaces the first descriptor with matching service type.
-    /// </summary>
-    /// <param name="builder">Target service builder.</param>
-    /// <param name="descriptor">Replacement descriptor.</param>
-    /// <returns>The current <see cref="ServiceBuilder"/>.</returns>
-    public static ServiceBuilder Replace(this ServiceBuilder builder, ServiceDescriptor descriptor)
-    {
-        ThrowIfNull(builder, nameof(builder));
-        ThrowIfNull(descriptor, nameof(descriptor));
-        builder.Services.Replace(descriptor);
-        return builder;
-    }
+        /// <summary>
+        /// Replaces the first descriptor with matching service type.
+        /// </summary>
+        /// <param name="descriptor">Replacement descriptor.</param>
+        /// <returns>The current <see cref="ServiceBuilder"/>.</returns>
+        public ServiceBuilder Replace(ServiceDescriptor descriptor)
+        {
+            ThrowIfNull(builder, nameof(builder));
+            ThrowIfNull(descriptor, nameof(descriptor));
+            builder.Services.Replace(descriptor);
+            return builder;
+        }
 
-    /// <summary>
-    /// Adds the descriptor to enumerable registrations only if equivalent one is not present.
-    /// </summary>
-    /// <param name="builder">Target service builder.</param>
-    /// <param name="descriptor">Descriptor to attempt to add.</param>
-    /// <returns>The current <see cref="ServiceBuilder"/>.</returns>
-    public static ServiceBuilder TryAddEnumerable(
-        this ServiceBuilder builder,
-        ServiceDescriptor descriptor
-    )
-    {
-        ThrowIfNull(builder, nameof(builder));
-        ThrowIfNull(descriptor, nameof(descriptor));
-        builder.Services.TryAddEnumerable(descriptor);
-        return builder;
+        /// <summary>
+        /// Adds the descriptor to enumerable registrations only if equivalent one is not present.
+        /// </summary>
+        /// <param name="descriptor">Descriptor to attempt to add.</param>
+        /// <returns>The current <see cref="ServiceBuilder"/>.</returns>
+        public ServiceBuilder TryAddEnumerable(
+            ServiceDescriptor descriptor
+        )
+        {
+            ThrowIfNull(builder, nameof(builder));
+            ThrowIfNull(descriptor, nameof(descriptor));
+            builder.Services.TryAddEnumerable(descriptor);
+            return builder;
+        }
     }
 
     private static void ThrowIfNull(object? value, string paramName)

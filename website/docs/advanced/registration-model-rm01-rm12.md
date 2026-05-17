@@ -25,7 +25,8 @@ This page explains each registration-model item with:
 | Thread-aware reuse policy | `RM-07 ThreadIsolation` |
 | Discover services in referenced projects | `RM-08 cross-assembly scanning` |
 | Infer closed generic from open implementation | `RM-09 closed-generic inference` |
-| Bind config to `IOptions<T>` automatically | `RM-10 [OptionConfig]` |
+| Control registration policy (`Single`/`Multiple`, `Add`/`TryAdd`) | `RG-01 / RG-02 registration strategy` |
+| Bind config to `IOptions<T>` automatically with optional key fallback | `RM-10 [OptionConfig] + OP evolution` |
 | Centralized service creation logic | `RM-11 [InjectableFactory<T>]` |
 | Load only selected bounded contexts | `RM-12 modules` |
 
@@ -307,11 +308,30 @@ GenDI infers `IRepository<Order> -> EfRepository<Order>` in generated output.
 
 ---
 
+## RG-01 / RG-02 — explicit registration strategy
+
+`RegistrationMultiplicity` and `RegistrationEmissionStrategy` let you define single/multiple registration intent and `Add*` vs `TryAdd*` emission in generated code.
+
+```csharp
+[ServiceInjection(
+    RegistrationMultiplicity = RegistrationMultiplicity.Single,
+    RegistrationEmission = RegistrationEmissionStrategy.TryAdd)]
+public interface IClock { }
+```
+
+---
+
 ## RM-10 — `OptionConfigAttribute` + `IOptions<>`
 
 ### What it solves
 
 Configuration binding is repetitive when done manually across many option types.
+
+### OP evolution delivered in Phase 6
+
+- Optional key fallback to options type name when omitted.
+- Eligibility rules for options type shapes.
+- Fast-path registration via `AddOptions<TOptions>().BindConfiguration(section)`.
 
 ### When to use
 
@@ -333,6 +353,14 @@ public sealed class StripeClient
 {
     [Inject]
     public required IOptions<StripeOptions> Options { get; init; }
+}
+```
+
+```csharp
+[OptionConfig]
+public sealed class CheckoutOptions
+{
+    public required string Currency { get; init; }
 }
 ```
 

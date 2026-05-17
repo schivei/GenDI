@@ -14,7 +14,7 @@ namespace GenDI.Analyzers;
 public sealed class ConstructorInjectionCodeFixProvider : CodeFixProvider
 {
     public override ImmutableArray<string> FixableDiagnosticIds =>
-        [GenDIDiagnostics.ConstructorInjectionCanBeConverted.Id];
+        [GenDiDiagnostics.ConstructorInjectionCanBeConverted.Id];
 
     public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
 

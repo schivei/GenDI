@@ -1,4 +1,3 @@
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -83,15 +82,9 @@ internal static class ConstructorInjectionAnalysisHelpers
     }
 }
 
-internal readonly struct PropagationAnalysisResult
+internal readonly struct PropagationAnalysisResult(HashSet<string> parameterNames, bool isSafe)
 {
-    public PropagationAnalysisResult(HashSet<string> parameterNames, bool isSafe)
-    {
-        ParameterNames = parameterNames;
-        IsSafe = isSafe;
-    }
+    public HashSet<string> ParameterNames { get; } = parameterNames;
 
-    public HashSet<string> ParameterNames { get; }
-
-    public bool IsSafe { get; }
+    public bool IsSafe { get; } = isSafe;
 }

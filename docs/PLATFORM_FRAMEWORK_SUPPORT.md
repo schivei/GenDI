@@ -2,6 +2,13 @@
 
 This note consolidates the Phase 6 platform/framework validation work for GenDI.
 
+## Phase 6 baseline status alignment
+
+This document follows the official Phase 6 matrix in `/home/runner/work/GenDI/GenDI/docs/ROTEIRO_FASE6.md`:
+
+- Delivered tracks: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6
+- Pending tracks: 4.7 (tooling), 4.8 (observability), 4.9 (community/ecosystem)
+
 ## Validation assets in this repository
 
 - `tests/GenDI.Phase6.MinimalApiValidation.App` — ASP.NET Core Minimal API sample using `AddGenDIServices()`

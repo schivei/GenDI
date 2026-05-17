@@ -19,7 +19,8 @@ This document explains each registration-model item with practical context:
 | Thread-aware reuse policy | `RM-07 ThreadIsolation` |
 | Discover services in referenced projects | `RM-08 cross-assembly scanning` |
 | Infer closed generic from open implementation | `RM-09 closed-generic inference` |
-| Bind config to `IOptions<T>` automatically | `RM-10 [OptionConfig]` |
+| Control registration policy (`Single`/`Multiple`, `Add`/`TryAdd`) | `RG-01 / RG-02 registration strategy` |
+| Bind config to `IOptions<T>` automatically with optional key fallback | `RM-10 [OptionConfig] + OP evolution` |
 | Centralized service creation logic | `RM-11 [InjectableFactory<T>]` |
 | Load only selected bounded contexts | `RM-12 modules` |
 
@@ -216,11 +217,42 @@ public sealed class OrderReadService
 
 GenDI infers `IRepository<Order> -> EfRepository<Order>`.
 
+## RG-01 / RG-02 — explicit registration strategy (`RegistrationMultiplicity` + `RegistrationEmissionStrategy`)
+
+### What it solves
+
+Lets you configure whether generated registrations should be emitted as single or multiple entries, and whether the generator should use `Add*` or `TryAdd*` API families.
+
+### Example
+
+```csharp
+[ServiceInjection(
+    RegistrationMultiplicity = RegistrationMultiplicity.Single,
+    RegistrationEmission = RegistrationEmissionStrategy.TryAdd)]
+public interface IClock { }
+
+[Injectable<IClock>(
+    ServiceLifetime.Singleton,
+    RegistrationMultiplicity = RegistrationMultiplicity.Single,
+    RegistrationEmission = RegistrationEmissionStrategy.TryAdd)]
+public sealed class SystemClock : IClock
+{
+}
+```
+
+This pattern avoids unintended descriptor duplication while keeping the registration deterministic.
+
 ## RM-10 — `OptionConfigAttribute` for `IOptions<>`
 
 ### What it solves
 
-Reduce repetitive manual binding across many options sections.
+Reduce repetitive manual binding across many options sections while keeping configuration binding predictable and fast.
+
+### Current evolution status (OP-01..OP-03 delivered)
+
+- Key/path is optional (`[OptionConfig]` falls back to the options type name).
+- Supported options types are restricted to eligible concrete class/struct/record shapes.
+- Fast-path generation uses `services.AddOptions<TOptions>().BindConfiguration(section)` when compatible.
 
 ### Example
 
@@ -239,6 +271,16 @@ public sealed class StripeClient
     public required IOptions<StripeOptions> Options { get; init; }
 }
 ```
+
+```csharp
+[OptionConfig]
+public sealed class CheckoutOptions
+{
+    public required string Currency { get; init; }
+}
+```
+
+With `[OptionConfig]` and no explicit key, GenDI binds from `"CheckoutOptions"` automatically.
 
 ## RM-11 — static factory registration (`[InjectableFactory<TService>]`)
 

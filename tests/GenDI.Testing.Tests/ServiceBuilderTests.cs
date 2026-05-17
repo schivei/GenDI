@@ -1,5 +1,4 @@
 using System;
-using GenDI.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -10,7 +9,7 @@ public class ServiceBuilderTests
     [Fact]
     public void Constructor_throws_when_services_is_null()
     {
-        Assert.Throws<ArgumentNullException>(() => new ServiceBuilder((IServiceCollection)null!));
+        Assert.Throws<ArgumentNullException>(() => new ServiceBuilder(null!));
     }
 
     [Fact]
@@ -53,7 +52,7 @@ public class ServiceBuilderTests
     public void Fluent_methods_register_expected_descriptors_and_resolve()
     {
         var addedByConfigure = false;
-        var addedByGenDI = false;
+        var addedByGenDi = false;
         var expectedServicesReference = new ServiceCollection();
 
         var builder = new ServiceBuilder(expectedServicesReference)
@@ -62,9 +61,9 @@ public class ServiceBuilderTests
                 addedByConfigure = true;
                 services.AddSingleton(new MarkerService("configured"));
             })
-            .AddGenDI(services =>
+            .AddGenDi(services =>
             {
-                addedByGenDI = true;
+                addedByGenDi = true;
                 services.AddSingleton<IOtherService, OtherService>();
             })
             .AddSingleton<IParameterlessService, ParameterlessService>()
@@ -72,7 +71,7 @@ public class ServiceBuilderTests
             .AddTransient<ITransientDependency, TransientDependency>();
 
         Assert.True(addedByConfigure);
-        Assert.True(addedByGenDI);
+        Assert.True(addedByGenDi);
         Assert.Same(expectedServicesReference, builder.Services);
 
         using var provider = builder.BuildServiceProvider(
@@ -109,7 +108,7 @@ public class ServiceBuilderTests
     [Fact]
     public void AddGenDI_throws_when_delegate_is_null()
     {
-        Assert.Throws<ArgumentNullException>(() => ServiceBuilder.Create().AddGenDI(null!));
+        Assert.Throws<ArgumentNullException>(() => ServiceBuilder.Create().AddGenDi(null!));
     }
 
     [Fact]

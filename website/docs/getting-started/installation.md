@@ -51,6 +51,13 @@ services.AddGenDIServices();
 - ✅ `true` (default): generated extension remains included in coverage.
 - ⛔ `false`: generated extension receives `[ExcludeFromCodeCoverage]`.
 
+## 6️⃣ Optional: advanced registration policies
+
+GenDI Phase 6 also supports:
+
+- `RegistrationMultiplicity` and `RegistrationEmissionStrategy` for `Single`/`Multiple` and `Add`/`TryAdd` code generation.
+- `[OptionConfig]` with optional key fallback (type name) for `IOptions<T>` binding.
+
 ## 🛠️ Local tooling and hooks
 
 The repository ships local tools (`csharpier`, `husky`) in `dotnet-tools.json`.

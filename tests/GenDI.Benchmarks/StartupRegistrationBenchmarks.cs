@@ -149,8 +149,7 @@ internal static class ReflectionRegistration
 
     private static bool IsInjectableImplementation(Type type)
     {
-        return type.IsClass
-            && !type.IsAbstract
+        return type is { IsClass: true, IsAbstract: false }
             && type.GetCustomAttributes(inherit: false)
                 .Any(attribute => IsInjectableAttribute(attribute.GetType()));
     }

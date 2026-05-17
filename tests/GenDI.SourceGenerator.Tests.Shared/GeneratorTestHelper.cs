@@ -58,7 +58,7 @@ internal static class GeneratorTestHelper
         );
     }
 
-    public static void AssertNoSourceGeneratedWithAssemblyName(
+    private static void AssertNoSourceGeneratedWithAssemblyName(
         string? assemblyName,
         string userSource,
         bool? includeGeneratedCodeInCoverage,
@@ -128,19 +128,19 @@ internal static class GeneratorTestHelper
             ? $"[assembly: GenDI.GenDICoveration({includeGeneratedCodeInCoverage.Value.ToString().ToLowerInvariant()})]"
             : string.Empty;
 
-        var source = $$"""
+        var source = $"""
             using GenDI;
             using Microsoft.Extensions.DependencyInjection;
-            {{assemblyCoverageAttribute}}
+            {assemblyCoverageAttribute}
 
-            {{userSource}}
+            {userSource}
             """;
 
         var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
         var syntaxTree = CSharpSyntaxTree.ParseText(source, parseOptions);
         var compilation = CSharpCompilation.Create(
             assemblyName: assemblyName,
-            syntaxTrees: new[] { syntaxTree },
+            syntaxTrees: [syntaxTree],
             references: BuildReferences(referencedAssemblies),
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
@@ -213,10 +213,9 @@ internal static class GeneratorTestHelper
         params (string AssemblyName, string Source)[] referencedAssemblies
     )
     {
-        var tpa = (AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string) ?? string.Empty;
+        var tpa = AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string ?? string.Empty;
         var references = tpa.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
             .Select(static path => MetadataReference.CreateFromFile(path))
-            .OfType<PortableExecutableReference>()
             .ToList();
 
         references.Add(
@@ -257,15 +256,15 @@ internal static class GeneratorTestHelper
     )
     {
         var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
-        var wrappedSource = $$"""
+        var wrappedSource = $"""
             using GenDI;
             using Microsoft.Extensions.DependencyInjection;
 
-            {{referencedAssembly.Source}}
+            {referencedAssembly.Source}
             """;
         var compilation = CSharpCompilation.Create(
             assemblyName: referencedAssembly.AssemblyName,
-            syntaxTrees: new[] { CSharpSyntaxTree.ParseText(wrappedSource, parseOptions) },
+            syntaxTrees: [CSharpSyntaxTree.ParseText(wrappedSource, parseOptions)],
             references: references,
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
