@@ -1,8 +1,8 @@
 /* benchmark-sales:start */
 const benchmarkSalesPitch = {
   "eyebrow": "Latest CI benchmark advantage",
-  "title": "GenDI is currently 20.1% faster than manual registration",
-  "description": "The fastest generated path in CI is GenDI constructor injection. That means you can remove DI boilerplate and still improve startup registration performance.",
+  "title": "GenDI is currently 19.9% faster than manual registration",
+  "description": "The fastest generated path in CI is GenDI property injection. That means you can remove DI boilerplate and still improve startup registration performance.",
   "points": [
     "Eliminate repetitive service-registration code from startup files.",
     "Avoid reflection-based scanning costs during cold start.",

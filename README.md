@@ -30,7 +30,7 @@ GenDI is a dependency injection library built on top of C# *source generators*, 
 <!-- benchmark-sales:start -->
 ## Why teams adopt GenDI
 
-> Latest CI benchmarks show **GenDI constructor injection is 20.1% faster than manual registration**.
+> Latest CI benchmarks show **GenDI property injection is 19.9% faster than manual registration**.
 
 - **Move faster**: replace repetitive `AddScoped<>` / `AddSingleton<>` wiring with compile-time generation.
 - **Start faster**: keep registrations out of reflection scanners and on the fast path for startup.
