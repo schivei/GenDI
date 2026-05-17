@@ -2383,9 +2383,22 @@ public sealed partial class GenDISourceGenerator
 
     private static bool IsGeneratedCodeCoverageEnabled(Compilation compilation)
     {
+        var coverageAttributeSymbol = compilation.GetTypeByMetadataName(
+            "GenDI.GenDICoverationAttribute"
+        );
+        if (coverageAttributeSymbol is null)
+        {
+            return true;
+        }
+
         foreach (var attributeData in compilation.Assembly.GetAttributes())
         {
-            if (attributeData.AttributeClass?.ToDisplayString() != "GenDI.GenDICoverationAttribute")
+            if (
+                !SymbolEqualityComparer.Default.Equals(
+                    attributeData.AttributeClass,
+                    coverageAttributeSymbol
+                )
+            )
             {
                 continue;
             }

@@ -27,6 +27,19 @@
 
 GenDI is a dependency injection library built on top of C# *source generators*, providing full compatibility with NativeAOT and trimming. It works as an additional module to `Microsoft.Extensions.DependencyInjection`, allowing you to register services automatically at compile time — no reflection required.
 
+<!-- benchmark-sales:start -->
+## Why teams adopt GenDI
+
+> Latest CI benchmarks show **GenDI property injection is 19.9% faster than manual registration**.
+
+- **Move faster**: replace repetitive `AddScoped<>` / `AddSingleton<>` wiring with compile-time generation.
+- **Start faster**: keep registrations out of reflection scanners and on the fast path for startup.
+- **Deploy safely**: stay ready for trimming and NativeAOT without giving up readable DI code.
+- **Scale cleanly**: property injection and generated factories keep large services maintainable.
+
+[See the latest benchmark details](./docs/BENCHMARKS.md)
+<!-- benchmark-sales:end -->
+
 ## Say goodbye to constructor bloat
 
 Real-world services accumulate dependencies. With traditional constructor injection this tends to look like this:

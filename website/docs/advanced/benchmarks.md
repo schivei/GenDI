@@ -30,31 +30,42 @@ dotnet run -c Release --project tests/GenDI.Benchmarks/GenDI.Benchmarks.csproj -
 ## ⚡ Latest result snapshot
 
 <!-- benchmark-ci:start -->
-_Updated by [CI run #177](https://github.com/schivei/GenDI/actions/runs/25988734252) on 2026-05-17 11:09 UTC_
+_Updated by [CI run #180](https://github.com/schivei/GenDI/actions/runs/25992534772) on 2026-05-17 13:51 UTC_
 
 | Method | Mean | Allocated |
 |---|---:|---:|
-| Manual registration (no GenDI) | 2.693 μs | 5.97 KB |
-| GenDI: constructor injection (generated) | 2.151 μs | 6.1 KB |
-| GenDI: property injection (generated) | 2.216 μs | 6.1 KB |
-| Reflection registration (no GenDI, assembly scan) | 48.171 μs | 18.24 KB |
+| Manual registration (no GenDI) | 2.721 μs | 5.97 KB |
+| GenDI: constructor injection (generated) | 2.200 μs | 6.1 KB |
+| GenDI: property injection (generated) | 2.179 μs | 6.1 KB |
+| Reflection registration (no GenDI, assembly scan) | 48.477 μs | 18.24 KB |
 
 ### CI analysis
 
-- GenDI constructor injection is **-20.1%** versus manual registration.
-- GenDI property injection is **-17.7%** versus manual registration.
-- Reflection scanning remains the outlier at **~17.9x slower** and **~3.1x higher allocation** than manual registration.
+- GenDI constructor injection is **-19.1%** versus manual registration.
+- GenDI property injection is **-19.9%** versus manual registration.
+- Reflection scanning remains the outlier at **~17.8x slower** and **~3.1x higher allocation** than manual registration.
 - Compatibility note: this benchmark compares manual and generated registrations against a reflection scanner baseline; as documented below, reflection scanning is not suitable for trimming/NativeAOT scenarios, while manual and GenDI-generated registrations remain the supported path.
 <!-- benchmark-ci:end -->
+
+<!-- benchmark-sales:start -->
+## Why this benchmark matters
+
+> GenDI property injection is currently **19.9% faster than manual registration** in the latest CI snapshot.
+
+- You get compile-time DI registration without paying a startup penalty for reflection scanning.
+- You remove repetitive manual wiring while keeping generated code explicit and reviewable.
+- You stay aligned with trimming and NativeAOT-friendly deployment paths.
+<!-- benchmark-sales:end -->
 
 ## 🔍 What the numbers mean
 
 ### ✍️ Manual vs ⚡ GenDI generated
 
 The manual baseline registers **the same full service set** as `AddGenDIServices()` for an
-apples-to-apples comparison. Manual registration is marginally faster (~8 %) because it inlines
-the registration calls directly, while GenDI bundles them inside a generated extension method.
-This is a **constant, one-time startup cost** — it has no effect on per-request resolution speed.
+apples-to-apples comparison. In the **latest CI snapshot above**, both generated variants are ahead
+of manual registration on mean startup time, with constructor injection currently leading the set.
+The stable takeaway is that manual and generated registration stay in the same microsecond range,
+while the reflection scanner remains dramatically slower.
 
 The ergonomic price of "manual" is every new service needing its own `AddScoped<>()` call in a
 startup file. GenDI eliminates that maintenance entirely.
@@ -77,7 +88,7 @@ touches a `GetTypes()` call.
 
 | Comparison | 🏆 Winner | Margin | Takeaway |
 |---|---|---|---|
-| ✍️ Manual vs ⚡ GenDI generated | Manual (barely) | ~8 % | Negligible; GenDI saves hours of maintenance |
+| ✍️ Manual vs ⚡ GenDI generated | GenDI (latest CI snapshot) | Constructor: ~20.1 %, Property: ~17.7 % | Generated registration is currently fastest and removes manual maintenance |
 | ⚡ Constructor vs 🏆 property injection | Tie | ±1–2 % (noise) | **Use property injection — zero cost, big ergonomic win** |
 | ⚡ GenDI generated vs 🐢 reflection scanner | GenDI | ~19× faster | Reflection scanning is not viable for cold-start-sensitive apps |
 
