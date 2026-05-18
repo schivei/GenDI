@@ -41,39 +41,7 @@ public sealed partial class GenDISourceGenerator
 
         foreach (var concreteType in concreteTypes)
         {
-            if (HasDecoratorTarget(compilation, concreteType))
-            {
-                continue;
-            }
-
-            if (!TryGetInjectableAttribute(concreteType, out var injectableMetadata))
-            {
-                continue;
-            }
-
-            if (!IsClosedType(concreteType))
-            {
-                warnings.Add(
-                    BuildOpenGenericBypassWarning(concreteType, "Injectable class registration")
-                );
-                continue;
-            }
-
-            if (injectableMetadata.HasOpenGenericExplicitServiceType)
-            {
-                warnings.Add(
-                    BuildOpenGenericBypassWarning(
-                        concreteType,
-                        "Injectable explicit service contract"
-                    )
-                );
-                continue;
-            }
-
-            injectableTypes[concreteType] = injectableMetadata;
-            registrations.AddRange(
-                BuildDirectRegistrations(compilation, concreteType, injectableMetadata, warnings)
-            );
+            ProcessRegistrations(compilation, registrations, warnings, injectableTypes, concreteType);
         }
 
         registrations.AddRange(
@@ -158,6 +126,43 @@ public sealed partial class GenDISourceGenerator
                     )
                     .Select(static group => group.First())
             ]
+        );
+    }
+
+    private static void ProcessRegistrations(Compilation compilation, List<ServiceRegistration> registrations, List<OpenGenericBypassWarning> warnings, Dictionary<INamedTypeSymbol, InjectableMetadata> injectableTypes, INamedTypeSymbol concreteType)
+    {
+        if (HasDecoratorTarget(compilation, concreteType))
+        {
+            return;
+        }
+
+        if (!TryGetInjectableAttribute(concreteType, out var injectableMetadata))
+        {
+            return;
+        }
+
+        if (!IsClosedType(concreteType))
+        {
+            warnings.Add(
+                BuildOpenGenericBypassWarning(concreteType, "Injectable class registration")
+            );
+            return;
+        }
+
+        if (injectableMetadata.HasOpenGenericExplicitServiceType)
+        {
+            warnings.Add(
+                BuildOpenGenericBypassWarning(
+                    concreteType,
+                    "Injectable explicit service contract"
+                )
+            );
+            return;
+        }
+
+        injectableTypes[concreteType] = injectableMetadata;
+        registrations.AddRange(
+            BuildDirectRegistrations(compilation, concreteType, injectableMetadata, warnings)
         );
     }
 
@@ -1333,7 +1338,6 @@ public sealed partial class GenDISourceGenerator
         return $"{BuildRegistrationIdentity(serviceType, keyExpression, environmentName, moduleName)}|{implementationType}";
     }
 
-#pragma warning disable S3776 // registration extraction logic is intentionally centralized
     private static bool TryGetInjectableAttribute(
         INamedTypeSymbol symbol,
         out InjectableMetadata injectableMetadata
@@ -1413,7 +1417,6 @@ public sealed partial class GenDISourceGenerator
 
         return false;
     }
-#pragma warning restore S3776
 
     private static bool HasDecoratorTarget(Compilation compilation, INamedTypeSymbol symbol)
     {
