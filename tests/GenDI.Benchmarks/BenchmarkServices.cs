@@ -3,9 +3,6 @@ using Microsoft.Extensions.Options;
 
 namespace GenDI.Benchmarks;
 
-[OptionConfig]
-public class MyConfig{public string ConfigName { get; set; } }
-
 [ServiceInjection]
 public interface IBenchmarkClock
 {
@@ -41,8 +38,6 @@ public interface IBenchmarkService
 public sealed class BenchmarkService(IBenchmarkClock clock, IBenchmarkRepository repository)
     : IBenchmarkService
 {
-    [Inject] public required IOptions<MyConfig> Options { get; init; }
-
     public string Execute() => $"{repository.GetCount()}@{clock.UtcNow:O}";
 }
 

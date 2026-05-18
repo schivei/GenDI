@@ -1119,12 +1119,11 @@ public sealed partial class GenDISourceGenerator
         if (
             !IsIOptionsContract(injectRequest.ContractSymbol, out var optionsType)
             || !TryGetOptionConfigSection(optionsType, out var configPath)
+            || !IsEligibleOptionConfigType(optionsType)
         )
         {
             return false;
         }
-
-        var isEligibleOptionType = IsEligibleOptionConfigType(optionsType);
 
         var optionsContractType = injectRequest.ContractSymbol.ToDisplayString(
             SymbolDisplayFormat.FullyQualifiedFormat
