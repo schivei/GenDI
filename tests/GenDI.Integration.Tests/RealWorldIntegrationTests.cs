@@ -181,6 +181,17 @@ public class RealWorldIntegrationTests
         services.AddGenDIServices();
         using var provider = services.BuildServiceProvider();
 
+        Assert.Null(provider.GetService<IReferencedContract>());
+    }
+
+    [Fact]
+    public void Referenced_library_services_are_scanned_and_registered_with_referenced_module()
+    {
+        var services = new ServiceCollection();
+        services.AddGenDIServices();
+        services.AddReferencedModule();
+        using var provider = services.BuildServiceProvider();
+
         Assert.NotNull(provider.GetService<IReferencedContract>());
     }
 
@@ -200,6 +211,18 @@ public class RealWorldIntegrationTests
     {
         var services = new ServiceCollection();
         services.AddGenDIServices("Referenced");
+        using var provider = services.BuildServiceProvider();
+
+        Assert.Null(provider.GetService<IReferencedContract>());
+        Assert.Null(provider.GetService<IGeneratedContract>());
+    }
+
+    [Fact]
+    public void InjectableModule_filter_registers_only_selected_modules_with_referenced()
+    {
+        var services = new ServiceCollection();
+        services.AddGenDIServices("Referenced");
+        services.AddReferencedModule();
         using var provider = services.BuildServiceProvider();
 
         Assert.NotNull(provider.GetService<IReferencedContract>());

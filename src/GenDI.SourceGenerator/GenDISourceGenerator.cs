@@ -73,10 +73,7 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
                     .ThenBy(static registration => registration.ServiceType, StringComparer.Ordinal)
                     .ToImmutableArray();
 
-                if (
-                    normalizedRegistrations.Length == 0
-                    && buildResult.ChainedExtensionCalls.Length == 0
-                )
+                if (normalizedRegistrations.Length == 0)
                 {
                     return;
                 }
@@ -86,7 +83,6 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
                     BuildGeneratedSource(
                         normalizedRegistrations,
                         options.Namespace,
-                        buildResult.ChainedExtensionCalls,
                         includeExcludeFromCodeCoverage: options.IncludeExcludeFromCodeCoverage
                     )
                 );

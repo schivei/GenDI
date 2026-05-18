@@ -74,7 +74,7 @@ internal static class GenDiSourceTemplates
         /// <summary>
         /// Extension methods for registering services discovered by GenDI.
         /// </summary>
-        {{EXCLUDE_FROM_COVERAGE}}public static class GenDIServiceCollectionExtensions
+        {{EXCLUDE_FROM_COVERAGE}}internal static class GenDIServiceCollectionExtensions
         {
             private static bool HasServiceImplementation(IServiceCollection services, Type serviceType, Type implementationType)
             {
@@ -155,7 +155,6 @@ internal static class GenDiSourceTemplates
             public static IServiceCollection AddGenDIServices(this IServiceCollection services, params string[] modules)
             {
                 modules ??= Array.Empty<string>();
-        {{CHAINED_CALLS}}
         {{REGISTRATIONS}}
                 return services;
             }

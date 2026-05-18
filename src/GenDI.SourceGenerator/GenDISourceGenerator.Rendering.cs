@@ -11,7 +11,6 @@ public sealed partial class GenDISourceGenerator
     private static string BuildGeneratedSource(
         ImmutableArray<ServiceRegistration> registrations,
         string projectNamespace,
-        ImmutableArray<string> chainedExtensionCalls,
         bool includeExcludeFromCodeCoverage
     )
     {
@@ -24,16 +23,11 @@ public sealed partial class GenDISourceGenerator
             : string.Empty;
 
         var registrationLines = string.Join("\n", registrations.Select(BuildRegistrationLine));
-        var chainedCalls = string.Join(
-            "\n",
-            chainedExtensionCalls.Select(static chainedCall => $"        {chainedCall}")
-        );
 
         return GenDiSourceTemplates
             .FileTemplate.Replace("{{USINGS}}", usings)
             .Replace("{{NAMESPACE}}", projectNamespace)
             .Replace("{{EXCLUDE_FROM_COVERAGE}}", excludeAttribute)
-            .Replace("{{CHAINED_CALLS}}", chainedCalls)
             .Replace("{{REGISTRATIONS}}", registrationLines);
     }
 

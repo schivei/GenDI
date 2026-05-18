@@ -107,12 +107,10 @@ public sealed partial class GenDISourceGenerator
             warnings,
             referencedDecoratorIdentities
         );
-        var chainedExtensionCalls = BuildChainedExtensionCalls(compilation);
         var normalizedRegistrations = NormalizeRegistrationMultiplicity(registrations);
 
         return new RegistrationBuildResult(
             normalizedRegistrations,
-            chainedExtensionCalls,
             [
                 ..warnings
                     .Where(static warning => warning.Location is { IsInSource: true })
@@ -201,223 +199,6 @@ public sealed partial class GenDISourceGenerator
         return normalized.ToImmutable();
     }
 
-    private static ImmutableArray<string> BuildChainedExtensionCalls(Compilation compilation)
-    {
-        var explicitlyChainedNamespaces = GetExplicitlyChainedDependencyNamespaces(compilation);
-        var chainedCalls = ImmutableArray.CreateBuilder<string>();
-
-        foreach (var referencedAssembly in compilation.SourceModule.ReferencedAssemblySymbols)
-        {
-            if (!ShouldScanReferencedAssembly(referencedAssembly.Name))
-            {
-                continue;
-            }
-
-            var dependencyNamespace = GetProjectNamespace(referencedAssembly.Name);
-            if (
-                string.IsNullOrWhiteSpace(dependencyNamespace)
-                || explicitlyChainedNamespaces.Contains(dependencyNamespace)
-            )
-            {
-                continue;
-            }
-
-            if (!HasGeneratedAddGenDiServicesMethod(referencedAssembly, dependencyNamespace))
-            {
-                continue;
-            }
-
-            chainedCalls.Add(
-                $"global::{dependencyNamespace}.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services, modules);"
-            );
-        }
-
-        return [
-            ..chainedCalls
-                .Distinct(StringComparer.Ordinal)
-                .OrderBy(static call => call, StringComparer.Ordinal)
-        ];
-    }
-
-    private static HashSet<string> GetExplicitlyChainedDependencyNamespaces(Compilation compilation)
-    {
-        var explicitlyChainedNamespaces = new HashSet<string>(StringComparer.Ordinal);
-        var dependencyNamespacesWithGeneratedExtensions =
-            GetDependencyNamespacesWithGeneratedExtensions(compilation);
-
-        foreach (var syntaxTree in compilation.SyntaxTrees)
-        {
-            CaptureExplicitlyChainedDependencyNamespaces(
-                compilation.GetSemanticModel(syntaxTree),
-                syntaxTree.GetRoot(),
-                dependencyNamespacesWithGeneratedExtensions,
-                explicitlyChainedNamespaces
-            );
-        }
-
-        return explicitlyChainedNamespaces;
-    }
-
-    private static ImmutableHashSet<string> GetDependencyNamespacesWithGeneratedExtensions(
-        Compilation compilation
-    )
-    {
-        var referencedAssembliesByName = compilation
-            .SourceModule.ReferencedAssemblySymbols.Where(static assemblySymbol =>
-                ShouldScanReferencedAssembly(assemblySymbol.Name)
-            )
-            .ToImmutableDictionary(static assemblySymbol => assemblySymbol.Name);
-
-        return referencedAssembliesByName
-            .Keys
-            .Select(assemblySymbol =>
-            {
-                var dependencyNamespace = GetProjectNamespace(assemblySymbol);
-                var assemblySymbolValue = referencedAssembliesByName[assemblySymbol];
-                var hasGeneratedExtension =
-                    !string.IsNullOrWhiteSpace(dependencyNamespace)
-                    && HasGeneratedAddGenDiServicesMethod(
-                        assemblySymbolValue,
-                        dependencyNamespace
-                    );
-                return (Namespace: dependencyNamespace, HasGeneratedExtension: hasGeneratedExtension);
-            })
-            .Where(static candidate => candidate.HasGeneratedExtension)
-            .Select(static candidate => candidate.Namespace)
-            .ToImmutableHashSet(StringComparer.Ordinal);
-    }
-
-    private static void CaptureExplicitlyChainedDependencyNamespaces(
-        SemanticModel semanticModel,
-        SyntaxNode root,
-        ISet<string> dependencyNamespacesWithGeneratedExtensions,
-        ISet<string> explicitlyChainedNamespaces
-    )
-    {
-        var importedDependencyNamespaces = root
-            .DescendantNodes()
-            .OfType<UsingDirectiveSyntax>()
-            .Select(static usingDirective => usingDirective.Name?.ToString())
-            .Where(namespaceName =>
-                !string.IsNullOrWhiteSpace(namespaceName)
-                && namespaceName.EndsWith(".DependencyInjection", StringComparison.Ordinal)
-            )
-            .Select(static namespaceName =>
-                namespaceName!.Substring(0, namespaceName.Length - ".DependencyInjection".Length)
-            )
-            .Where(dependencyNamespacesWithGeneratedExtensions.Contains)
-            .ToImmutableHashSet(StringComparer.Ordinal);
-
-        foreach (var invocation in root.DescendantNodes().OfType<InvocationExpressionSyntax>())
-        {
-            TryCaptureExplicitlyChainedDependencyNamespaceFromInvocation(
-                semanticModel,
-                invocation,
-                importedDependencyNamespaces,
-                explicitlyChainedNamespaces
-            );
-        }
-    }
-
-    private static void TryCaptureExplicitlyChainedDependencyNamespaceFromInvocation(
-        SemanticModel semanticModel,
-        InvocationExpressionSyntax invocation,
-        ISet<string> importedDependencyNamespaces,
-        ISet<string> explicitlyChainedNamespaces
-    )
-    {
-        var symbolInfo = semanticModel.GetSymbolInfo(invocation);
-        var methodSymbol =
-            symbolInfo.Symbol as IMethodSymbol
-            ?? symbolInfo.CandidateSymbols.OfType<IMethodSymbol>().FirstOrDefault();
-        if (methodSymbol is null)
-        {
-            TryCaptureUsingBasedExtensionInvocation(
-                invocation,
-                importedDependencyNamespaces,
-                explicitlyChainedNamespaces
-            );
-            return;
-        }
-
-        methodSymbol = methodSymbol.ReducedFrom ?? methodSymbol;
-        if (!IsGeneratedAddGenDiServicesMethodSymbol(methodSymbol))
-        {
-            TryCaptureUsingBasedExtensionInvocation(
-                invocation,
-                importedDependencyNamespaces,
-                explicitlyChainedNamespaces
-            );
-            return;
-        }
-
-        var dependencyNamespace = GetDependencyNamespaceFromGeneratedMethod(methodSymbol);
-        if (!string.IsNullOrWhiteSpace(dependencyNamespace))
-        {
-            explicitlyChainedNamespaces.Add(dependencyNamespace);
-        }
-    }
-
-    private static string? GetDependencyNamespaceFromGeneratedMethod(IMethodSymbol methodSymbol)
-    {
-        var containingNamespace = methodSymbol.ContainingType.ContainingNamespace.ToDisplayString();
-        const string dependencyInjectionSuffix = ".DependencyInjection";
-        if (!containingNamespace.EndsWith(dependencyInjectionSuffix, StringComparison.Ordinal))
-        {
-            return null;
-        }
-
-        return containingNamespace.Substring(
-            0,
-            containingNamespace.Length - dependencyInjectionSuffix.Length
-        );
-    }
-
-    private static void TryCaptureUsingBasedExtensionInvocation(
-        InvocationExpressionSyntax invocation,
-        ISet<string> importedDependencyNamespaces,
-        ISet<string> explicitlyChainedNamespaces
-    )
-    {
-        if (
-            importedDependencyNamespaces.Count == 0
-            || invocation.Expression is not MemberAccessExpressionSyntax memberAccessExpression
-            || !string.Equals(
-                memberAccessExpression.Name.Identifier.ValueText,
-                "AddGenDIServices",
-                StringComparison.Ordinal
-            )
-        )
-        {
-            return;
-        }
-
-        foreach (var importedDependencyNamespace in importedDependencyNamespaces)
-        {
-            explicitlyChainedNamespaces.Add(importedDependencyNamespace);
-        }
-    }
-
-    private static bool IsGeneratedAddGenDiServicesMethodSymbol(IMethodSymbol methodSymbol)
-    {
-        var unboundMethod = methodSymbol.ReducedFrom ?? methodSymbol;
-        if (!HasGeneratedAddGenDiServicesMethodShape(unboundMethod, methodSymbol.MethodKind))
-        {
-            return false;
-        }
-
-        if (
-            unboundMethod.Parameters.Length > 0
-            && unboundMethod.Parameters[0].Type.ToDisplayString()
-                == "Microsoft.Extensions.DependencyInjection.IServiceCollection"
-        )
-        {
-            return true;
-        }
-
-        return methodSymbol.MethodKind == MethodKind.ReducedExtension;
-    }
-
     [ExcludeFromCodeCoverage]
     private static bool HasGeneratedAddGenDiServicesMethodShape(
         IMethodSymbol unboundMethod,
@@ -428,66 +209,6 @@ public sealed partial class GenDISourceGenerator
             && (methodKind == MethodKind.Ordinary || methodKind == MethodKind.ReducedExtension)
             && unboundMethod.IsStatic
             && unboundMethod.ContainingType.Name == "GenDIServiceCollectionExtensions";
-    }
-
-    private static bool HasGeneratedAddGenDiServicesMethod(
-        IAssemblySymbol assemblySymbol,
-        string dependencyNamespace
-    )
-    {
-        var dependencyInjectionNamespace = GetNamespaceSymbol(
-            assemblySymbol.GlobalNamespace,
-            $"{dependencyNamespace}.DependencyInjection"
-        );
-        if (dependencyInjectionNamespace is null)
-        {
-            return false;
-        }
-
-        return dependencyInjectionNamespace
-            .GetTypeMembers("GenDIServiceCollectionExtensions")
-            .SelectMany(static typeMember =>
-                typeMember.GetMembers("AddGenDIServices").OfType<IMethodSymbol>()
-            )
-            .Any(static method =>
-                method is { IsStatic: true, MethodKind: MethodKind.Ordinary, Parameters.Length: 2 }
-                && method.Parameters[0].Type.ToDisplayString()
-                    == "Microsoft.Extensions.DependencyInjection.IServiceCollection"
-                && method.Parameters[1].Type
-                    is IArrayTypeSymbol { ElementType.SpecialType: SpecialType.System_String }
-            );
-    }
-
-    private static INamespaceSymbol? GetNamespaceSymbol(
-        INamespaceSymbol rootNamespace,
-        string fullNamespace
-    )
-    {
-        var currentNamespace = rootNamespace;
-        foreach (
-            var namespaceSegment in fullNamespace.Split(
-                ['.'],
-                StringSplitOptions.RemoveEmptyEntries
-            )
-        )
-        {
-            var nextNamespace = currentNamespace.GetNamespaceMembers().FirstOrDefault(
-                namespaceMember =>
-                    string.Equals(
-                        namespaceMember.Name,
-                        namespaceSegment,
-                        StringComparison.Ordinal
-                    )
-            );
-            if (nextNamespace is null)
-            {
-                return null;
-            }
-
-            currentNamespace = nextNamespace;
-        }
-
-        return currentNamespace;
     }
 
     private static IEnumerable<ServiceRegistration> BuildDirectRegistrations(
@@ -2436,15 +2157,12 @@ public sealed partial class GenDISourceGenerator
             return false;
         }
 
-        switch (optionsType.TypeKind)
+        return optionsType.TypeKind switch
         {
-            case TypeKind.Class:
-                return !optionsType.IsAbstract && HasCompatibleOptionClassConstructor(optionsType);
-            case TypeKind.Struct:
-                return true;
-            default:
-                return false;
-        }
+            TypeKind.Class => !optionsType.IsAbstract && HasCompatibleOptionClassConstructor(optionsType),
+            TypeKind.Struct => true,
+            _ => false,
+        };
     }
 
     private static bool HasCompatibleOptionClassConstructor(INamedTypeSymbol optionsType)

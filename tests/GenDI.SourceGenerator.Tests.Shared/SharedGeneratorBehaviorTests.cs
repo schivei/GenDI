@@ -59,7 +59,7 @@ public class SharedGeneratorBehaviorTests
 
                 namespace ReferencedCoverageLibrary.DependencyInjection;
 
-                public static class GenDIServiceCollectionExtensions
+                internal static class GenDIServiceCollectionExtensions
                 {
                     public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddGenDIServices(
                         this Microsoft.Extensions.DependencyInjection.IServiceCollection services,
@@ -68,12 +68,6 @@ public class SharedGeneratorBehaviorTests
                 }
                 """
             )
-        );
-
-        Assert.Contains(
-            "global::ReferencedCoverageLibrary.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services, modules);",
-            generatedSource,
-            StringComparison.Ordinal
         );
 
         if (TestSettings.IncludeGeneratedCodeInCoverageAttribute is false)
@@ -1272,7 +1266,7 @@ public class SharedGeneratorBehaviorTests
 
                 namespace ReferencedChainLibrary.DependencyInjection
                 {
-                    public static class GenDIServiceCollectionExtensions
+                    internal static class GenDIServiceCollectionExtensions
                     {
                         public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddGenDIServices(
                             this Microsoft.Extensions.DependencyInjection.IServiceCollection services
@@ -1294,11 +1288,6 @@ public class SharedGeneratorBehaviorTests
             )
         );
 
-        Assert.Contains(
-            "global::ReferencedChainLibrary.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services, modules);",
-            generatedSource,
-            StringComparison.Ordinal
-        );
         Assert.DoesNotContain(
             "services.AddSingleton<global::ReferencedChainLibrary.IReferencedContract>",
             generatedSource,
@@ -1312,87 +1301,6 @@ public class SharedGeneratorBehaviorTests
     }
 
     [Fact]
-    public void Referenced_generated_extensions_are_emitted_in_ordinal_order()
-    {
-        var generatedSource = GeneratorTestHelper.GenerateSource(
-            """
-            namespace ConsumerChainCase;
-
-            public interface ILocalContract
-            {
-            }
-
-            [Injectable<ILocalContract>(ServiceLifetime.Singleton)]
-            public sealed class LocalService : ILocalContract
-            {
-            }
-            """,
-            TestSettings.IncludeGeneratedCodeInCoverageAttribute,
-            (
-                "ReferencedZLibrary",
-                """
-                namespace ReferencedZLibrary.DependencyInjection;
-
-                public static class GenDIServiceCollectionExtensions
-                {
-                    public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddGenDIServices(
-                        this Microsoft.Extensions.DependencyInjection.IServiceCollection services
-                    )
-                    {
-                        return AddGenDIServices(services, System.Array.Empty<string>());
-                    }
-
-                    public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddGenDIServices(
-                        this Microsoft.Extensions.DependencyInjection.IServiceCollection services,
-                        params string[] modules
-                    )
-                    {
-                        return services;
-                    }
-                }
-                """
-            ),
-            (
-                "ReferencedALibrary",
-                """
-                namespace ReferencedALibrary.DependencyInjection;
-
-                public static class GenDIServiceCollectionExtensions
-                {
-                    public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddGenDIServices(
-                        this Microsoft.Extensions.DependencyInjection.IServiceCollection services
-                    )
-                    {
-                        return AddGenDIServices(services, System.Array.Empty<string>());
-                    }
-
-                    public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddGenDIServices(
-                        this Microsoft.Extensions.DependencyInjection.IServiceCollection services,
-                        params string[] modules
-                    )
-                    {
-                        return services;
-                    }
-                }
-                """
-            )
-        );
-
-        var aIndex = generatedSource.IndexOf(
-            "global::ReferencedALibrary.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services, modules);",
-            StringComparison.Ordinal
-        );
-        var zIndex = generatedSource.IndexOf(
-            "global::ReferencedZLibrary.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services, modules);",
-            StringComparison.Ordinal
-        );
-
-        Assert.NotEqual(-1, aIndex);
-        Assert.NotEqual(-1, zIndex);
-        Assert.True(aIndex < zIndex);
-    }
-
-    [Fact]
     public void Explicit_manual_dependency_chain_prevents_automatic_chained_call_generation()
     {
         var generatedSource = GeneratorTestHelper.GenerateSource(
@@ -1403,7 +1311,6 @@ public class SharedGeneratorBehaviorTests
             {
                 public static void Register(Microsoft.Extensions.DependencyInjection.IServiceCollection services)
                 {
-                    global::ReferencedManualChainLibrary.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services);
                 }
             }
 
@@ -1443,11 +1350,6 @@ public class SharedGeneratorBehaviorTests
             )
         );
 
-        Assert.DoesNotContain(
-            "global::ReferencedManualChainLibrary.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services, modules);",
-            generatedSource,
-            StringComparison.Ordinal
-        );
         Assert.Contains(
             "services.AddSingleton<global::ConsumerChainCase.ILocalContract>",
             generatedSource,
@@ -1464,7 +1366,6 @@ public class SharedGeneratorBehaviorTests
 
             public static class ManualChainTextOnly
             {
-                // global::ReferencedManualChainLibrary.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services);
                 public const string Mention = "global::ReferencedManualChainLibrary.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services)";
             }
 
@@ -1674,65 +1575,11 @@ public class SharedGeneratorBehaviorTests
             generatedSource,
             StringComparison.Ordinal
         );
-        Assert.DoesNotContain(
-            "global::ReferencedNoGeneratedExtension.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services, modules);",
-            generatedSource,
-            StringComparison.Ordinal
-        );
-    }
-
-    [Fact]
-    public void Referenced_extension_with_invalid_signature_is_not_chained()
-    {
-        var generatedSource = GeneratorTestHelper.GenerateSource(
-            """
-            namespace ConsumerChainCase;
-
-            public interface ILocalContract
-            {
-            }
-
-            [Injectable<ILocalContract>(ServiceLifetime.Singleton)]
-            public sealed class LocalService : ILocalContract
-            {
-            }
-            """,
-            TestSettings.IncludeGeneratedCodeInCoverageAttribute,
-            (
-                "ReferencedInvalidChainLibrary",
-                """
-                namespace ReferencedInvalidChainLibrary.DependencyInjection
-                {
-                    public static class GenDIServiceCollectionExtensions
-                    {
-                        public static void AddGenDIServices(int services)
-                        {
-                        }
-                    }
-                }
-                """
-            )
-        );
-
-        Assert.DoesNotContain(
-            "global::ReferencedInvalidChainLibrary.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services, modules);",
-            generatedSource,
-            StringComparison.Ordinal
-        );
     }
 
     [Fact]
     public void Using_based_capture_adds_imported_dependency_namespace()
     {
-        var invocation = Assert.IsType<InvocationExpressionSyntax>(
-            SyntaxFactory.ParseExpression("UnknownReceiver.AddGenDIServices()")
-        );
-        var importedDependencyNamespaces = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "ReferencedManualChainLibrary",
-        };
-        var explicitlyChainedNamespaces = new HashSet<string>(StringComparer.Ordinal);
-
         var generatorAssemblyPath = Path.Combine(
             AppContext.BaseDirectory,
             "GenDI.SourceGenerator.dll"
@@ -1748,90 +1595,7 @@ public class SharedGeneratorBehaviorTests
             BindingFlags.NonPublic | BindingFlags.Static
         );
 
-        Assert.NotNull(captureUsingBasedInvocationMethod);
-        captureUsingBasedInvocationMethod.Invoke(
-            null,
-            [invocation, importedDependencyNamespaces, explicitlyChainedNamespaces]
-        );
-
-        Assert.Contains("ReferencedManualChainLibrary", explicitlyChainedNamespaces);
-    }
-
-    [Fact]
-    public void Referenced_decorator_duplicate_does_not_reapply_same_concrete_implementation()
-    {
-        var generatedSource = GeneratorTestHelper.GenerateSource(
-            """
-            namespace ConsumerChainCase;
-
-            [Injectable<ReferencedDecoratorLibrary.IContract>(ServiceLifetime.Singleton)]
-            public sealed class LocalService : ReferencedDecoratorLibrary.IContract
-            {
-            }
-
-            namespace ReferencedDecoratorLibrary
-            {
-                [DecoratorFor<IContract>]
-                public sealed class LoggingDecorator(IContract inner) : IContract
-                {
-                }
-            }
-            """,
-            TestSettings.IncludeGeneratedCodeInCoverageAttribute,
-            (
-                "ReferencedDecoratorLibrary",
-                """
-                namespace ReferencedDecoratorLibrary
-                {
-                    public interface IContract
-                    {
-                    }
-
-                    [Injectable<IContract>(ServiceLifetime.Singleton)]
-                    public sealed class BaseService : IContract
-                    {
-                    }
-
-                    [DecoratorFor<IContract>]
-                    public sealed class LoggingDecorator(IContract inner) : IContract
-                    {
-                    }
-                }
-
-                namespace ReferencedDecoratorLibrary.DependencyInjection
-                {
-                    public static class GenDIServiceCollectionExtensions
-                    {
-                        public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddGenDIServices(
-                            this Microsoft.Extensions.DependencyInjection.IServiceCollection services
-                        )
-                        {
-                            return AddGenDIServices(services, System.Array.Empty<string>());
-                        }
-
-                        public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddGenDIServices(
-                            this Microsoft.Extensions.DependencyInjection.IServiceCollection services,
-                            params string[] modules
-                        )
-                        {
-                            return services;
-                        }
-                    }
-                }
-                """
-            )
-        );
-
-        Assert.Contains(
-            "global::ReferencedDecoratorLibrary.DependencyInjection.GenDIServiceCollectionExtensions.AddGenDIServices(services, modules);",
-            generatedSource,
-            StringComparison.Ordinal
-        );
-        Assert.DoesNotContain(
-            "new global::ReferencedDecoratorLibrary.LoggingDecorator(",
-            generatedSource,
-            StringComparison.Ordinal
-        );
+        Assert.Null(captureUsingBasedInvocationMethod);
     }
 
     [Fact]
