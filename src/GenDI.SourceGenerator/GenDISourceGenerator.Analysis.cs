@@ -41,39 +41,7 @@ public sealed partial class GenDISourceGenerator
 
         foreach (var concreteType in concreteTypes)
         {
-            if (HasDecoratorTarget(compilation, concreteType))
-            {
-                continue;
-            }
-
-            if (!TryGetInjectableAttribute(concreteType, out var injectableMetadata))
-            {
-                continue;
-            }
-
-            if (!IsClosedType(concreteType))
-            {
-                warnings.Add(
-                    BuildOpenGenericBypassWarning(concreteType, "Injectable class registration")
-                );
-                continue;
-            }
-
-            if (injectableMetadata.HasOpenGenericExplicitServiceType)
-            {
-                warnings.Add(
-                    BuildOpenGenericBypassWarning(
-                        concreteType,
-                        "Injectable explicit service contract"
-                    )
-                );
-                continue;
-            }
-
-            injectableTypes[concreteType] = injectableMetadata;
-            registrations.AddRange(
-                BuildDirectRegistrations(compilation, concreteType, injectableMetadata, warnings)
-            );
+            ProcessRegistrations(compilation, registrations, warnings, injectableTypes, concreteType);
         }
 
         registrations.AddRange(
@@ -86,6 +54,51 @@ public sealed partial class GenDISourceGenerator
             )
         );
         registrations.AddRange(BuildFactoryRegistrations(compilation, concreteTypes, warnings));
+        // Ensure OptionConfig attributed options types in this assembly are registered even when
+        // no IOptions<T> consumer was discovered. This adds a direct AddOptions<T>().BindConfiguration(...) statement
+        // for eligible option types (structs or classes with public parameterless ctor).
+        foreach (var optionType in concreteTypes)
+        {
+            if (!TryGetOptionConfigSection(optionType, out var configPath))
+            {
+                continue;
+            }
+
+            if (!IsEligibleOptionConfigType(optionType))
+            {
+                continue;
+            }
+
+            var optionsTypeDisplay = optionType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            var optionsContractType = $"global::Microsoft.Extensions.Options.IOptions<{optionsTypeDisplay}>";
+
+            // Skip if already registered
+            if (registrations.Any(r => string.Equals(r.ServiceType, optionsContractType, StringComparison.Ordinal)
+                && string.IsNullOrWhiteSpace(r.KeyExpression)))
+            {
+                continue;
+            }
+
+            var escapedPath = EscapeStringLiteral(configPath);
+            var directRegistrationStatement =
+                $"        services.AddOptions<{optionsTypeDisplay}>().BindConfiguration(\"{escapedPath}\");";
+
+            registrations.Add(new ServiceRegistration(
+                optionsContractType,
+                optionsTypeDisplay,
+                SingletonLifetimeExpression,
+                allowMultiple: false,
+                useTryAdd: false,
+                threadIsolationLifetime: null,
+                factoryBody: string.Empty,
+                order: DefaultOrderingValue,
+                group: DefaultOrderingValue,
+                keyExpression: null,
+                environmentName: null,
+                moduleName: null,
+                directRegistrationStatement
+            ));
+        }
         var referencedDecoratorIdentities = GetReferencedDecoratorIdentities(compilation);
         ApplyDecorators(
             compilation,
@@ -113,6 +126,43 @@ public sealed partial class GenDISourceGenerator
                     )
                     .Select(static group => group.First())
             ]
+        );
+    }
+
+    private static void ProcessRegistrations(Compilation compilation, List<ServiceRegistration> registrations, List<OpenGenericBypassWarning> warnings, Dictionary<INamedTypeSymbol, InjectableMetadata> injectableTypes, INamedTypeSymbol concreteType)
+    {
+        if (HasDecoratorTarget(compilation, concreteType))
+        {
+            return;
+        }
+
+        if (!TryGetInjectableAttribute(concreteType, out var injectableMetadata))
+        {
+            return;
+        }
+
+        if (!IsClosedType(concreteType))
+        {
+            warnings.Add(
+                BuildOpenGenericBypassWarning(concreteType, "Injectable class registration")
+            );
+            return;
+        }
+
+        if (injectableMetadata.HasOpenGenericExplicitServiceType)
+        {
+            warnings.Add(
+                BuildOpenGenericBypassWarning(
+                    concreteType,
+                    "Injectable explicit service contract"
+                )
+            );
+            return;
+        }
+
+        injectableTypes[concreteType] = injectableMetadata;
+        registrations.AddRange(
+            BuildDirectRegistrations(compilation, concreteType, injectableMetadata, warnings)
         );
     }
 
@@ -722,21 +772,21 @@ public sealed partial class GenDISourceGenerator
             )
             .ToImmutableArray();
 
-        foreach (var decorator in decorators)
+        foreach (var (Symbol, Target) in decorators)
         {
-            if (TryBypassOpenGenericDecorator(decorator.Symbol, warnings))
+            if (TryBypassOpenGenericDecorator(Symbol, warnings))
             {
                 continue;
             }
 
-            var implementationType = decorator.Symbol.ToDisplayString(
+            var implementationType = Symbol.ToDisplayString(
                 SymbolDisplayFormat.FullyQualifiedFormat
             );
             if (
                 ShouldSkipReferencedDecorator(
                     compilation,
-                    decorator.Target.ServiceType.ContainingAssembly,
-                    decorator.Target.DisplayName,
+                    Symbol.ContainingAssembly,
+                    Target.DisplayName,
                     implementationType,
                     referencedDecoratorIdentities
                 )
@@ -745,13 +795,13 @@ public sealed partial class GenDISourceGenerator
                 continue;
             }
 
-            var constructor = FindBestPublicConstructor(decorator.Symbol);
-
+            var constructor = FindBestPublicConstructor(Symbol);
+            var applied = false;
             for (var i = registrations.Count - 1; i >= 0; i--)
             {
                 var existingRegistration = registrations[i];
                 if (
-                    existingRegistration.ServiceType != decorator.Target.DisplayName
+                    existingRegistration.ServiceType != Target.DisplayName
                     || !string.IsNullOrWhiteSpace(existingRegistration.KeyExpression)
                 )
                 {
@@ -759,10 +809,10 @@ public sealed partial class GenDISourceGenerator
                 }
 
                 var factoryBody = BuildFactoryBody(
-                    decorator.Symbol,
+                    Symbol,
                     implementationType,
                     constructor,
-                    decorator.Target.DisplayName,
+                    Target.DisplayName,
                     existingRegistration.FactoryBody
                 );
                 registrations[i] = new ServiceRegistration(
@@ -779,7 +829,54 @@ public sealed partial class GenDISourceGenerator
                     existingRegistration.EnvironmentName,
                     existingRegistration.ModuleName
                 );
+                applied = true;
                 break;
+            }
+
+            if (!applied)
+            {
+                // No existing registration to wrap — register the decorator itself for the target service type
+                // unless an equivalent implementation is already present.
+                var alreadyHasImplementation = registrations.Any(r =>
+                    string.Equals(r.ImplementationType, implementationType, StringComparison.Ordinal)
+                    && string.Equals(r.ServiceType, Target.DisplayName, StringComparison.Ordinal)
+                );
+
+                if (alreadyHasImplementation)
+                {
+                    continue;
+                }
+
+                // Use injectable metadata when available to determine lifetime and other settings.
+                TryGetInjectableAttribute(Symbol, out var injectableMetadata);
+                var finalLifetime = injectableMetadata?.Lifetime ?? TransientLifetimeExpression;
+                var allowMultiple = injectableMetadata?.AllowMultiple ?? DefaultAllowMultipleIndirectRegistration;
+                var useTryAdd = injectableMetadata?.UseTryAdd ?? DefaultUseTryAddRegistration;
+
+                var factoryBody = BuildFactoryBody(
+                    Symbol,
+                    implementationType,
+                    constructor,
+                    null,
+                    null
+                );
+
+                registrations.Add(
+                    new ServiceRegistration(
+                        Target.DisplayName,
+                        implementationType,
+                        finalLifetime,
+                        allowMultiple,
+                        useTryAdd,
+                        injectableMetadata?.ThreadIsolationLifetime,
+                        factoryBody,
+                        injectableMetadata?.Order ?? DefaultOrderingValue,
+                        injectableMetadata?.Group ?? DefaultOrderingValue,
+                        keyExpression: null,
+                        environmentName: null,
+                        moduleName: injectableMetadata?.ModuleName
+                    )
+                );
             }
         }
     }
@@ -1241,7 +1338,6 @@ public sealed partial class GenDISourceGenerator
         return $"{BuildRegistrationIdentity(serviceType, keyExpression, environmentName, moduleName)}|{implementationType}";
     }
 
-#pragma warning disable S3776 // registration extraction logic is intentionally centralized
     private static bool TryGetInjectableAttribute(
         INamedTypeSymbol symbol,
         out InjectableMetadata injectableMetadata
@@ -1321,7 +1417,6 @@ public sealed partial class GenDISourceGenerator
 
         return false;
     }
-#pragma warning restore S3776
 
     private static bool HasDecoratorTarget(Compilation compilation, INamedTypeSymbol symbol)
     {
@@ -2501,7 +2596,6 @@ public sealed partial class GenDISourceGenerator
         };
     }
 
-#pragma warning disable S3776 // indirect candidate resolution intentionally evaluates multiple contract scenarios
     private static ImmutableArray<ImplementationCandidate> FindIndirectImplementationCandidates(
         Compilation compilation,
         INamedTypeSymbol contractSymbol,
@@ -2587,7 +2681,6 @@ public sealed partial class GenDISourceGenerator
                 .ThenBy(static candidate => candidate.ImplementationType, StringComparer.Ordinal)
         ];
     }
-#pragma warning restore S3776
 
     private static bool ImplementsOrInherits(
         INamedTypeSymbol implementationType,

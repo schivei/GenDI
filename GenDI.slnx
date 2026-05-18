@@ -1,22 +1,62 @@
 <Solution>
+  <Folder Name="/.sln/">
+    <File Path=".github/workflows/ci-cd.yml" />
+    <File Path=".github/workflows/deploy-docs.yml" />
+    <File Path=".gitignore" />
+    <File Path="CODE_OF_CONDUCT.md" />
+    <File Path="CONTRIBUTING.md" />
+    <File Path="dotnet-tools.json" />
+    <File Path="LICENSE" />
+    <File Path="LICENSE.md" />
+    <File Path="pack.props" />
+    <File Path="qodana.yaml" />
+    <File Path="README.md" />
+    <File Path="ROADMAP.md" />
+    <File Path="SECURITY.md" />
+    <File Path="versions.props" />
+  </Folder>
+  <Folder Name="/.sln/docs/">
+    <File Path="docs/ANALYZER_DIAGNOSTICS.md" />
+    <File Path="docs/BENCHMARKS.md" />
+    <File Path="docs/PLATFORM_FRAMEWORK_SUPPORT.md" />
+    <File Path="docs/REGISTRATION_MODEL_RM01_RM12.md" />
+    <File Path="docs/ROTEIRO_FASE6.md" />
+  </Folder>
+  <Folder Name="/.sln/website/">
+    <File Path="website/docs/advanced/analyzer-diagnostics.md" />
+    <File Path="website/docs/advanced/benchmarks.md" />
+    <File Path="website/docs/advanced/nativeaot-and-trimming.md" />
+    <File Path="website/docs/advanced/phase6-delivery-status.md" />
+    <File Path="website/docs/advanced/platform-and-framework-support.md" />
+    <File Path="website/docs/advanced/registration-model-rm01-rm12.md" />
+    <File Path="website/docs/advanced/testing-and-validation.md" />
+    <File Path="website/docs/community/contributing.md" />
+    <File Path="website/docs/community/roadmap.md" />
+    <File Path="website/docs/core-concepts/attributes.md" />
+    <File Path="website/docs/core-concepts/service-registration.md" />
+    <File Path="website/docs/getting-started/installation.md" />
+    <File Path="website/docs/getting-started/quick-start.md" />
+    <File Path="website/docs/intro.md" />
+    <File Path="website/src/pages/index.js" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/GenDI.Analyzers/GenDI.Analyzers.csproj" />
     <Project Path="src/GenDI.SourceGenerator/GenDI.SourceGenerator.csproj" />
-    <Project Path="src/GenDI/GenDI.csproj" />
     <Project Path="src/GenDI.Testing/GenDI.Testing.csproj" />
+    <Project Path="src/GenDI/GenDI.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/GenDI.Analyzers.Tests/GenDI.Analyzers.Tests.csproj" />
     <Project Path="tests/GenDI.Benchmarks/GenDI.Benchmarks.csproj" />
     <Project Path="tests/GenDI.Integration.Tests/GenDI.Integration.Tests.csproj" />
+    <Project Path="tests/GenDI.Phase3.NativeAotValidation.App/GenDI.Phase3.NativeAotValidation.App.csproj" />
+    <Project Path="tests/GenDI.Phase3.TrimValidation.App/GenDI.Phase3.TrimValidation.App.csproj" />
+    <Project Path="tests/GenDI.Phase3.Validation.Tests/GenDI.Phase3.Validation.Tests.csproj" />
     <Project Path="tests/GenDI.Phase6.BlazorWasmValidation.App/GenDI.Phase6.BlazorWasmValidation.App.csproj" />
     <Project Path="tests/GenDI.Phase6.MinimalApiValidation.App/GenDI.Phase6.MinimalApiValidation.App.csproj" />
     <Project Path="tests/GenDI.Phase6.PlatformValidation.Tests/GenDI.Phase6.PlatformValidation.Tests.csproj" />
     <Project Path="tests/GenDI.Phase6.WorkerValidation.App/GenDI.Phase6.WorkerValidation.App.csproj" />
     <Project Path="tests/GenDI.ReferenceLibrary/GenDI.ReferenceLibrary.csproj" />
-    <Project Path="tests/GenDI.Phase3.NativeAotValidation.App/GenDI.Phase3.NativeAotValidation.App.csproj" />
-    <Project Path="tests/GenDI.Phase3.TrimValidation.App/GenDI.Phase3.TrimValidation.App.csproj" />
-    <Project Path="tests/GenDI.Phase3.Validation.Tests/GenDI.Phase3.Validation.Tests.csproj" />
     <Project Path="tests/GenDI.SourceGenerator.CoverageDisabled.Tests/GenDI.SourceGenerator.CoverageDisabled.Tests.csproj" />
     <Project Path="tests/GenDI.SourceGenerator.CoverageEnabled.Tests/GenDI.SourceGenerator.CoverageEnabled.Tests.csproj" />
     <Project Path="tests/GenDI.SourceGenerator.NoCoverageAttribute.Tests/GenDI.SourceGenerator.NoCoverageAttribute.Tests.csproj" />
