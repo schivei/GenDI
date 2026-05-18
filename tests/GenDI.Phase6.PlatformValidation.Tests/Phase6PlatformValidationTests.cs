@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace GenDI.Phase6.PlatformValidation.Tests;
@@ -10,39 +12,54 @@ public class Phase6PlatformValidationTests
     private const string SkipFSharpTemplateTestEnvironmentVariable =
         "GENDI_SKIP_FSHARP_TEMPLATE_TEST";
 
+    private static CancellationToken Token
+    {
+        get
+        {
+            var source = CancellationTokenSource.CreateLinkedTokenSource(new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token, TestContext.Current.CancellationToken).Token.Register(() =>
+            {
+                Assert.Fail(
+                    $"Test timed out after 30 seconds. This may be due to an issue with the .NET SDK installation or environment configuration.{Environment.NewLine}Ensure that the .NET SDK is correctly installed and that F# templates are available."
+                );
+            });
+
+            return source.Token;
+        }
+    }
+
     [Fact]
-    public void MinimalApi_publish_succeeds()
+    public Task MinimalApi_publish_succeeds()
     {
         var projectPath = GetProjectPath(
             "GenDI.Phase6.MinimalApiValidation.App/GenDI.Phase6.MinimalApiValidation.App.csproj"
         );
 
-        RunDotnetCommand($"publish \"{projectPath}\" -c Release --nologo");
+        return RunDotnetCommandAsync($"publish \"{projectPath}\" -c Release --nologo", cancellationToken: Token);
     }
 
     [Fact]
-    public void WorkerService_publish_succeeds()
+    public Task WorkerService_publish_succeeds()
     {
         var projectPath = GetProjectPath(
             "GenDI.Phase6.WorkerValidation.App/GenDI.Phase6.WorkerValidation.App.csproj"
         );
 
-        RunDotnetCommand($"publish \"{projectPath}\" -c Release --nologo");
+        return RunDotnetCommandAsync($"publish \"{projectPath}\" -c Release --nologo", cancellationToken: Token);
     }
 
     [Fact]
-    public void BlazorWasm_publish_succeeds()
+    public Task BlazorWasm_publish_succeeds()
     {
         var projectPath = GetProjectPath(
             "GenDI.Phase6.BlazorWasmValidation.App/GenDI.Phase6.BlazorWasmValidation.App.csproj"
         );
 
-        RunDotnetCommand($"publish \"{projectPath}\" -c Release --nologo");
+        return RunDotnetCommandAsync($"publish \"{projectPath}\" -c Release --nologo", cancellationToken: Token);
     }
 
     [Fact]
     [Trait("Category", "TemplateDependent")]
-    public void FSharp_projects_do_not_receive_generated_AddGenDIServices_extension()
+    public async Task FSharp_projects_do_not_receive_generated_AddGenDIServices_extension()
     {
         if (
             string.Equals(
@@ -67,14 +84,15 @@ public class Phase6PlatformValidationTests
 
         try
         {
-            var templateCreation = TryRunDotnetCommand(
+            var (ExitCode, Output) = await TryRunDotnetCommandAsync(
                 $"new web -lang F# -n FSharpMinimal --force",
-                tempRoot
+                tempRoot,
+                Token
             );
-            if (templateCreation.ExitCode != 0)
+            if (ExitCode != 0)
             {
                 Assert.Skip(
-                    $"F# ASP.NET Core templates are unavailable in this environment.{Environment.NewLine}{templateCreation.Output}"
+                    $"F# ASP.NET Core templates are unavailable in this environment.{Environment.NewLine}{Output}"
                 );
             }
 
@@ -82,7 +100,7 @@ public class Phase6PlatformValidationTests
             var projectPath = Path.Combine(projectDirectory, "FSharpMinimal.fsproj");
             var programPath = Path.Combine(projectDirectory, "Program.fs");
 
-            var fsproj = File.ReadAllText(projectPath);
+            var fsproj = await File.ReadAllTextAsync(projectPath, Token);
             fsproj = fsproj.Replace(
                 "</Project>",
                 $"""
@@ -104,9 +122,9 @@ public class Phase6PlatformValidationTests
                 </Project>
                 """
             );
-            File.WriteAllText(projectPath, fsproj);
+            await File.WriteAllTextAsync(projectPath, fsproj, Token);
 
-            File.WriteAllText(
+            await File.WriteAllTextAsync(
                 programPath,
                 """
                 open System
@@ -129,13 +147,15 @@ public class Phase6PlatformValidationTests
                 let app = builder.Build()
                 app.MapGet("/", Func<IClock, string>(fun clock -> clock.UtcNow.ToString("O"))) |> ignore
                 app.Run()
-                """
+                """,
+                Token
             );
 
-            var failure = RunDotnetCommand(
+            var failure = await RunDotnetCommandAsync(
                 $"build \"{projectPath}\" -nologo",
                 tempRoot,
-                expectSuccess: false
+                expectSuccess: false,
+                Token
             );
 
             Assert.Contains("AddGenDIServices", failure, StringComparison.Ordinal);
@@ -157,46 +177,43 @@ public class Phase6PlatformValidationTests
         var root = Directory.GetCurrentDirectory();
         while (!File.Exists(Path.Combine(root, "GenDI.slnx")))
         {
-            var parent = Directory.GetParent(root);
-            if (parent is null)
-            {
-                throw new DirectoryNotFoundException(
-                    "Could not locate repository root containing GenDI.slnx."
-                );
-            }
-
+            var parent = Directory.GetParent(root) ?? throw new DirectoryNotFoundException(
+                "Could not locate repository root containing GenDI.slnx."
+            );
             root = parent.FullName;
         }
 
         return root;
     }
 
-    private static string RunDotnetCommand(
+    private static async Task<string> RunDotnetCommandAsync(
         string arguments,
         string? workingDirectory = null,
-        bool expectSuccess = true
+        bool expectSuccess = true,
+        CancellationToken cancellationToken = default
     )
     {
-        var result = TryRunDotnetCommand(arguments, workingDirectory);
+        var (ExitCode, Output) = await TryRunDotnetCommandAsync(arguments, workingDirectory, cancellationToken);
 
         if (expectSuccess)
         {
             Assert.True(
-                result.ExitCode == 0,
-                $"dotnet {arguments} failed with exit code {result.ExitCode}.{Environment.NewLine}{result.Output}"
+                ExitCode == 0,
+                $"dotnet {arguments} failed with exit code {ExitCode}.{Environment.NewLine}{Output}"
             );
         }
         else
         {
-            Assert.NotEqual(0, result.ExitCode);
+            Assert.NotEqual(0, ExitCode);
         }
 
-        return result.Output;
+        return Output;
     }
 
-    private static (int ExitCode, string Output) TryRunDotnetCommand(
+    private static async Task<(int ExitCode, string Output)> TryRunDotnetCommandAsync(
         string arguments,
-        string? workingDirectory = null
+        string? workingDirectory = null,
+        CancellationToken cancellationToken = default
     )
     {
         using var process = new Process();
@@ -209,9 +226,9 @@ public class Phase6PlatformValidationTests
         };
 
         process.Start();
-        var output = process.StandardOutput.ReadToEnd();
-        var error = process.StandardError.ReadToEnd();
-        process.WaitForExit();
+        var output = process.StandardOutput.ReadToEndAsync(cancellationToken);
+        var error = process.StandardError.ReadToEndAsync(cancellationToken);
+        await process.WaitForExitAsync(cancellationToken);
 
         return (
             process.ExitCode,
