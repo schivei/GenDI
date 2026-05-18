@@ -1,5 +1,9 @@
 <Project>
   <ItemGroup>
     <Using Include="GenDI" />
+
+	  <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.*" />
+	  <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.*" />
+	  <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.*" />
   </ItemGroup>
 </Project>
