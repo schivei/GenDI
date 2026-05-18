@@ -1,8 +1,11 @@
-using System.Reflection;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
 using GenDI.Benchmarks.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
+using System.Reflection;
 
 namespace GenDI.Benchmarks;
 

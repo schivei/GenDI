@@ -1737,7 +1737,8 @@ public class SharedGeneratorBehaviorTests
             AppContext.BaseDirectory,
             "GenDI.SourceGenerator.dll"
         );
-        var generatorAssembly = Assembly.LoadFrom(generatorAssemblyPath);
+        var assembyBytes = File.ReadAllBytes(generatorAssemblyPath);
+        var generatorAssembly = Assembly.Load(assembyBytes);
         var generatorType = generatorAssembly.GetType(
             "GenDI.SourceGenerator.GenDISourceGenerator",
             throwOnError: true
