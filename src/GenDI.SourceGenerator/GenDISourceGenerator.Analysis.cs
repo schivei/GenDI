@@ -2596,7 +2596,6 @@ public sealed partial class GenDISourceGenerator
         };
     }
 
-#pragma warning disable S3776 // indirect candidate resolution intentionally evaluates multiple contract scenarios
     private static ImmutableArray<ImplementationCandidate> FindIndirectImplementationCandidates(
         Compilation compilation,
         INamedTypeSymbol contractSymbol,
@@ -2682,7 +2681,6 @@ public sealed partial class GenDISourceGenerator
                 .ThenBy(static candidate => candidate.ImplementationType, StringComparer.Ordinal)
         ];
     }
-#pragma warning restore S3776
 
     private static bool ImplementsOrInherits(
         INamedTypeSymbol implementationType,
