@@ -15,15 +15,15 @@ public enum ThreadIsolationPolicy
     /// <summary>
     /// Enables thread-local caching with singleton registration semantics.
     /// </summary>
-    Singleton = (int)ServiceLifetime.Singleton,
+    Singleton = ServiceLifetime.Singleton,
 
     /// <summary>
     /// Enables thread-local caching with scoped registration semantics.
     /// </summary>
-    Scoped = (int)ServiceLifetime.Scoped,
+    Scoped = ServiceLifetime.Scoped,
 
     /// <summary>
     /// Enables thread-local caching with transient registration semantics.
     /// </summary>
-    Transient = (int)ServiceLifetime.Transient,
+    Transient = ServiceLifetime.Transient,
 }

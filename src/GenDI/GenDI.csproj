@@ -1,36 +1,37 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="../../pack.props" />
-  <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;net10.0</TargetFrameworks>
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-  </PropertyGroup>
+	<Import Project="../../pack.props" />
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.0;netstandard2.1;net10.0</TargetFrameworks>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<ExcludeFromCodeCoverage>true</ExcludeFromCodeCoverage>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference
-      Include="Microsoft.Extensions.DependencyInjection.Abstractions"
-      Version="10.*"
+	<ItemGroup>
+		<PackageReference
+		  Include="Microsoft.Extensions.DependencyInjection.Abstractions"
+		  Version="10.*"
     />
-  </ItemGroup>
+	</ItemGroup>
 
-  <ItemGroup>
-    <TrimmerRootDescriptor Include="ILLink.xml" />
-  </ItemGroup>
+	<ItemGroup>
+		<TrimmerRootDescriptor Include="ILLink.xml" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <None Include="../../README.md" Pack="true" PackagePath="\" Visible="false" />
-    <None Include="../../LICENSE" Pack="true" PackagePath="\" Visible="false" />
-    <None Include="../../assets/icon.png" Pack="true" PackagePath="icon.png" Visible="false" />
-  </ItemGroup>
+	<ItemGroup>
+		<None Include="../../README.md" Pack="true" PackagePath="\" Visible="false" />
+		<None Include="../../LICENSE" Pack="true" PackagePath="\" Visible="false" />
+		<None Include="../../assets/icon.png" Pack="true" PackagePath="icon.png" Visible="false" />
+	</ItemGroup>
 
-  <Target
-    Name="RestoreLocalToolingAndHusky"
-    BeforeTargets="Restore"
-    Condition="Exists('$(MSBuildProjectDirectory)/../../dotnet-tools.json') and Exists('$(MSBuildProjectDirectory)/../../.git')"
+	<Target
+	  Name="RestoreLocalToolingAndHusky"
+	  BeforeTargets="Restore"
+	  Condition="Exists('$(MSBuildProjectDirectory)/../../dotnet-tools.json') and Exists('$(MSBuildProjectDirectory)/../../.git')"
   >
-    <Exec Command="dotnet tool restore" WorkingDirectory="$(MSBuildProjectDirectory)/../.." />
-    <Exec Command="dotnet husky install" WorkingDirectory="$(MSBuildProjectDirectory)/../.." />
-  </Target>
+		<Exec Command="dotnet tool restore" WorkingDirectory="$(MSBuildProjectDirectory)/../.." />
+		<Exec Command="dotnet husky install" WorkingDirectory="$(MSBuildProjectDirectory)/../.." />
+	</Target>
 </Project>

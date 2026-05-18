@@ -26,6 +26,61 @@ public class GeneratorEdgeCaseTests
     }
 
     [Fact]
+    public void OptionConfig_without_any_consumer_generates_direct_options_registration()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace OptionsDirectOnly;
+            using Microsoft.Extensions.Options;
+
+            [OptionConfig("Features:DirectOnly")]
+            public sealed class MyOption
+            {
+                public string? Value { get; init; }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddOptions<global::OptionsDirectOnly.MyOption>().BindConfiguration(\"Features:DirectOnly\")",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Decorator_without_existing_implementation_registers_decorator_itself()
+    {
+        var generatedSource = GeneratorTestHelper.GenerateSource(
+            """
+            namespace DecoratorNoImpl;
+
+            [ServiceInjection]
+            public interface IContract { }
+
+            [DecoratorFor<IContract>]
+            public sealed class LoggingDecorator : IContract
+            {
+                public LoggingDecorator() { }
+            }
+            """,
+            TestSettings.IncludeGeneratedCodeInCoverageAttribute
+        );
+
+        Assert.Contains(
+            "services.AddTransient<global::DecoratorNoImpl.IContract>",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "new global::DecoratorNoImpl.LoggingDecorator()",
+            generatedSource,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
     public void Injectable_from_wrong_namespace_produces_no_source()
     {
         // IsInjectableAttribute returns false when the attribute is not GenDI.InjectableAttribute
