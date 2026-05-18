@@ -47,6 +47,8 @@ public class StartupRegistrationBenchmarks
         var services = new ServiceCollection();
         services.AddGenDIServices();
 
+        services.AddOptions<MyConfig>().BindConfiguration("MyConfig");
+
         using var provider = services.BuildServiceProvider();
         var service = provider.GetRequiredService<IBenchmarkService>();
         return service.Execute();

@@ -222,7 +222,7 @@ public sealed partial class GenDISourceGenerator
         var parts = assemblyName
             .Split('.')
             .Select(static part => new string(
-                part.Select(ch => char.IsLetterOrDigit(ch) || ch == '_' ? ch : '_').ToArray()
+                [.. part.Select(ch => char.IsLetterOrDigit(ch) || ch == '_' ? ch : '_')]
             ))
             .Where(static part => !string.IsNullOrWhiteSpace(part))
             .Select(static part => part.Length > 0 && char.IsDigit(part[0]) ? $"_{part}" : part)

@@ -1119,11 +1119,12 @@ public sealed partial class GenDISourceGenerator
         if (
             !IsIOptionsContract(injectRequest.ContractSymbol, out var optionsType)
             || !TryGetOptionConfigSection(optionsType, out var configPath)
-            || !IsEligibleOptionConfigType(optionsType)
         )
         {
             return false;
         }
+
+        var isEligibleOptionType = IsEligibleOptionConfigType(optionsType);
 
         var optionsContractType = injectRequest.ContractSymbol.ToDisplayString(
             SymbolDisplayFormat.FullyQualifiedFormat
@@ -1152,9 +1153,14 @@ public sealed partial class GenDISourceGenerator
 
         if (canUseConfigurePath)
         {
-            var directRegistrationStatement =
-                $"        services.AddOptions<{optionsTypeDisplay}>().BindConfiguration(\"{escapedPath}\");";
+            // Use the explicit key expression when provided by the inject attribute or keyed services,
+            // otherwise fall back to the options type name that was resolved from OptionConfigAttribute.
+            var keyExpressionToUse = string.IsNullOrWhiteSpace(injectRequest.KeyExpression)
+                ? $"\"{escapedPath}\""
+                : injectRequest.KeyExpression!;
 
+            var directRegistrationStatement =
+                $"        services.AddOptions<{optionsTypeDisplay}>().BindConfiguration({keyExpressionToUse});";
             registration = new ServiceRegistration(
                 optionsContractType,
                 optionsTypeDisplay,
