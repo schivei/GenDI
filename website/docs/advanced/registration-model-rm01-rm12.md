@@ -154,6 +154,45 @@ decorator type-name ordering. The non-generic attribute resolves exactly one
 must expose a public constructor parameter or `[Inject]` init-only property matching that
 contract, otherwise the analyzer fails the build.
 
+To avoid misconfiguration, AddGenDIServices() must be called after all other service registrations in the composition root.
+This ensures the decorator chain is fully discoverable and correctly ordered in generated output.
+
+So, ensure you are calling `AddGenDIServices()` at the end of your service registration block, before building the service provider, like this:
+
+```csharp
+// Host (any type of service)
+var builder = Host.CreateDefaultBuilder(args)
+    .ConfigureServices((_, services) =>
+    {
+        // other registrations here
+        services.AddGenDIServices();
+    });
+
+// Web
+var builder = WebApplication.CreateBuilder(args);
+
+// other registrations here
+
+builder.Services.AddGenDIServices();
+var app = builder.Build();
+
+// WebAssembly
+var builder = WebAssemblyHostBuilder.CreateDefault(args);
+
+// other registrations here
+
+builder.Services.AddGenDIServices();
+var app = builder.Build();
+
+// Manual ServiceCollection
+var services = new ServiceCollection();
+
+// other registrations here
+
+services.AddGenDIServices();
+var provider = services.BuildServiceProvider();
+```
+
 ---
 
 ## RM-04 — `ServiceInjection` lifetime fallback
@@ -337,6 +376,9 @@ Configuration binding is repetitive when done manually across many option types.
 
 - multiple options sections
 - apps with many feature flags/settings blocks
+
+> NOTE: You must refer to `Microsoft.Extensions.Options.ConfigurationExtensions` package to use `AddOptions<TOptions>()` in generated code.
+> GenDI does not take a hard dependency on it, but will emit the correct registration code when the package is present in the project.
 
 ### Example
 
