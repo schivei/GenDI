@@ -100,8 +100,12 @@ Traditional runtime scanning is practical, but adds startup cost and can break w
 GenDI generates an extension method in the consumer assembly namespace:
 
 ```csharp
-// <AssemblyName>.DependencyInjection
-services.AddGenDIServices();
+using <AssemblyName>.DependencyInjection;
+
+....
+
+builder.Host.UseGenDI();
+builder.Services.AddGenDIServices();
 ```
 
 Each registration uses generated `new` expressions and `GetRequiredService<T>()`, keeping activation explicit and analyzer-friendly.

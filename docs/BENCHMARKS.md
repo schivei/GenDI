@@ -30,7 +30,10 @@ dotnet run -c Release --project tests/GenDI.Benchmarks/GenDI.Benchmarks.csproj -
 | 1 | **Manual (no GenDI)** | Hand-written `AddSingleton<>` / `AddTransient<>` | Container-driven (expression trees, one-time reflection per type) |
 | 2 | **GenDI — constructor injection** | `AddGenDIServices()` generated at compile time | Generated factory: `new Service(sp.Get<A>(), sp.Get<B>())` |
 | 3 | **GenDI — property injection** | `AddGenDIServices()` generated at compile time | Generated factory: `new Service { A = sp.Get<A>(), B = sp.Get<B>() }` |
-| 4 | **Reflection scanner (worst case)** | Assembly scan at startup via `GetTypes()` + reflection | Container-driven |
+| 4 | **GenDI: property with decorator** <sup>1</sup> | `AddGenDIServices()` generated at compile time | Generated factory: `new Decorator { Inner = new Service { A = sp.Get<A>(), B = sp.Get<B>() } }` |
+| 5 | **Reflection scanner (worst case)** | Assembly scan at startup via `GetTypes()` + reflection | Container-driven |
+
+> <sup>1</sup> This scenario adds a simple decorator layer to the property injection case, validating that even with an extra level of factory nesting the generated code remains performant.
 
 ---
 
@@ -44,6 +47,7 @@ _Updated by [CI run #191](https://github.com/schivei/GenDI/actions/runs/26055851
 | Manual registration (no GenDI) | 2.796 μs | 5.97 KB |
 | GenDI: constructor injection (generated) | 2.239 μs | 6.1 KB |
 | GenDI: property injection (generated) | 2.200 μs | 6.1 KB |
+| GenDI: property with decorator (generated) | 2.250 μs | 6.1 KB |
 | Reflection registration (no GenDI, assembly scan) | 68.290 μs | 18.25 KB |
 
 ### CI analysis

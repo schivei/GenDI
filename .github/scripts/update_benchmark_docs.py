@@ -32,9 +32,11 @@ class BenchmarkSummary:
     manual: BenchmarkRow
     constructor: BenchmarkRow
     property_injection: BenchmarkRow
+    property_decorator: BenchmarkRow
     reflection: BenchmarkRow
     constructor_delta: float
     property_delta: float
+    decorator_delta: float
     reflection_slowdown: float
     reflection_alloc_factor: float
 
@@ -92,11 +94,13 @@ def _build_summary(rows: list[BenchmarkRow]) -> BenchmarkSummary:
     manual = _find_row(rows, "Manual registration")
     constructor = _find_row(rows, "constructor injection")
     property_injection = _find_row(rows, "property injection")
+    property_decorator = _find_row(rows, "with decorator")
     reflection = _find_row(rows, "Reflection registration")
 
     manual_mean = _parse_numeric(manual.mean)
     constructor_mean = _parse_numeric(constructor.mean)
     property_mean = _parse_numeric(property_injection.mean)
+    decorator_mean = _parse_numeric(property_decorator.mean)
     reflection_mean = _parse_numeric(reflection.mean)
 
     manual_alloc = _parse_numeric(manual.allocated)
@@ -104,6 +108,7 @@ def _build_summary(rows: list[BenchmarkRow]) -> BenchmarkSummary:
 
     constructor_delta = ((constructor_mean / manual_mean) - 1.0) * 100.0
     property_delta = ((property_mean / manual_mean) - 1.0) * 100.0
+    decorator_delta = ((decorator_mean / manual_mean) - 1.0) * 100.0
     reflection_slowdown = reflection_mean / manual_mean
     reflection_alloc_factor = reflection_alloc / manual_alloc
 
@@ -111,9 +116,11 @@ def _build_summary(rows: list[BenchmarkRow]) -> BenchmarkSummary:
         manual=manual,
         constructor=constructor,
         property_injection=property_injection,
+        property_decorator=property_decorator,
         reflection=reflection,
         constructor_delta=constructor_delta,
         property_delta=property_delta,
+        decorator_delta=decorator_delta,
         reflection_slowdown=reflection_slowdown,
         reflection_alloc_factor=reflection_alloc_factor,
     )
@@ -139,6 +146,7 @@ def _build_ci_section(summary: BenchmarkSummary) -> str:
         f"| {summary.manual.method} | {summary.manual.mean} | {summary.manual.allocated} |\n"
         f"| {summary.constructor.method} | {summary.constructor.mean} | {summary.constructor.allocated} |\n"
         f"| {summary.property_injection.method} | {summary.property_injection.mean} | {summary.property_injection.allocated} |\n"
+        f"| {summary.property_decorator.method} | {summary.property_decorator.mean} | {summary.property_decorator.allocated} |\n"
         f"| {summary.reflection.method} | {summary.reflection.mean} | {summary.reflection.allocated} |\n\n"
         "### CI analysis\n\n"
         f"- GenDI constructor injection is **{summary.constructor_delta:+.1f}%** versus manual registration.\n"

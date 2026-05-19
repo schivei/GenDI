@@ -10,7 +10,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="coverlet.collector" Version="6.*">
+		<PackageReference Include="coverlet.collector" Version="10.0.1">
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
@@ -20,23 +20,8 @@
 
 	<ItemGroup>
 		<ProjectReference Include="../../src/GenDI/GenDI.csproj" PrivateAssets="all" />
-		<ProjectReference
-		  Include="../../src/GenDI.Analyzers/GenDI.Analyzers.csproj"
-		  IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"
-		  PrivateAssets="compile; runtime; contentfiles"
-		  OutputItemType="Analyzer"
-		  ReferenceOutputAssembly="false"
-    />
-		<ProjectReference
-		  Include="../../src/GenDI.SourceGenerator/GenDI.SourceGenerator.csproj"
-		  IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"
-		  PrivateAssets="compile; runtime; contentfiles"
-		  OutputItemType="Analyzer"
-		  ReferenceOutputAssembly="false"
-    />
-		<ProjectReference
-		  Include="../GenDI.ReferenceLibrary/GenDI.ReferenceLibrary.csproj"
-		  PrivateAssets="all"
-    />
+		<ProjectReference Include="../../src/GenDI.Analyzers/GenDI.Analyzers.csproj" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" PrivateAssets="compile; runtime; contentfiles" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="../../src/GenDI.SourceGenerator/GenDI.SourceGenerator.csproj" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" PrivateAssets="compile; runtime; contentfiles" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="../GenDI.ReferenceLibrary/GenDI.ReferenceLibrary.csproj" PrivateAssets="all" />
 	</ItemGroup>
 </Project>

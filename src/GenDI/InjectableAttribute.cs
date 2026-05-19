@@ -9,8 +9,12 @@ namespace GenDI;
 /// Use this non-generic variant when no explicit service contract is required.
 /// In this case, <see cref="ServiceType"/> always returns <see langword="null"/>.
 /// </remarks>
+/// <remarks>
+/// Initializes a new instance of the <see cref="InjectableAttribute"/> class.
+/// </remarks>
+/// <param name="lifetime">The service lifetime for the generated registration.</param>
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
-public sealed class InjectableAttribute : Attribute
+public sealed class InjectableAttribute(ServiceLifetime lifetime = ServiceLifetime.Transient) : Attribute
 {
     /// <summary>
     /// Default value for ordering members when no explicit value is provided.
@@ -19,28 +23,15 @@ public sealed class InjectableAttribute : Attribute
     public const int DefaultOrderingValue = int.MaxValue;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="InjectableAttribute"/> class.
-    /// </summary>
-    /// <param name="lifetime">The service lifetime for the generated registration.</param>
-    public InjectableAttribute(ServiceLifetime lifetime = ServiceLifetime.Transient)
-    {
-        Lifetime = lifetime;
-    }
-
-    /// <summary>
     /// Gets the lifetime used by the generated registration.
     /// </summary>
-    public ServiceLifetime Lifetime { get; }
+    public ServiceLifetime Lifetime { get; } = lifetime;
 
     /// <summary>
     /// Explicit service contract for non-generic usage. Always <see langword="null"/>.
     /// Use <see cref="InjectableAttribute{TService}"/> to define an explicit contract safely.
     /// </summary>
-#pragma warning disable CA1822 // kept as instance member for API parity with generic variant
-#pragma warning disable S2325 // kept as instance member for API parity with generic variant
-    public Type? ServiceType => null;
-#pragma warning restore S2325
-#pragma warning restore CA1822
+    public Type? ServiceType { get; } = null;
 
     /// <summary>
     /// Optional order value inside a group. Defaults to <see cref="DefaultOrderingValue"/> (<see cref="int.MaxValue"/>).
@@ -56,7 +47,7 @@ public sealed class InjectableAttribute : Attribute
     /// Optional keyed-service identifier used for generated keyed registrations.
     /// Defaults to <see langword="null"/> (non-keyed registration).
     /// </summary>
-    public object? Key { get; set; }
+    public object? Key { get; set; } = null;
 
     /// <summary>
     /// Optional thread-isolation registration lifetime override.
@@ -86,29 +77,23 @@ public sealed class InjectableAttribute : Attribute
 /// Marks a concrete class for source-generated registration with an explicit service contract.
 /// </summary>
 /// <typeparam name="TService">The service contract type to register.</typeparam>
+/// <remarks>
+/// Initializes a new instance of the <see cref="InjectableAttribute{TService}"/> class.
+/// </remarks>
+/// <param name="lifetime">The service lifetime for the generated registration.</param>
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
-public sealed class InjectableAttribute<TService> : Attribute
+public sealed class InjectableAttribute<TService>(ServiceLifetime lifetime = ServiceLifetime.Transient) : Attribute
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="InjectableAttribute{TService}"/> class.
-    /// </summary>
-    /// <param name="lifetime">The service lifetime for the generated registration.</param>
-    public InjectableAttribute(ServiceLifetime lifetime = ServiceLifetime.Transient)
-    {
-        Lifetime = lifetime;
-    }
 
     /// <summary>
     /// Gets the lifetime used by the generated registration.
     /// </summary>
-    public ServiceLifetime Lifetime { get; }
+    public ServiceLifetime Lifetime { get; } = lifetime;
 
     /// <summary>
     /// Explicit service contract inferred from <typeparamref name="TService"/>.
     /// </summary>
-#pragma warning disable S2325 // kept as instance member for API parity with non-generic variant
     public Type ServiceType => typeof(TService);
-#pragma warning restore S2325
 
     /// <summary>
     /// Optional order value inside a group. Defaults to <see cref="InjectableAttribute.DefaultOrderingValue"/> (<see cref="int.MaxValue"/>).
@@ -124,7 +109,7 @@ public sealed class InjectableAttribute<TService> : Attribute
     /// Optional keyed-service identifier used for generated keyed registrations.
     /// Defaults to <see langword="null"/> (non-keyed registration).
     /// </summary>
-    public object? Key { get; set; }
+    public object? Key { get; set; } = null;
 
     /// <summary>
     /// Optional thread-isolation registration lifetime override.
