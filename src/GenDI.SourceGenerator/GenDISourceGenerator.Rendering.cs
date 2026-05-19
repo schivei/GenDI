@@ -199,33 +199,36 @@ public sealed partial class GenDISourceGenerator
     }
 
     [ExcludeFromCodeCoverage]
-    private static object ParseDecorationRecursion(string factoryBody, string serviceType, out string? interceptedKey)
+    private static object ParseDecorationRecursion(string factoryBody, string serviceType, out string? interceptedKeyExpression)
     {
-        var serviceCallPattern = new Regex($@"Service<\s*{Regex.Escape(serviceType)}\s*>\s*\(\s*(.+?)\s*\)",
-            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline, TimeSpan.FromSeconds(5));
+        interceptedKeyExpression = null;
 
-        interceptedKey = null;
+        string serviceTypeEscaped = Regex.Escape($"<{serviceType}>");
 
-        if (!serviceCallPattern.IsMatch(factoryBody))
+        string pattern = $@"^(.+?)(GetKeyedService|GetRequiredKeyedService|GetService|GetRequiredService)({serviceTypeEscaped}\()([^)]*)(\).*)$";
+
+        var regex = new Regex(pattern, RegexOptions.Compiled | RegexOptions.Singleline, TimeSpan.FromSeconds(1));
+        var match = regex.Match(factoryBody);
+
+        if (!match.Success)
         {
             return factoryBody;
         }
 
-        interceptedKey = serviceCallPattern.Match(factoryBody).Groups[1].Value.Trim();
-
-        var modifiedFactoryBody = factoryBody
-            .Replace("GetRequiredService", "GetRequiredKeyedService")
-            .Replace("GetService", "GetKeyedService");
-
-        if (string.IsNullOrWhiteSpace(interceptedKey))
+        interceptedKeyExpression = $"{match.Groups[4].Value.Trim()}";
+        if (string.IsNullOrWhiteSpace(interceptedKeyExpression))
         {
-            interceptedKey = null;
-            return modifiedFactoryBody;
+            interceptedKeyExpression = null;
         }
 
-        return modifiedFactoryBody
-            .Replace("static ", string.Empty)
-            .Replace(interceptedKey, "internalKey");
+        var methodName = match.Groups[2].Value switch
+        {
+            "GetService" => "GetKeyedService",
+            "GetRequiredService" => "GetRequiredKeyedService",
+            _ => match.Groups[2].Value
+        };
+
+        return $"{match.Groups[1].Value}{methodName}{match.Groups[3].Value}internalKey{match.Groups[5].Value}";
     }
 
     private static string BuildThreadIsolationRegistrationStatement(ServiceRegistration registration)

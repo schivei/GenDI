@@ -510,3 +510,9 @@ public sealed class MultipleTryAddContractFirst : IMultipleTryAddContract;
 
 [Injectable<IMultipleTryAddContract>(Order = 1)]
 public sealed class MultipleTryAddContractSecond : IMultipleTryAddContract;
+
+[DecoratorFor<IReferencedContract>]
+public sealed class ReferencedContractDecorator([FromKeyedServices("abc")] IReferencedContract inner) : IReferencedContract
+{
+    public IReferencedContract Inner { get; } = inner;
+}
