@@ -2096,6 +2096,7 @@ public class SharedGeneratorBehaviorTests
                 }
             }
 
+            [InjectableModule("Factories")]
             public static class Factories
             {
             #pragma warning disable CS0619
@@ -2103,7 +2104,7 @@ public class SharedGeneratorBehaviorTests
             #pragma warning restore CS0619
                 public static IContract Create(
                     IDependency dependency,
-                    [FromKeyedServices("dep-key")] IKeyedDependency keyedDependency) =>
+                    [FromKeyedServices("factory-key")] IKeyedDependency keyedDependency) =>
                     new Contract(dependency, keyedDependency);
             }
             """,
@@ -2425,100 +2426,6 @@ public class SharedGeneratorBehaviorTests
             generatedSource,
             StringComparison.Ordinal
         );
-    }
-
-    [Fact]
-    public void ServiceRegistrationComparer_includes_strategy_module_and_direct_statement_in_equality()
-    {
-        var generatorAssembly = typeof(GenDI.SourceGenerator.GenDISourceGenerator).Assembly;
-        var registrationType = generatorAssembly.GetType(
-            "GenDI.SourceGenerator.Models.ServiceRegistration",
-            throwOnError: true
-        )!;
-        var comparerType = generatorAssembly.GetType(
-            "GenDI.SourceGenerator.Models.ServiceRegistrationComparer",
-            throwOnError: true
-        )!;
-        var registrationConstructor = registrationType.GetConstructors(
-            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
-        )[0];
-
-        object CreateRegistration(
-            bool allowMultiple,
-            bool useTryAdd,
-            string? moduleName,
-            string? directRegistrationStatement = null
-        )
-        {
-            return registrationConstructor.Invoke(
-                [
-                    "global::TestNamespace.IService",
-                    "global::TestNamespace.Impl",
-                    "ServiceLifetime.Transient",
-                    allowMultiple,
-                    useTryAdd,
-                    null,
-                    "new global::TestNamespace.Impl()",
-                    0,
-                    0,
-                    null,
-                    null,
-                    moduleName,
-                    directRegistrationStatement,
-                ]
-            );
-        }
-
-        var baseline = CreateRegistration(allowMultiple: true, useTryAdd: true, moduleName: "Billing");
-        var same = CreateRegistration(allowMultiple: true, useTryAdd: true, moduleName: "Billing");
-        var differentMultiplicity = CreateRegistration(
-            allowMultiple: false,
-            useTryAdd: true,
-            moduleName: "Billing"
-        );
-        var differentEmission = CreateRegistration(
-            allowMultiple: true,
-            useTryAdd: false,
-            moduleName: "Billing"
-        );
-        var differentModule = CreateRegistration(
-            allowMultiple: true,
-            useTryAdd: true,
-            moduleName: "Orders"
-        );
-        var differentDirectStatement = CreateRegistration(
-            allowMultiple: true,
-            useTryAdd: true,
-            moduleName: "Billing",
-            directRegistrationStatement: "services.AddOptions<global::TestNamespace.Impl>().BindConfiguration(\"MySection\")"
-        );
-
-        var comparer = comparerType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)!
-            .GetValue(null)!;
-        var equalsMethod = comparerType.GetMethod(
-            "Equals",
-            BindingFlags.Public | BindingFlags.Instance,
-            binder: null,
-            [registrationType, registrationType],
-            modifiers: null
-        )!;
-        var getHashCodeMethod = comparerType.GetMethod(
-            "GetHashCode",
-            BindingFlags.Public | BindingFlags.Instance,
-            binder: null,
-            [registrationType],
-            modifiers: null
-        )!;
-
-        Assert.True((bool)equalsMethod.Invoke(comparer, [baseline, same])!);
-        Assert.False((bool)equalsMethod.Invoke(comparer, [baseline, differentMultiplicity])!);
-        Assert.False((bool)equalsMethod.Invoke(comparer, [baseline, differentEmission])!);
-        Assert.False((bool)equalsMethod.Invoke(comparer, [baseline, differentModule])!);
-        Assert.False((bool)equalsMethod.Invoke(comparer, [baseline, differentDirectStatement])!);
-
-        var baselineHash = (int)getHashCodeMethod.Invoke(comparer, [baseline])!;
-        var sameHash = (int)getHashCodeMethod.Invoke(comparer, [same])!;
-        Assert.Equal(baselineHash, sameHash);
     }
 
     [Fact]

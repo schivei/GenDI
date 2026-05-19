@@ -62,3 +62,42 @@ public sealed class BenchmarkServiceViaProperties : IBenchmarkServiceViaProperti
 
     public string Execute() => $"{Repository.GetCount()}@{Clock.UtcNow:O}";
 }
+
+// -----------------------------------------------------------------------
+// Decorator variant — identical logic, dependencies via properties, but decorated to measure decorator overhead
+// -----------------------------------------------------------------------
+
+[ServiceInjection]
+public interface IBenchmarkServiceDecorated
+{
+    string Execute();
+}
+
+[Injectable<IBenchmarkServiceDecorated>(Group = 1, Order = 3)]
+public sealed class BenchmarkServiceDecorated : IBenchmarkServiceDecorated
+{
+    [Inject]
+    public required IBenchmarkClock Clock { get; init; }
+
+    [Inject]
+    public required IBenchmarkRepository Repository { get; init; }
+
+    [Inject]
+    public required IOptions<BenchmarkOptions> Options { get; init; }
+
+    public string Execute() => $"{{{Options.Value.OptionValue}}} >>> {Repository.GetCount()}@{Clock.UtcNow:O}";
+}
+
+[DecoratorFor<IBenchmarkServiceDecorated>]
+public sealed class BenchmarkServiceDecorator : IBenchmarkServiceDecorated
+{
+    [Inject] public required IBenchmarkServiceDecorated Inner { get; init; }
+
+    public string Execute() => $"[Decorated]{Inner.Execute()}";
+}
+
+[OptionConfig]
+public sealed class BenchmarkOptions
+{
+    public string OptionValue { get; set; } = "DefaultOption";
+}

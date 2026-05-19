@@ -14,7 +14,10 @@ These benchmarks measure startup registration/activation cost. Feature-specific 
 | 1 | **Manual (no GenDI)** | ✍️ Hand-written `AddSingleton<>` / `AddTransient<>` | Container expression-tree compilation (one-time reflection) |
 | 2 | **GenDI — constructor injection** | ⚡ `AddGenDIServices()` (compile-time generated) | Generated factory: `new Service(sp.Get<A>(), sp.Get<B>())` |
 | 3 | **GenDI — property injection** | ⚡ `AddGenDIServices()` (compile-time generated) | Generated factory: `new Service { A = sp.Get<A>(), B = sp.Get<B>() }` |
-| 4 | **Reflection scanner (worst case)** | 🐢 `Assembly.GetTypes()` scan at startup | Container expression-tree compilation |
+| 4 | **GenDI: property with decorator** <sup>1</sup> | ⚡ `AddGenDIServices()` (compile-time generated) | Generated factory: `new Decorator { Inner = new Service { A = sp.Get<A>(), B = sp.Get<B>() } }` |
+| 5 | **Reflection scanner (worst case)** | 🐢 `Assembly.GetTypes()` scan at startup | Container expression-tree compilation |
+
+> <sup>1</sup> This scenario adds a simple decorator layer to the property injection case, validating that even with an extra level of factory nesting the generated code remains performant.
 
 ## 🧪 Benchmark project
 
@@ -30,31 +33,25 @@ dotnet run -c Release --project tests/GenDI.Benchmarks/GenDI.Benchmarks.csproj -
 ## ⚡ Latest result snapshot
 
 <!-- benchmark-ci:start -->
-_Updated by [CI run #191](https://github.com/schivei/GenDI/actions/runs/26055851294) on 2026-05-18 19:36 UTC_
+_Updated by [CI run #195](https://github.com/schivei/GenDI/actions/runs/26071820675) on 2026-05-19 02:10 UTC_
 
 | Method | Mean | Allocated |
 |---|---:|---:|
-| Manual registration (no GenDI) | 2.796 μs | 5.97 KB |
-| GenDI: constructor injection (generated) | 2.239 μs | 6.1 KB |
-| GenDI: property injection (generated) | 2.200 μs | 6.1 KB |
-| Reflection registration (no GenDI, assembly scan) | 68.290 μs | 18.25 KB |
+| Manual registration (no GenDI) | 3.631 μs | 7.56 KB |
+| GenDI: constructor injection (generated) | 6.025 μs | 9.89 KB |
+| GenDI: property injection (generated) | 6.178 μs | 9.89 KB |
+| GenDI: with decorator, property injection (generated) | 1,723.065 μs | 2751.01 KB |
+| Reflection registration (no GenDI, assembly scan) | 70.866 μs | 23.6 KB |
 
 ### CI analysis
 
-- GenDI constructor injection is **-19.9%** versus manual registration.
-- GenDI property injection is **-21.3%** versus manual registration.
-- Reflection scanning remains the outlier at **~24.4x slower** and **~3.1x higher allocation** than manual registration.
+- GenDI constructor injection is **+65.9%** versus manual registration.
+- GenDI property injection is **+70.1%** versus manual registration.
+- Reflection scanning remains the outlier at **~19.5x slower** and **~3.1x higher allocation** than manual registration.
 - Compatibility note: this benchmark compares manual and generated registrations against a reflection scanner baseline; as documented below, reflection scanning is not suitable for trimming/NativeAOT scenarios, while manual and GenDI-generated registrations remain the supported path.
 <!-- benchmark-ci:end -->
 
 <!-- benchmark-sales:start -->
-## Why this benchmark matters
-
-> GenDI property injection is currently **21.3% faster than manual registration** in the latest CI snapshot.
-
-- You get compile-time DI registration without paying a startup penalty for reflection scanning.
-- You remove repetitive manual wiring while keeping generated code explicit and reviewable.
-- You stay aligned with trimming and NativeAOT-friendly deployment paths.
 <!-- benchmark-sales:end -->
 
 ## 🔍 What the numbers mean

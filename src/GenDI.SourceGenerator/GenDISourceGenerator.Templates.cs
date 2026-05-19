@@ -22,6 +22,12 @@ internal static class GenDiSourceTemplates
     internal const string KeyedTryAddRegistrationTemplate =
         "        services.TryAddKeyed{0}<{1}>({2}, static (serviceProvider, _) => {3});";
 
+    internal const string KeyedAddDecoratorTemplate =
+        "        services.AddKeyedDecorator{0}<{1}>({2}, static (serviceProvider, key) => {3});";
+
+    internal const string UnkeyedAddDecoratorTemplate =
+        "        services.AddDecorator{0}<{1}>(static serviceProvider => {2});";
+
     internal const string UnkeyedTryAddMultipleGuardTemplate = """
                 if (!HasServiceImplementation(services, typeof({0}), typeof({1})))
                 {{

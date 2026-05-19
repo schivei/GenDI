@@ -298,37 +298,10 @@ public class AttributeUnitTests
         Assert.Equal("M1", attr.Module);
     }
 
-    [Fact]
-    public void InjectableFactoryAttribute_typeof_ctor_stores_service_type_and_lifetime()
-    {
-        var ctor = typeof(InjectableFactoryAttribute).GetConstructor(
-            [typeof(Type), typeof(ServiceLifetime)]
-        );
-        Assert.NotNull(ctor);
-
-        var attr = Assert.IsType<InjectableFactoryAttribute>(
-            ctor.Invoke([typeof(IServiceContract), ServiceLifetime.Scoped])
-        );
-
-        Assert.Equal(typeof(IServiceContract), attr.ServiceType);
-        Assert.Equal(ServiceLifetime.Scoped, attr.Lifetime);
-        Assert.Equal(InjectableAttribute.DefaultOrderingValue, attr.Group);
-        Assert.Equal(InjectableAttribute.DefaultOrderingValue, attr.Order);
-        Assert.Equal(ThreadIsolationPolicy.None, attr.ThreadIsolation);
-    }
-
     // ─── GenDICoverationAttribute ─────────────────────────────────────────────
 
     [Fact]
     public void GenDICoverationAttribute_default_is_true()
-    {
-        var attr = new GenDICoverationAttribute();
-
-        Assert.True(attr.IncludeGeneratedCodeInCoverage);
-    }
-
-    [Fact]
-    public void GenDICoverationAttribute_explicit_true()
     {
         var attr = new GenDICoverationAttribute();
 

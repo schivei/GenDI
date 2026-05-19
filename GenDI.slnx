@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/.sln/">
+    <File Path=".github/scripts/update_benchmark_docs.py" />
     <File Path=".github/workflows/ci-cd.yml" />
     <File Path=".github/workflows/deploy-docs.yml" />
     <File Path=".gitignore" />
