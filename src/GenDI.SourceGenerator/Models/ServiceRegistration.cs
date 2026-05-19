@@ -7,6 +7,7 @@ internal sealed class ServiceRegistration(
     string lifetime,
     bool allowMultiple,
     bool useTryAdd,
+    bool isDecorator,
     string? threadIsolationLifetime,
     string factoryBody,
     int order,
@@ -42,5 +43,7 @@ internal sealed class ServiceRegistration(
     public string? ModuleName { get; } = moduleName;
 
     public string? DirectRegistrationStatement { get; } = directRegistrationStatement;
+
+    public bool IsDecorator { get; } = isDecorator;
 }
 #pragma warning restore S107

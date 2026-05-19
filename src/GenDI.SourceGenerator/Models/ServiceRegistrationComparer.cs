@@ -1,5 +1,8 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace GenDI.SourceGenerator.Models;
 
+[ExcludeFromCodeCoverage]
 internal sealed class ServiceRegistrationComparer : IEqualityComparer<ServiceRegistration>
 {
     public static ServiceRegistrationComparer Instance { get; } = new();

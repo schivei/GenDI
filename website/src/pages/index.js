@@ -282,7 +282,9 @@ public static partial class ClockFactory
     public static IClock Create() => SystemClock.Instance;
 }
 
-services.AddGenDIServices(modules: "sales");`}</code>
+builder.Host.UseGenDI();
+
+builder.Services.AddGenDIServices(modules: "sales");`}</code>
         </pre>
         <p className="text--center margin-top--md">
           <Link to="/docs/advanced/registration-model-rm01-rm12">See full RM-01..RM-12 guide</Link>

@@ -69,11 +69,6 @@ public class GeneratorEdgeCaseTests
         );
 
         Assert.Contains(
-            "services.AddTransient<global::DecoratorNoImpl.IContract>",
-            generatedSource,
-            StringComparison.Ordinal
-        );
-        Assert.Contains(
             "new global::DecoratorNoImpl.LoggingDecorator()",
             generatedSource,
             StringComparison.Ordinal

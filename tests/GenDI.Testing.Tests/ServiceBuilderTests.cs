@@ -21,7 +21,7 @@ public class ServiceBuilderTests
                 new FixedClock(new DateTimeOffset(2026, 5, 16, 0, 0, 0, TimeSpan.Zero))
             );
 
-        using var provider = builder.BuildServiceProvider();
+        var provider = builder.UseGenDI();
         var resolved = provider.GetRequiredService<ITestClock>();
 
         Assert.IsType<FixedClock>(resolved);
@@ -42,7 +42,7 @@ public class ServiceBuilderTests
             )
             .Replace(ServiceDescriptor.Singleton<ITestClock>(replacement));
 
-        using var provider = builder.BuildServiceProvider();
+        var provider = builder.UseGenDI();
         var resolved = provider.GetRequiredService<ITestClock>();
 
         Assert.Same(replacement, resolved);
@@ -74,10 +74,7 @@ public class ServiceBuilderTests
         Assert.True(addedByGenDi);
         Assert.Same(expectedServicesReference, builder.Services);
 
-        using var provider = builder.BuildServiceProvider(
-            validateScopes: false,
-            validateOnBuild: false
-        );
+        var provider = builder.UseGenDI();
         using var scope = provider.CreateScope();
 
         Assert.IsType<ParameterlessService>(

@@ -3,8 +3,6 @@ using BenchmarkDotNet.Engines;
 using GenDI.Benchmarks.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Primitives;
 using System.Reflection;
 
 namespace GenDI.Benchmarks;
@@ -24,6 +22,7 @@ public class StartupRegistrationBenchmarks
         var services = new ServiceCollection();
         // Register the identical service set that AddGenDIServices() produces
         // so this baseline measures registration overhead, not workload difference.
+        services.AddSingleton<IConfiguration>(new ConfigurationManager());
         services.AddSingleton<IBenchmarkClock, BenchmarkClock>();
         services.AddSingleton<IBenchmarkRepository, BenchmarkRepository>();
         services.AddTransient<IBenchmarkService, BenchmarkService>();
@@ -35,7 +34,7 @@ public class StartupRegistrationBenchmarks
             }
         );
 
-        using var provider = services.BuildServiceProvider();
+        var provider = services.UseGenDI();
         var service = provider.GetRequiredService<IBenchmarkService>();
         return service.Execute();
     }
@@ -48,9 +47,10 @@ public class StartupRegistrationBenchmarks
     public string GeneratedConstructorInjectionStartup()
     {
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationManager());
         services.AddGenDIServices();
 
-        using var provider = services.BuildServiceProvider();
+        var provider = services.UseGenDI();
         var service = provider.GetRequiredService<IBenchmarkService>();
         return service.Execute();
     }
@@ -63,27 +63,45 @@ public class StartupRegistrationBenchmarks
     public string GeneratedPropertyInjectionStartup()
     {
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationManager());
         services.AddGenDIServices();
 
-        using var provider = services.BuildServiceProvider();
+        var provider = services.UseGenDI();
         var service = provider.GetRequiredService<IBenchmarkServiceViaProperties>();
         return service.Execute();
     }
 
     // ------------------------------------------------------------------
-    // 4. Reflection scanner — kept as the "worst case" baseline
+    // 4. GenDI — with decorator, to show that property injection is supported even when decorators are present (which require generated factories)
+    // ------------------------------------------------------------------
+
+    [Benchmark(Description = "GenDI: with decorator, property injection (generated)")]
+    public string WithDecoratorGeneratedPropertyInjectionStartup()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationManager());
+        services.AddGenDIServices();
+
+        var provider = services.UseGenDI();
+        var service = provider.GetRequiredService<IBenchmarkServiceDecorated>();
+        return service.Execute();
+    }
+
+    // ------------------------------------------------------------------
+    // 5. Reflection scanner — kept as the "worst case" baseline
     // ------------------------------------------------------------------
 
     [Benchmark(Description = "Reflection registration (no GenDI, assembly scan)")]
     public string ReflectionRegistrationStartup()
     {
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationManager());
         ReflectionRegistration.AddByReflection(
             services,
             typeof(StartupRegistrationBenchmarks).Assembly
         );
 
-        using var provider = services.BuildServiceProvider();
+        var provider = services.UseGenDI();
         var service = provider.GetRequiredService<IBenchmarkService>();
         return service.Execute();
     }
@@ -92,7 +110,6 @@ public class StartupRegistrationBenchmarks
 
 internal static class ReflectionRegistration
 {
-#pragma warning disable S3776 // benchmark baseline keeps full reflection flow in one method for readability/comparison
     public static void AddByReflection(IServiceCollection services, Assembly assembly)
     {
         foreach (var implementationType in assembly.GetTypes().Where(IsInjectableImplementation))
@@ -148,7 +165,6 @@ internal static class ReflectionRegistration
             }
         }
     }
-#pragma warning restore S3776
 
     private static bool IsInjectableImplementation(Type type)
     {

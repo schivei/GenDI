@@ -25,7 +25,7 @@ public class RealWorldIntegrationTests
 
         services.AddGenDIServices();
 
-        using var provider = services.BuildServiceProvider();
+        var provider = services.UseGenDI();
         var generated = provider.GetRequiredService<IGeneratedContract>();
         var nonGenerated = provider.GetRequiredService<INonGeneratedDependsOnGenerated>();
 
@@ -42,7 +42,7 @@ public class RealWorldIntegrationTests
     {
         var services = new ServiceCollection();
         services.AddGenDIServices();
-        using var provider = services.BuildServiceProvider();
+        var provider = services.UseGenDI();
 
         Assert.Null(provider.GetService<NotGeneratedService>());
     }
@@ -56,7 +56,7 @@ public class RealWorldIntegrationTests
 
         services.AddGenDIServices();
 
-        using var provider = services.BuildServiceProvider();
+        var provider = services.UseGenDI();
         var service = provider.GetRequiredKeyedService<IKeyedGeneratedContract>("generated");
 
         Assert.NotNull(service);
@@ -70,7 +70,7 @@ public class RealWorldIntegrationTests
         var services = new ServiceCollection();
         services.AddGenDIServices();
 
-        using var provider = services.BuildServiceProvider();
+        var provider = services.UseGenDI();
         var service = provider.GetRequiredService<IOptionalGeneratedContract>();
 
         Assert.NotNull(service);
@@ -126,7 +126,7 @@ public class RealWorldIntegrationTests
         var services = new ServiceCollection();
         services.AddGenDIServices();
 
-        using var provider = services.BuildServiceProvider();
+        var provider = services.UseGenDI();
         var consumer = provider.GetRequiredService<IndirectConsumer>();
 
         Assert.NotNull(consumer);
@@ -139,7 +139,7 @@ public class RealWorldIntegrationTests
         var services = new ServiceCollection();
         services.AddGenDIServices();
 
-        using var provider = services.BuildServiceProvider();
+        var provider = services.UseGenDI();
         var decorated = provider.GetRequiredService<IDecoratedContract>();
 
         var outer = Assert.IsType<DecoratedContractValidator>(decorated);
@@ -153,7 +153,7 @@ public class RealWorldIntegrationTests
         var services = new ServiceCollection();
         services.AddGenDIServices();
 
-        using var provider = services.BuildServiceProvider();
+        var provider = services.UseGenDI();
         var mainThreadInstance = provider.GetRequiredService<IThreadIsolatedContract>();
         var mainThreadInstanceAgain = provider.GetRequiredService<IThreadIsolatedContract>();
         IThreadIsolatedContract? workerThreadInstance = null;
@@ -179,7 +179,7 @@ public class RealWorldIntegrationTests
     {
         var services = new ServiceCollection();
         services.AddGenDIServices();
-        using var provider = services.BuildServiceProvider();
+        var provider = services.UseGenDI();
 
         Assert.Null(provider.GetService<IReferencedContract>());
     }
@@ -190,7 +190,7 @@ public class RealWorldIntegrationTests
         var services = new ServiceCollection();
         services.AddGenDIServices();
         services.AddReferencedModule();
-        using var provider = services.BuildServiceProvider();
+        var provider = services.UseGenDI();
 
         Assert.NotNull(provider.GetService<IReferencedContract>());
     }
@@ -200,7 +200,7 @@ public class RealWorldIntegrationTests
     {
         var services = new ServiceCollection();
         services.AddGenDIServices("Factories");
-        using var provider = services.BuildServiceProvider();
+        var provider = services.UseGenDI();
 
         var resolved = provider.GetRequiredService<IFactoryContract>();
         Assert.Equal("factory", resolved.Kind);
@@ -211,7 +211,7 @@ public class RealWorldIntegrationTests
     {
         var services = new ServiceCollection();
         services.AddGenDIServices("Referenced");
-        using var provider = services.BuildServiceProvider();
+        var provider = services.UseGenDI();
 
         Assert.Null(provider.GetService<IReferencedContract>());
         Assert.Null(provider.GetService<IGeneratedContract>());
@@ -223,7 +223,7 @@ public class RealWorldIntegrationTests
         var services = new ServiceCollection();
         services.AddGenDIServices("Referenced");
         services.AddReferencedModule();
-        using var provider = services.BuildServiceProvider();
+        var provider = services.UseGenDI();
 
         Assert.NotNull(provider.GetService<IReferencedContract>());
         Assert.Null(provider.GetService<IGeneratedContract>());
@@ -234,7 +234,7 @@ public class RealWorldIntegrationTests
     {
         var services = new ServiceCollection();
         services.AddGenDIServices();
-        using var provider = services.BuildServiceProvider();
+        var provider = services.UseGenDI();
 
         var exception = Assert.Throws<InvalidOperationException>(provider.GetRequiredService<IUsesGenericIndirect>);
         Assert.Contains(
@@ -250,7 +250,7 @@ public class RealWorldIntegrationTests
         var services = new ServiceCollection();
         services.AddSingleton<IOverwriteAddContract, ManualOverwriteAddContract>();
         services.AddGenDIServices();
-        using var provider = services.BuildServiceProvider();
+        var provider = services.UseGenDI();
 
         var resolved = provider.GetRequiredService<IOverwriteAddContract>();
         Assert.IsType<GeneratedOverwriteAddContract>(resolved);
@@ -262,7 +262,7 @@ public class RealWorldIntegrationTests
         var services = new ServiceCollection();
         services.AddSingleton<IOverwriteTryAddContract, ManualOverwriteTryAddContract>();
         services.AddGenDIServices();
-        using var provider = services.BuildServiceProvider();
+        var provider = services.UseGenDI();
 
         var resolved = provider.GetRequiredService<IOverwriteTryAddContract>();
         Assert.IsType<ManualOverwriteTryAddContract>(resolved);
@@ -273,7 +273,7 @@ public class RealWorldIntegrationTests
     {
         var services = new ServiceCollection();
         services.AddGenDIServices();
-        using var provider = services.BuildServiceProvider();
+        var provider = services.UseGenDI();
 
         var resolved = provider.GetServices<IMultipleAddContract>();
         Assert.Collection(
@@ -289,7 +289,7 @@ public class RealWorldIntegrationTests
         var services = new ServiceCollection();
         services.AddSingleton<IMultipleTryAddContract, MultipleTryAddContractFirst>();
         services.AddGenDIServices();
-        using var provider = services.BuildServiceProvider();
+        var provider = services.UseGenDI();
 
         var resolved = provider.GetServices<IMultipleTryAddContract>();
         Assert.Collection(

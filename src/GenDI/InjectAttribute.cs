@@ -29,7 +29,7 @@ public sealed class InjectAttribute : Attribute
     /// Optional keyed-service identifier used when resolving this property.
     /// Defaults to <see langword="null"/> (non-keyed resolution).
     /// </summary>
-    public object? Key { get; set; }
+    public object? Key { get; set; } = null;
 
     /// <summary>
     /// Lifetime override used by indirect registration discovery.

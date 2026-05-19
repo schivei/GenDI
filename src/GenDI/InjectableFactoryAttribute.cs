@@ -8,44 +8,22 @@ namespace GenDI;
 /// <remarks>
 /// Open-generic service shapes are not supported by generated registration and are ignored by the source generator.
 /// </remarks>
+/// <remarks>
+/// Initializes a new instance of the <see cref="InjectableFactoryAttribute"/> class.
+/// </remarks>
 [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-public sealed class InjectableFactoryAttribute : Attribute
+public sealed class InjectableFactoryAttribute(ServiceLifetime lifetime = ServiceLifetime.Transient) : Attribute
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="InjectableFactoryAttribute"/> class.
-    /// </summary>
-    public InjectableFactoryAttribute(ServiceLifetime lifetime = ServiceLifetime.Transient)
-    {
-        Lifetime = lifetime;
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="InjectableFactoryAttribute"/> class.
-    /// </summary>
-#pragma warning disable S1133 // kept intentionally for compatibility while guiding migration to the generic attribute
-    [Obsolete(
-        "Use InjectableFactoryAttribute<TService> instead of typeof-based service selection.",
-        error: false
-    )]
-#pragma warning restore S1133
-    public InjectableFactoryAttribute(
-        Type serviceType,
-        ServiceLifetime lifetime = ServiceLifetime.Transient
-    )
-    {
-        ServiceType = serviceType;
-        Lifetime = lifetime;
-    }
 
     /// <summary>
     /// Gets the lifetime used by generated registration.
     /// </summary>
-    public ServiceLifetime Lifetime { get; }
+    public ServiceLifetime Lifetime { get; } = lifetime;
 
     /// <summary>
     /// Gets the explicit service contract for the factory registration.
     /// </summary>
-    public Type? ServiceType { get; }
+    public Type? ServiceType { get; } = null;
 
     /// <summary>
     /// Optional order value inside a group.
@@ -60,7 +38,7 @@ public sealed class InjectableFactoryAttribute : Attribute
     /// <summary>
     /// Optional keyed-service identifier for keyed factory registration.
     /// </summary>
-    public object? Key { get; set; }
+    public object? Key { get; set; } = null;
 
     /// <summary>
     /// Optional thread-isolation registration policy.
@@ -70,22 +48,18 @@ public sealed class InjectableFactoryAttribute : Attribute
     /// <summary>
     /// Optional registration module name used for grouped registration.
     /// </summary>
-    public string? Module { get; set; }
+    public string? Module { get; set; } = null;
 }
 
 /// <summary>
 /// Marks a static factory method for source-generated registration with an explicit service contract.
 /// </summary>
+/// <remarks>
+/// Initializes a new instance of the <see cref="InjectableFactoryAttribute{TService}"/> class.
+/// </remarks>
 [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-public sealed class InjectableFactoryAttribute<TService> : Attribute
+public sealed class InjectableFactoryAttribute<TService>(ServiceLifetime lifetime = ServiceLifetime.Transient) : Attribute
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="InjectableFactoryAttribute{TService}"/> class.
-    /// </summary>
-    public InjectableFactoryAttribute(ServiceLifetime lifetime = ServiceLifetime.Transient)
-    {
-        Lifetime = lifetime;
-    }
 
     /// <summary>
     /// Gets the explicit service contract for the factory registration.
@@ -95,7 +69,7 @@ public sealed class InjectableFactoryAttribute<TService> : Attribute
     /// <summary>
     /// Gets the lifetime used by generated registration.
     /// </summary>
-    public ServiceLifetime Lifetime { get; }
+    public ServiceLifetime Lifetime { get; } = lifetime;
 
     /// <summary>
     /// Optional order value inside a group.
@@ -110,7 +84,7 @@ public sealed class InjectableFactoryAttribute<TService> : Attribute
     /// <summary>
     /// Optional keyed-service identifier for keyed factory registration.
     /// </summary>
-    public object? Key { get; set; }
+    public object? Key { get; set; } = null;
 
     /// <summary>
     /// Optional thread-isolation registration policy.
@@ -120,5 +94,5 @@ public sealed class InjectableFactoryAttribute<TService> : Attribute
     /// <summary>
     /// Optional registration module name used for grouped registration.
     /// </summary>
-    public string? Module { get; set; }
+    public string? Module { get; set; } = null;
 }

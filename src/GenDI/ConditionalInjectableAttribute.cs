@@ -8,20 +8,16 @@ namespace GenDI;
 /// The generated registration executes only when <c>DOTNET_ENVIRONMENT</c> or
 /// <c>ASPNETCORE_ENVIRONMENT</c> matches <see cref="EnvironmentName"/>.
 /// </remarks>
+/// <remarks>
+/// Initializes a new instance of the <see cref="ConditionalInjectableAttribute"/> class.
+/// </remarks>
+/// <param name="environmentName">Target environment name for conditional registration.</param>
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
-public sealed class ConditionalInjectableAttribute : Attribute
+public sealed class ConditionalInjectableAttribute(string environmentName) : Attribute
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ConditionalInjectableAttribute"/> class.
-    /// </summary>
-    /// <param name="environmentName">Target environment name for conditional registration.</param>
-    public ConditionalInjectableAttribute(string environmentName)
-    {
-        EnvironmentName = environmentName;
-    }
 
     /// <summary>
     /// Gets the target environment name for conditional registration.
     /// </summary>
-    public string EnvironmentName { get; }
+    public string EnvironmentName { get; } = environmentName;
 }

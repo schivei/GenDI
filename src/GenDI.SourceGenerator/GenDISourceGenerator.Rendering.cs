@@ -94,6 +94,16 @@ public sealed partial class GenDISourceGenerator
     {
         if (string.IsNullOrWhiteSpace(registration.KeyExpression))
         {
+            if (registration.IsDecorator)
+            {
+                return string.Format(
+                    GenDiSourceTemplates.UnkeyedAddDecoratorTemplate,
+                    registrationMethod,
+                    registration.ServiceType,
+                    registration.FactoryBody
+                );
+            }
+
             if (!registration.UseTryAdd)
             {
                 return string.Format(
@@ -119,6 +129,17 @@ public sealed partial class GenDISourceGenerator
                 registration.ServiceType,
                 registration.ImplementationType,
                 registrationMethod,
+                registration.FactoryBody
+            );
+        }
+
+        if (registration.IsDecorator)
+        {
+            return string.Format(
+                GenDiSourceTemplates.KeyedAddDecoratorTemplate,
+                registrationMethod,
+                registration.ServiceType,
+                registration.KeyExpression,
                 registration.FactoryBody
             );
         }
