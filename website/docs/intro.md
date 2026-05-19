@@ -104,8 +104,8 @@ using <AssemblyName>.DependencyInjection;
 
 ....
 
-builder.Host.UseGenDI();
-builder.Services.AddGenDIServices();
+builder.Services.AddGenDIServices(); // if using decorators, call AddGenDIServices() after all other registrations and before Build().
+var app = builder.Build();
 ```
 
 Each registration uses generated `new` expressions and `GetRequiredService<T>()`, keeping activation explicit and analyzer-friendly.

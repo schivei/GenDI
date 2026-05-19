@@ -5,7 +5,7 @@ using GenDI.Phase6.MinimalApiValidation.App.DependencyInjection;
 [assembly: GenDICoveration(false)]
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Host.UseGenDI();
+
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddGenDIServices();
 

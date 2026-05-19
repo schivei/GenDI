@@ -34,7 +34,7 @@ public class StartupRegistrationBenchmarks
             }
         );
 
-        var provider = services.UseGenDI();
+        using var provider = services.BuildServiceProvider();
         var service = provider.GetRequiredService<IBenchmarkService>();
         return service.Execute();
     }
@@ -50,7 +50,7 @@ public class StartupRegistrationBenchmarks
         services.AddSingleton<IConfiguration>(new ConfigurationManager());
         services.AddGenDIServices();
 
-        var provider = services.UseGenDI();
+        using var provider = services.BuildServiceProvider();
         var service = provider.GetRequiredService<IBenchmarkService>();
         return service.Execute();
     }
@@ -66,7 +66,7 @@ public class StartupRegistrationBenchmarks
         services.AddSingleton<IConfiguration>(new ConfigurationManager());
         services.AddGenDIServices();
 
-        var provider = services.UseGenDI();
+        using var provider = services.BuildServiceProvider();
         var service = provider.GetRequiredService<IBenchmarkServiceViaProperties>();
         return service.Execute();
     }
@@ -82,7 +82,7 @@ public class StartupRegistrationBenchmarks
         services.AddSingleton<IConfiguration>(new ConfigurationManager());
         services.AddGenDIServices();
 
-        var provider = services.UseGenDI();
+        using var provider = services.BuildServiceProvider();
         var service = provider.GetRequiredService<IBenchmarkServiceDecorated>();
         return service.Execute();
     }
@@ -101,7 +101,7 @@ public class StartupRegistrationBenchmarks
             typeof(StartupRegistrationBenchmarks).Assembly
         );
 
-        var provider = services.UseGenDI();
+        using var provider = services.BuildServiceProvider();
         var service = provider.GetRequiredService<IBenchmarkService>();
         return service.Execute();
     }
