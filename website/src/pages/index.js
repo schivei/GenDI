@@ -282,9 +282,8 @@ public static partial class ClockFactory
     public static IClock Create() => SystemClock.Instance;
 }
 
-builder.Host.UseGenDI();
-
-builder.Services.AddGenDIServices(modules: "sales");`}</code>
+builder.Services.AddGenDIServices(modules: "sales"); // if using decorators, call AddGenDIServices after all registrations and before building the provider to ensure correct order of generation and decoration
+var app = builder.Build();`}</code>
         </pre>
         <p className="text--center margin-top--md">
           <Link to="/docs/advanced/registration-model-rm01-rm12">See full RM-01..RM-12 guide</Link>
