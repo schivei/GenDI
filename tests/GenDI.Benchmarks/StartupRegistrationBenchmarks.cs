@@ -1,6 +1,7 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
 using GenDI.Benchmarks.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
@@ -21,6 +22,7 @@ public class StartupRegistrationBenchmarks
         var services = new ServiceCollection();
         // Register the identical service set that AddGenDIServices() produces
         // so this baseline measures registration overhead, not workload difference.
+        services.AddSingleton<IConfiguration>(new ConfigurationManager());
         services.AddSingleton<IBenchmarkClock, BenchmarkClock>();
         services.AddSingleton<IBenchmarkRepository, BenchmarkRepository>();
         services.AddTransient<IBenchmarkService, BenchmarkService>();
@@ -45,6 +47,7 @@ public class StartupRegistrationBenchmarks
     public string GeneratedConstructorInjectionStartup()
     {
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationManager());
         services.AddGenDIServices();
 
         var provider = services.UseGenDI();
@@ -60,6 +63,7 @@ public class StartupRegistrationBenchmarks
     public string GeneratedPropertyInjectionStartup()
     {
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationManager());
         services.AddGenDIServices();
 
         var provider = services.UseGenDI();
@@ -75,6 +79,7 @@ public class StartupRegistrationBenchmarks
     public string WithDecoratorGeneratedPropertyInjectionStartup()
     {
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationManager());
         services.AddGenDIServices();
 
         var provider = services.UseGenDI();
@@ -90,6 +95,7 @@ public class StartupRegistrationBenchmarks
     public string ReflectionRegistrationStartup()
     {
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationManager());
         ReflectionRegistration.AddByReflection(
             services,
             typeof(StartupRegistrationBenchmarks).Assembly
