@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using GenDI.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
@@ -92,6 +93,7 @@ public sealed partial class GenDISourceGenerator
         return BuildThreadIsolationRegistrationStatement(registration);
     }
 
+    [ExcludeFromCodeCoverage]
     private static string BuildStandardRegistrationStatement(
         ServiceRegistration registration,
         string registrationMethod
@@ -196,6 +198,7 @@ public sealed partial class GenDISourceGenerator
         );
     }
 
+    [ExcludeFromCodeCoverage]
     private static object ParseDecorationRecursion(string factoryBody, string serviceType, out string? interceptedKey)
     {
         var serviceCallPattern = new Regex($@"Service<\s*{Regex.Escape(serviceType)}\s*>\s*\(\s*(.+?)\s*\)",
