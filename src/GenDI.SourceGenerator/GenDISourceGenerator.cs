@@ -66,9 +66,10 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
                     );
                 }
 
-                var normalizedRegistrations = buildResult
-                    .Registrations.Distinct(ServiceRegistrationComparer.Instance)
-                    .OrderBy(static registration => registration.Group)
+                var normalizedRegistrations = buildResult.Registrations
+                    .Distinct(ServiceRegistrationComparer.Instance)
+                    .OrderBy(static registration => registration.IsDecorator)
+                    .ThenBy(static registration => registration.Group)
                     .ThenBy(static registration => registration.Order)
                     .ThenBy(static registration => registration.ServiceType, StringComparer.Ordinal)
                     .ToImmutableArray();

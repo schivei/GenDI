@@ -24,7 +24,7 @@ public class CheckoutWorkflowTests
             .AddSingleton<IProductCatalog>(productCatalog)
             .AddSingleton<ISystemClock>(fixedClock);
 
-        var provider = builder.UseGenDI();
+        using var provider = builder.BuildServiceProvider();
         using var scope = provider.CreateScope();
         var checkout = scope.ServiceProvider.GetRequiredService<ICheckoutService>();
 

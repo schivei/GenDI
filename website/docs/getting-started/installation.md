@@ -39,9 +39,9 @@ public sealed class MyService : IMyService
 ```csharp
 using <YourAssemblyName>.DependencyInjection;
 
-builder.Host.UseGenDI();
+builder.Services.AddGenDIServices(); // if using decorators, call AddGenDIServices() after all other registrations and before Build().
 
-builder.Services.AddGenDIServices();
+var app = builder.Build();
 ```
 
 ## 5️⃣ Optional: coverage behavior toggle

@@ -599,7 +599,7 @@ public sealed partial class GenDISourceGenerator
                         factoryBody,
                         injectableMetadata?.Order ?? DefaultOrderingValue,
                         injectableMetadata?.Group ?? DefaultOrderingValue,
-                        keyExpression: null,
+                        keyExpression: injectableMetadata?.KeyExpression,
                         environmentName: null,
                         moduleName: injectableMetadata?.ModuleName
                     )

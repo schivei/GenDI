@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Text.RegularExpressions;
 using GenDI.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 
@@ -96,11 +97,24 @@ public sealed partial class GenDISourceGenerator
         {
             if (registration.IsDecorator)
             {
+                var body = ParseDecorationRecursion(registration.FactoryBody, registration.ServiceType, out var interceptedKey);
+
+                if (interceptedKey is null)
+                {
+                    return string.Format(
+                        GenDiSourceTemplates.UnkeyedAddDecoratorTemplate,
+                        registration.ServiceType,
+                        registrationMethod,
+                        body
+                    );
+                }
+
                 return string.Format(
-                    GenDiSourceTemplates.UnkeyedAddDecoratorTemplate,
-                    registrationMethod,
+                    GenDiSourceTemplates.KeyedAddDecoratorTemplate,
                     registration.ServiceType,
-                    registration.FactoryBody
+                    interceptedKey,
+                    registrationMethod,
+                    body
                 );
             }
 
@@ -135,12 +149,14 @@ public sealed partial class GenDISourceGenerator
 
         if (registration.IsDecorator)
         {
+            var body = ParseDecorationRecursion(registration.FactoryBody, registration.ServiceType, out var interceptedKey);
+
             return string.Format(
                 GenDiSourceTemplates.KeyedAddDecoratorTemplate,
-                registrationMethod,
                 registration.ServiceType,
-                registration.KeyExpression,
-                registration.FactoryBody
+                interceptedKey ?? registration.KeyExpression,
+                registrationMethod,
+                body
             );
         }
 
@@ -174,6 +190,33 @@ public sealed partial class GenDISourceGenerator
             registrationMethod,
             registration.FactoryBody
         );
+    }
+
+    private static object ParseDecorationRecursion(string factoryBody, string serviceType, out string? interceptedKey)
+    {
+        var serviceCallPattern = new Regex($@"Service<\s*{Regex.Escape(serviceType)}\s*>\s*\(\s*(.+?)\s*\)", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+        interceptedKey = null;
+
+        if (!serviceCallPattern.IsMatch(factoryBody))
+        {
+            return factoryBody;
+        }
+
+        interceptedKey = serviceCallPattern.Match(factoryBody).Groups[1].Value.Trim();
+
+        var modifiedFactoryBody = factoryBody
+            .Replace("GetRequiredService", "GetRequiredKeyedService")
+            .Replace("GetService", "GetKeyedService");
+
+        if (string.IsNullOrWhiteSpace(interceptedKey))
+        {
+            interceptedKey = null;
+            return modifiedFactoryBody;
+        }
+
+        return modifiedFactoryBody
+            .Replace("static ", string.Empty)
+            .Replace(interceptedKey, "internalKey");
     }
 
     private static string BuildThreadIsolationRegistrationStatement(ServiceRegistration registration)

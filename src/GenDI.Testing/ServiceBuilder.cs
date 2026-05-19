@@ -120,96 +120,22 @@ public sealed class ServiceBuilder
     }
 
     /// <summary>
-    /// Registers a Singleton decorator for the specified service type.
-    /// </summary>
-    /// <typeparam name="TService">The service type to decorate.</typeparam>
-    /// <param name="implementationFactory">
-    /// A factory function that receives the current IServiceProvider and returns the decorated instance of <typeparamref name="TService"/>.
-    /// </param>
-    /// <returns>The same IServiceCollection instance for chaining.</returns>
-    public IServiceCollection AddDecoratorSingleton<TService>(
-        Func<IServiceProvider, TService> implementationFactory)
-        where TService : class =>
-        AddKeyedDecoratorSingleton(null, (sp, _) => implementationFactory(sp));
-
-    /// <summary>
-    /// Registers a Singleton decorator for the specified service type.
-    /// </summary>
-    /// <typeparam name="TService">The service type to decorate.</typeparam>
-    /// <param name="key">An optional key to associate with the decorator, allowing for multiple decorators of the same service type.</param>
-    /// <param name="implementationFactory">
-    /// A factory function that receives the current IServiceProvider and returns the decorated instance of <typeparamref name="TService"/>.
-    /// </param>
-    /// <returns>The same IServiceCollection instance for chaining.</returns>
-    public IServiceCollection AddKeyedDecoratorSingleton<TService>(
-        object? key,
-        Func<IServiceProvider, object?, TService> implementationFactory)
-        where TService : class =>
-        _services.AddKeyedDecoratorSingleton(key, implementationFactory);
-
-    /// <summary>
-    /// Registers a Scoped decorator for the specified service type.
-    /// </summary>
-    /// <typeparam name="TService">The service type to decorate.</typeparam>
-    /// <param name="implementationFactory">
-    /// A factory function that receives the current IServiceProvider and returns the decorated instance of <typeparamref name="TService"/>.
-    /// </param>
-    /// <returns>The same IServiceCollection instance for chaining.</returns>
-    public IServiceCollection AddDecoratorScoped<TService>(
-        Func<IServiceProvider, TService> implementationFactory)
-        where TService : class =>
-        AddKeyedDecoratorScoped(null, (sp, _) => implementationFactory(sp));
-
-    /// <summary>
-    /// Registers a Scoped decorator for the specified service type.
-    /// </summary>
-    /// <typeparam name="TService">The service type to decorate.</typeparam>
-    /// <param name="key">An optional key to associate with the decorator, allowing for multiple decorators of the same service type.</param>
-    /// <param name="implementationFactory">
-    /// A factory function that receives the current IServiceProvider and returns the decorated instance of <typeparamref name="TService"/>.
-    /// </param>
-    /// <returns>The same IServiceCollection instance for chaining.</returns>
-    public IServiceCollection AddKeyedDecoratorScoped<TService>(
-        object? key,
-        Func<IServiceProvider, object?, TService> implementationFactory)
-        where TService : class =>
-        _services.AddKeyedDecoratorScoped(key, implementationFactory);
-
-    /// <summary>
-    /// Registers a Transient decorator for the specified service type.
-    /// </summary>
-    /// <typeparam name="TService">The service type to decorate.</typeparam>
-    /// <param name="implementationFactory">
-    /// A factory function that receives the current IServiceProvider and returns the decorated instance of <typeparamref name="TService"/>.
-    /// </param>
-    /// <returns>The same IServiceCollection instance for chaining.</returns>
-    public IServiceCollection AddDecoratorTransient<TService>(
-        Func<IServiceProvider, TService> implementationFactory)
-        where TService : class =>
-        AddKeyedDecoratorTransient(null, (sp, _) => implementationFactory(sp));
-
-
-    /// <summary>
-    /// Registers a Transient decorator for the specified service type.
-    /// </summary>
-    /// <typeparam name="TService">The service type to decorate.</typeparam>
-    /// <param name="key">An optional key to associate with the decorator, allowing for multiple decorators of the same service type.</param>
-    /// <param name="implementationFactory">
-    /// A factory function that receives the current IServiceProvider and returns the decorated instance of <typeparamref name="TService"/>.
-    /// </param>
-    /// <returns>The same IServiceCollection instance for chaining.</returns>
-    public IServiceCollection AddKeyedDecoratorTransient<TService>(
-        object? key,
-        Func<IServiceProvider, object?, TService> implementationFactory)
-        where TService : class =>
-        _services.AddKeyedDecoratorTransient(key, implementationFactory);
-
-    /// <summary>
     /// Builds a provider from the configured services.
     /// </summary>
+    /// <param name="validateScopes">Whether to validate scopes on build.</param>
+    /// <param name="validateOnBuild">Whether to validate service graph on build.</param>
     /// <returns>Built <see cref="ServiceProvider"/>.</returns>
-    public IServiceProvider UseGenDI() =>
-        _services.UseGenDI();
+    public ServiceProvider BuildServiceProvider(
+        bool validateScopes = true,
+        bool validateOnBuild = true
+    ) =>
+        _services.BuildServiceProvider(
+            new ServiceProviderOptions
+            {
+                ValidateScopes = validateScopes,
+                ValidateOnBuild = validateOnBuild,
+            }
+        );
 
     private static void ThrowIfNull(object? value, string paramName)
     {

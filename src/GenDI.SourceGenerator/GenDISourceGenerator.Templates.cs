@@ -3,10 +3,10 @@ namespace GenDI.SourceGenerator;
 internal static class GenDiSourceTemplates
 {
     internal const string UsingsWithoutCoverage =
-        "using System;\nusing System.Collections.Generic;\nusing System.Threading;\nusing Microsoft.Extensions.DependencyInjection;\nusing Microsoft.Extensions.DependencyInjection.Extensions;\n";
+        "using System;\nusing System.Linq;\nusing System.Collections.Generic;\nusing System.Threading;\nusing Microsoft.Extensions.DependencyInjection;\nusing Microsoft.Extensions.DependencyInjection.Extensions;\n";
 
     internal const string UsingsWithCoverage =
-        "using System;\nusing System.Collections.Generic;\nusing System.Diagnostics.CodeAnalysis;\nusing System.Threading;\nusing Microsoft.Extensions.DependencyInjection;\nusing Microsoft.Extensions.DependencyInjection.Extensions;\n";
+        "using System;\nusing System.Linq;\nusing System.Collections.Generic;\nusing System.Diagnostics.CodeAnalysis;\nusing System.Threading;\nusing Microsoft.Extensions.DependencyInjection;\nusing Microsoft.Extensions.DependencyInjection.Extensions;\n";
 
     internal const string ExcludeFromCodeCoverageAttribute = "[ExcludeFromCodeCoverage]";
 
@@ -23,10 +23,10 @@ internal static class GenDiSourceTemplates
         "        services.TryAddKeyed{0}<{1}>({2}, static (serviceProvider, _) => {3});";
 
     internal const string KeyedAddDecoratorTemplate =
-        "        services.AddKeyedDecorator{0}<{1}>({2}, static (serviceProvider, key) => {3});";
+        "        RegisterDecorator<{0}>({1}, services, ServiceLifetime.{2}, static (serviceProvider, internalKey, originalKey) => {3});";
 
     internal const string UnkeyedAddDecoratorTemplate =
-        "        services.AddDecorator{0}<{1}>(static serviceProvider => {2});";
+        "        RegisterDecorator<{0}>(null, services, ServiceLifetime.{1}, static (serviceProvider, internalKey) => {2});";
 
     internal const string UnkeyedTryAddMultipleGuardTemplate = """
                 if (!HasServiceImplementation(services, typeof({0}), typeof({1})))
@@ -139,6 +139,116 @@ internal static class GenDiSourceTemplates
                 }
 
                 return false;
+            }
+
+            private static void RegisterDecorator<TService>(object? serviceKey, IServiceCollection services, ServiceLifetime lifetime, Func<IServiceProvider, object?, object> factory) =>
+                RegisterDecorator<TService>(serviceKey, services, lifetime, (serviceProvider, internalKey, _) => factory(serviceProvider, internalKey));
+
+            private static void RegisterDecorator<TService>(object? serviceKey, IServiceCollection services, ServiceLifetime lifetime, Func<IServiceProvider, object?, object?, object> factory)
+            {
+                var descriptors = services.Where(d => d.ServiceType == typeof(TService) && (!d.IsKeyedService || EqualityComparer<object?>.Default.Equals(d.ServiceKey, serviceKey))).ToList();
+
+                if (descriptors.Count == 0 && serviceKey is null)
+                {
+                    services.Add(new ServiceDescriptor(
+                        typeof(TService),
+                        serviceProvider => factory(serviceProvider, null, null),
+                        lifetime
+                    ));
+
+                    return;
+                }
+                else if (descriptors.Count == 0)
+                {
+                    services.Add(new ServiceDescriptor(
+                        typeof(TService),
+                        serviceKey,
+                        (serviceProvider, key) => factory(serviceProvider, null, key),
+                        lifetime
+                    ));
+
+                    return;
+                }
+
+                foreach (var descriptor in descriptors)
+                {
+                    services.Remove(descriptor);
+
+                    var internalKey = Guid.NewGuid().ToString("N");
+
+                    if (descriptor.IsKeyedService && descriptor.KeyedImplementationInstance is not null)
+                    {
+                        services.Add(new ServiceDescriptor(
+                            descriptor.ServiceType,
+                            internalKey,
+                            (_, _) => descriptor.KeyedImplementationInstance,
+                            descriptor.Lifetime
+                        ));
+                    }
+                    else if (descriptor.IsKeyedService && descriptor.KeyedImplementationFactory is not null)
+                    {
+                        services.Add(new ServiceDescriptor(
+                            descriptor.ServiceType,
+                            internalKey,
+                            descriptor.KeyedImplementationFactory,
+                            descriptor.Lifetime
+                        ));
+                    }
+                    else if (descriptor.IsKeyedService && descriptor.KeyedImplementationType is not null)
+                    {
+                        services.Add(new ServiceDescriptor(
+                            descriptor.ServiceType,
+                            internalKey,
+                            descriptor.KeyedImplementationType,
+                            descriptor.Lifetime
+                        ));
+                    }
+                    else if (descriptor.ImplementationInstance != null)
+                    {
+                        services.Add(new ServiceDescriptor(
+                            descriptor.ServiceType,
+                            serviceKey: internalKey,
+                            factory: (_, _) => descriptor.ImplementationInstance,
+                            descriptor.Lifetime
+                        ));
+                    }
+                    else if (descriptor.ImplementationFactory != null)
+                    {
+                        services.Add(new ServiceDescriptor(
+                            descriptor.ServiceType,
+                            internalKey,
+                            (sp, _) => descriptor.ImplementationFactory(sp),
+                            descriptor.Lifetime
+                        ));
+                    }
+                    else if (descriptor.ImplementationType != null)
+                    {
+                        services.Add(new ServiceDescriptor(
+                            descriptor.ServiceType,
+                            internalKey,
+                            descriptor.ImplementationType,
+                            descriptor.Lifetime
+                        ));
+                    }
+
+                    if (serviceKey is null)
+                    {
+                        services.Add(new ServiceDescriptor(
+                            descriptor.ServiceType,
+                            serviceProvider => factory(serviceProvider, internalKey, null),
+                            descriptor.Lifetime
+                        ));
+                    }
+                    else
+                    {
+                        services.Add(new ServiceDescriptor(
+                            descriptor.ServiceType,
+                            serviceKey,
+                            (serviceProvider, key) => factory(serviceProvider, internalKey, key),
+                            descriptor.Lifetime
+                        ));
+                    }
+                }
             }
 
             /// <summary>
