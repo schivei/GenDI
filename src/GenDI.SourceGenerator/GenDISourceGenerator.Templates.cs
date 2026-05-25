@@ -267,6 +267,7 @@ internal static class GenDiSourceTemplates
         /// </summary>
         {{EXCLUDE_FROM_COVERAGE}}internal static class GenDIServiceCollectionExtensions
         {
+            private static HashSet<IServiceCollection> s_registered = [];
             {{TRY_ADD_MULTIPLE_GUARD}}
             {{TRY_ADD_MULTIPLE_KEYED_GUARD}}
             {{CHECK_MODULE}}
@@ -290,6 +291,11 @@ internal static class GenDiSourceTemplates
             /// <returns>The same service collection, for chaining.</returns>
             public static IServiceCollection AddGenDIServices(this IServiceCollection services, params string[] modules)
             {
+                if (s_registered.Contains(services))
+                    return services;
+
+                s_registered.Add(services);
+
                 modules ??= Array.Empty<string>();
         {{REGISTRATIONS}}
                 return services;
