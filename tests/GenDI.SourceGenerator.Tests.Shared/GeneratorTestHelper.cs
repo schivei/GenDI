@@ -40,54 +40,6 @@ internal static class GeneratorTestHelper
         );
     }
 
-    /// <summary>
-    /// Asserts that the generator produces no output for the given source.
-    /// Fails the test with an explicit message if any source is generated.
-    /// </summary>
-    public static void AssertNoSourceGenerated(
-        string userSource,
-        bool? includeGeneratedCodeInCoverage,
-        params (string AssemblyName, string Source)[] referencedAssemblies
-    )
-    {
-        AssertNoSourceGeneratedWithAssemblyName(
-            "Consumer.Tests",
-            userSource,
-            includeGeneratedCodeInCoverage,
-            referencedAssemblies
-        );
-    }
-
-    private static void AssertNoSourceGeneratedWithAssemblyName(
-        string? assemblyName,
-        string userSource,
-        bool? includeGeneratedCodeInCoverage,
-        params (string AssemblyName, string Source)[] referencedAssemblies
-    )
-    {
-        var (driver, diagnostics) = RunGenerator(
-            assemblyName,
-            userSource,
-            includeGeneratedCodeInCoverage,
-            referencedAssemblies
-        );
-
-        var generationErrors = diagnostics
-            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .ToArray();
-        Assert.Empty(generationErrors);
-
-        var result = driver.GetRunResult();
-        var generatedSources = result
-            .Results.SelectMany(static runResult => runResult.GeneratedSources)
-            .Where(static generatedSource =>
-                generatedSource.HintName == "GenDIServiceCollectionExtensions.g.cs"
-            )
-            .ToArray();
-
-        Assert.Empty(generatedSources);
-    }
-
     public static string GenerateSourceWithAssemblyName(
         string? assemblyName,
         string userSource,

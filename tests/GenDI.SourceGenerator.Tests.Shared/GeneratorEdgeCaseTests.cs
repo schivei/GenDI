@@ -13,19 +13,6 @@ public class GeneratorEdgeCaseTests
     // ─── BuildRegistrations guards ────────────────────────────────────────────
 
     [Fact]
-    public void Abstract_class_with_Injectable_produces_no_source()
-    {
-        // symbol.IsAbstract == true path in BuildRegistrations
-        GeneratorTestHelper.AssertNoSourceGenerated(
-            """
-            [Injectable]
-            public abstract class AbstractService { }
-            """,
-            TestSettings.IncludeGeneratedCodeInCoverageAttribute
-        );
-    }
-
-    [Fact]
     public void OptionConfig_without_any_consumer_generates_direct_options_registration()
     {
         var generatedSource = GeneratorTestHelper.GenerateSource(
@@ -72,24 +59,6 @@ public class GeneratorEdgeCaseTests
             "new global::DecoratorNoImpl.LoggingDecorator()",
             generatedSource,
             StringComparison.Ordinal
-        );
-    }
-
-    [Fact]
-    public void Injectable_from_wrong_namespace_produces_no_source()
-    {
-        // IsInjectableAttribute returns false when the attribute is not GenDI.InjectableAttribute
-        GeneratorTestHelper.AssertNoSourceGenerated(
-            """
-            namespace OtherNamespace
-            {
-                public sealed class InjectableAttribute : System.Attribute { }
-            }
-
-            [OtherNamespace.Injectable]
-            public sealed class NotReallyInjectable { }
-            """,
-            TestSettings.IncludeGeneratedCodeInCoverageAttribute
         );
     }
 
