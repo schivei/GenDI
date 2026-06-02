@@ -74,11 +74,6 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
                     .ThenBy(static registration => registration.ServiceType, StringComparer.Ordinal)
                     .ToImmutableArray();
 
-                if (normalizedRegistrations.Length == 0)
-                {
-                    return;
-                }
-
                 sourceProductionContext.AddSource(
                     "GenDIServiceCollectionExtensions.g.cs",
                     BuildGeneratedSource(

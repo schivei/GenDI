@@ -13,7 +13,7 @@ internal sealed class ServiceRegistration(
     int order,
     int group,
     string? keyExpression,
-    string? environmentName,
+    IEnumerable<(string?, bool?)>? environments,
     string? moduleName,
     string? directRegistrationStatement = null
 )
@@ -38,7 +38,7 @@ internal sealed class ServiceRegistration(
 
     public string? KeyExpression { get; } = keyExpression;
 
-    public string? EnvironmentName { get; } = environmentName;
+    public IEnumerable<(string? EnvironmentName, bool? NotEnvironment)> Environments { get; } = environments ?? [];
 
     public string? ModuleName { get; } = moduleName;
 

@@ -95,7 +95,7 @@ public sealed partial class GenDISourceGenerator
                 order: DefaultOrderingValue,
                 group: DefaultOrderingValue,
                 keyExpression: null,
-                environmentName: null,
+                environments: null,
                 moduleName: null,
                 directRegistrationStatement
             ));
@@ -175,7 +175,7 @@ public sealed partial class GenDISourceGenerator
                 static registration => BuildRegistrationIdentity(
                     registration.ServiceType,
                     registration.KeyExpression,
-                    registration.EnvironmentName,
+                    registration.Environments,
                     registration.ModuleName
                 ),
                 StringComparer.Ordinal
@@ -552,7 +552,7 @@ public sealed partial class GenDISourceGenerator
                     existingRegistration.Order,
                     existingRegistration.Group,
                     existingRegistration.KeyExpression,
-                    existingRegistration.EnvironmentName,
+                    existingRegistration.Environments,
                     existingRegistration.ModuleName
                 );
                 applied = true;
@@ -600,7 +600,7 @@ public sealed partial class GenDISourceGenerator
                         injectableMetadata?.Order ?? DefaultOrderingValue,
                         injectableMetadata?.Group ?? DefaultOrderingValue,
                         keyExpression: injectableMetadata?.KeyExpression,
-                        environmentName: null,
+                        environments: null,
                         moduleName: injectableMetadata?.ModuleName
                     )
                 );
@@ -956,7 +956,7 @@ public sealed partial class GenDISourceGenerator
         var identity = BuildRegistrationIdentity(
             optionsContractType,
             injectRequest.KeyExpression,
-            environmentName: null,
+            environments: null,
             moduleName: injectRequest.ModuleName
         );
         if (existingKeys.Contains(identity))
@@ -997,7 +997,7 @@ public sealed partial class GenDISourceGenerator
                 order: DefaultOrderingValue,
                 group: DefaultOrderingValue,
                 keyExpression: injectRequest.KeyExpression,
-                environmentName: null,
+                environments: null,
                 moduleName: injectRequest.ModuleName,
                 directRegistrationStatement
             );
@@ -1020,7 +1020,7 @@ public sealed partial class GenDISourceGenerator
             order: DefaultOrderingValue,
             group: DefaultOrderingValue,
             keyExpression: injectRequest.KeyExpression,
-            environmentName: null,
+            environments: null,
             moduleName: injectRequest.ModuleName
         );
         return true;
@@ -1031,7 +1031,7 @@ public sealed partial class GenDISourceGenerator
         return BuildRegistrationIdentity(
             registration.ServiceType,
             registration.KeyExpression,
-            registration.EnvironmentName,
+            registration.Environments,
             registration.ModuleName
         );
     }
@@ -1039,11 +1039,11 @@ public sealed partial class GenDISourceGenerator
     private static string BuildRegistrationIdentity(
         string serviceType,
         string? keyExpression,
-        string? environmentName,
+        IEnumerable<(string? EnvironmentName, bool? NotEnvironment)> environments,
         string? moduleName
     )
     {
-        return $"{serviceType}|{keyExpression ?? string.Empty}|{environmentName ?? string.Empty}|{moduleName ?? string.Empty}";
+        return $"{serviceType}|{keyExpression ?? string.Empty}|{string.Join(",", environments.Select(e => e.EnvironmentName ?? string.Empty))}|{moduleName ?? string.Empty}";
     }
 
     private static string BuildRegistrationImplementationIdentity(ServiceRegistration registration)
@@ -1052,7 +1052,7 @@ public sealed partial class GenDISourceGenerator
             registration.ServiceType,
             registration.ImplementationType,
             registration.KeyExpression,
-            registration.EnvironmentName,
+            registration.Environments,
             registration.ModuleName
         );
     }
@@ -1061,11 +1061,11 @@ public sealed partial class GenDISourceGenerator
         string serviceType,
         string implementationType,
         string? keyExpression,
-        string? environmentName,
+        IEnumerable<(string?, bool?)> environments,
         string? moduleName
     )
     {
-        return $"{BuildRegistrationIdentity(serviceType, keyExpression, environmentName, moduleName)}|{implementationType}";
+        return $"{BuildRegistrationIdentity(serviceType, keyExpression, environments, moduleName)}|{implementationType}";
     }
 
     private static bool TryGetInjectableAttribute(
@@ -1620,7 +1620,7 @@ public sealed partial class GenDISourceGenerator
         return null;
     }
 
-    private static string? GetConditionalEnvironmentName(INamedTypeSymbol symbol)
+    private static IEnumerable<(string?, bool?)> GetConditionalEnvironmentName(INamedTypeSymbol symbol)
     {
         foreach (var attributeData in symbol.GetAttributes())
         {
@@ -1632,17 +1632,28 @@ public sealed partial class GenDISourceGenerator
                 continue;
             }
 
+            string? envName = null;
+            bool? notEnv = null;
+
             if (
                 attributeData.ConstructorArguments.Length > 0
                 && attributeData.ConstructorArguments[0].Value is string environmentName
                 && !string.IsNullOrWhiteSpace(environmentName)
             )
             {
-                return environmentName;
+                envName = environmentName;
             }
-        }
 
-        return null;
+            foreach (var namedArgument in attributeData.NamedArguments)
+            {
+                if (namedArgument.Key == "Not")
+                {
+                    notEnv = namedArgument.Value.Value as bool?;
+                }
+            }
+
+            yield return (envName, notEnv);
+        }
     }
 
     private static string? GetModuleName(INamedTypeSymbol symbol)

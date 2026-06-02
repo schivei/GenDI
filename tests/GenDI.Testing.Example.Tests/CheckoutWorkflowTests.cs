@@ -79,3 +79,10 @@ public sealed class FixedClock(DateTimeOffset utcNow) : ISystemClock
 {
     public DateTimeOffset UtcNow { get; } = utcNow;
 }
+
+[Injectable]
+[ConditionalInjectable("Production")]
+[ConditionalInjectable("Staging")]
+[ConditionalInjectable("Development", Not = true)]
+[ConditionalInjectable("Testing", Not = true)]
+internal sealed class TestEnvironment;

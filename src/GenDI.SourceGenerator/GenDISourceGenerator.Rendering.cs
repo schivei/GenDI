@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using System.Text.RegularExpressions;
 using GenDI.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
@@ -71,13 +72,41 @@ public sealed partial class GenDISourceGenerator
         string registrationStatement
     )
     {
-        return string.IsNullOrWhiteSpace(registration.EnvironmentName)
-            ? registrationStatement
-            : string.Format(
-                GenDiSourceTemplates.ConditionalRegistrationTemplate,
-                EscapeStringLiteral(registration.EnvironmentName),
-                registrationStatement
-            );
+        var environments = registration.Environments.Where(env => !string.IsNullOrWhiteSpace(env.EnvironmentName))
+            .OrderBy(env => env.NotEnvironment)
+            .ThenBy(env => env.EnvironmentName)
+            .ToImmutableArray();
+
+        if (environments.Length == 0)
+            return registrationStatement;
+
+        var groups = environments.GroupBy(env => env.NotEnvironment);
+
+        var notFalse = groups.Any(g => g.Key != true) ? groups.Where(g => g.Key != true).SelectMany(g =>
+            g.Select(env =>
+                string.Format(GenDiSourceTemplates.ConditionalRegistrationFilterTemplate, EscapeStringLiteral(env.EnvironmentName), string.Empty)
+            )
+        ).Aggregate(new StringBuilder(), (sb, condition) =>
+            sb.Length == 0 ? sb.Append(condition) : sb.Append(" || ").Append(condition),
+            sb => $"({sb})"
+        ) : null;
+
+        var notTrue = groups.Any(g => g.Key == true) ? groups.Where(g => g.Key == true).SelectMany(g =>
+            g.Select(env =>
+                string.Format(GenDiSourceTemplates.ConditionalRegistrationFilterTemplate, EscapeStringLiteral(env.EnvironmentName), "!")
+            )
+        ).Aggregate(new StringBuilder(), (sb, condition) =>
+            sb.Length == 0 ? sb.Append(condition) : sb.Append(" && ").Append(condition),
+            sb => $"({sb})"
+        ) : null;
+
+        var conditions = new[] { notFalse, notTrue }.Where(c => c is not null).ToArray();
+
+        return string.Format(
+            GenDiSourceTemplates.ConditionalRegistrationTemplate,
+            string.Join(" && ", conditions),
+            registrationStatement
+        );
     }
 
     private static string BuildRegistrationStatement(

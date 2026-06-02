@@ -54,13 +54,17 @@ internal static class GenDiSourceTemplates
     internal const string ThreadIsolationCacheKeyTemplate = "\"gendi:thread:{0}:{1}:{2}\"";
 
     internal const string ConditionalRegistrationTemplate = """
-                if (
-                    string.Equals(Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"), "{0}", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "{0}", StringComparison.OrdinalIgnoreCase)
-                )
+                if ({0})
                 {{
             {1}
                 }}
+        """;
+    
+    internal const string ConditionalRegistrationFilterTemplate = """
+                {1}(
+                    string.Equals(Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"), "{0}", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "{0}", StringComparison.OrdinalIgnoreCase)
+                )
         """;
 
     internal const string ModuleRegistrationTemplate = """

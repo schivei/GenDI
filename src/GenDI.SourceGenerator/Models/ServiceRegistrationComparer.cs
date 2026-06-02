@@ -12,7 +12,7 @@ internal sealed class ServiceRegistrationComparer : IEqualityComparer<ServiceReg
         return x?.ServiceType == y?.ServiceType
             && x?.ImplementationType == y?.ImplementationType
             && x?.KeyExpression == y?.KeyExpression
-            && x?.EnvironmentName == y?.EnvironmentName
+            && x?.Environments == y?.Environments
             && x?.ThreadIsolationLifetime == y?.ThreadIsolationLifetime
             && x?.AllowMultiple == y?.AllowMultiple
             && x?.UseTryAdd == y?.UseTryAdd
@@ -28,7 +28,7 @@ internal sealed class ServiceRegistrationComparer : IEqualityComparer<ServiceReg
                 obj.ServiceType.GetHashCode() * 397
                 ^ obj.ImplementationType.GetHashCode();
             hashCode = hashCode * 397 ^ (obj.KeyExpression?.GetHashCode() ?? 0);
-            hashCode = hashCode * 397 ^ (obj.EnvironmentName?.GetHashCode() ?? 0);
+            hashCode = hashCode * 397 ^ (obj.Environments?.GetHashCode() ?? 0);
             hashCode = hashCode * 397 ^ (obj.ThreadIsolationLifetime?.GetHashCode() ?? 0);
             hashCode = hashCode * 397 ^ obj.AllowMultiple.GetHashCode();
             hashCode = hashCode * 397 ^ obj.UseTryAdd.GetHashCode();
