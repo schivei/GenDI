@@ -80,7 +80,7 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
                         normalizedRegistrations,
                         options.Namespace,
                         includeExcludeFromCodeCoverage: options.IncludeExcludeFromCodeCoverage
-                    )
+                    ) ?? string.Empty
                 );
             }
         );

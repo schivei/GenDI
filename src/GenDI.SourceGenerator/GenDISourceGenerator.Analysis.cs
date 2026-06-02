@@ -1043,7 +1043,7 @@ public sealed partial class GenDISourceGenerator
         string? moduleName
     )
     {
-        return $"{serviceType}|{keyExpression ?? string.Empty}|{string.Join(",", environments.Select(e => e.EnvironmentName ?? string.Empty))}|{moduleName ?? string.Empty}";
+        return $"{serviceType}|{keyExpression ?? string.Empty}|{string.Join(",", (environments ?? []).Select(e => e.EnvironmentName ?? string.Empty))}|{moduleName ?? string.Empty}";
     }
 
     private static string BuildRegistrationImplementationIdentity(ServiceRegistration registration)
