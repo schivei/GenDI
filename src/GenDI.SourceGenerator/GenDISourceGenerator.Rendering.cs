@@ -28,14 +28,14 @@ public sealed partial class GenDISourceGenerator
         var registrationLines = string.Join("\n", registrations.Select(BuildRegistrationLine));
 
         return GenDiSourceTemplates
-            .FileTemplate.Replace("{{USINGS}}", usings ?? string.Empty)
-            .Replace("{{NAMESPACE}}", projectNamespace ?? string.Empty)
-            .Replace("{{EXCLUDE_FROM_COVERAGE}}", excludeAttribute ?? string.Empty)
-            .Replace("{{REGISTRATIONS}}", registrationLines ?? string.Empty)
+            .FileTemplate.Replace("{{USINGS}}", usings)
+            .Replace("{{NAMESPACE}}", projectNamespace)
+            .Replace("{{EXCLUDE_FROM_COVERAGE}}", excludeAttribute)
+            .Replace("{{REGISTRATIONS}}", registrationLines)
             .Replace("{{DECORATOR_REGISTERS}}", registrations.Any(reg => reg.IsDecorator) ? GenDiSourceTemplates.DecoratorRegistersTemplate : string.Empty)
             .Replace("{{CHECK_MODULE}}", registrations.Any(reg => !string.IsNullOrWhiteSpace(reg.ModuleName)) ? GenDiSourceTemplates.CheckModuleTemplate : string.Empty)
             .Replace("{{TRY_ADD_MULTIPLE_GUARD}}", registrations.Any(reg => reg.AllowMultiple && reg.UseTryAdd && string.IsNullOrWhiteSpace(reg.KeyExpression)) ? GenDiSourceTemplates.TryAddMultipleGuardTemplate : string.Empty)
-            .Replace("{{TRY_ADD_MULTIPLE_KEYED_GUARD}}", registrations.Any(reg => reg.AllowMultiple && reg.UseTryAdd && !string.IsNullOrWhiteSpace(reg.KeyExpression)) ? GenDiSourceTemplates.TryAddMultipleKeyedGuardTemplate : string.Empty) ?? string.Empty;
+            .Replace("{{TRY_ADD_MULTIPLE_KEYED_GUARD}}", registrations.Any(reg => reg.AllowMultiple && reg.UseTryAdd && !string.IsNullOrWhiteSpace(reg.KeyExpression)) ? GenDiSourceTemplates.TryAddMultipleKeyedGuardTemplate : string.Empty);
     }
 
     private static string BuildRegistrationLine(ServiceRegistration registration)
