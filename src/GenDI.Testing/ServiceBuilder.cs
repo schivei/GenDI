@@ -1,12 +1,11 @@
-using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GenDI.Testing;
 
 /// <summary>
 /// Provides a fluent service-collection builder for unit and integration tests.
 /// </summary>
-
 [ExcludeFromCodeCoverage]
 public sealed class ServiceBuilder
 {

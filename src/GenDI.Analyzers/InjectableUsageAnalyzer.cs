@@ -295,10 +295,9 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
             baseType = baseType.BaseType;
         }
 
-        return [
-            ..serviceContracts
-                .Distinct(SymbolEqualityComparer.Default)
-                .Cast<INamedTypeSymbol>()
+        return
+        [
+            .. serviceContracts.Distinct(SymbolEqualityComparer.Default).Cast<INamedTypeSymbol>(),
         ];
     }
 
@@ -318,9 +317,9 @@ public sealed class InjectableUsageAnalyzer : DiagnosticAnalyzer
     {
         var constructor = GetPreferredPublicConstructor(decoratorType);
         return constructor is not null
-            && constructor.Parameters.Any(parameter =>
-                SymbolEqualityComparer.Default.Equals(parameter.Type, serviceType)
-            )
+                && constructor.Parameters.Any(parameter =>
+                    SymbolEqualityComparer.Default.Equals(parameter.Type, serviceType)
+                )
             || decoratorType
                 .GetMembers()
                 .OfType<IPropertySymbol>()

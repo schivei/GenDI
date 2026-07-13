@@ -20,9 +20,9 @@ namespace GenDI;
     Inherited = false,
     AllowMultiple = false
 )]
-public sealed class ServiceInjectionAttribute(ServiceLifetime lifetime = ServiceLifetime.Transient) : Attribute
+public sealed class ServiceInjectionAttribute(ServiceLifetime lifetime = ServiceLifetime.Transient)
+    : Attribute
 {
-
     /// <summary>
     /// Gets the fallback service lifetime for registrations targeting this contract.
     /// </summary>

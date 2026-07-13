@@ -87,6 +87,7 @@ No private fields. No constructor ceremony. No manual wiring. Just declare your 
 - **Attribute-first contract mapping**: combine `[Injectable]`, `[Injectable<TService>]`, and `[ServiceInjection]` with clear intent.
 - **Keyed services support**: works with both native `[FromKeyedServices]` and GenDI `[Inject(Key = ...)]`.
 - **Factory-first registration**: use `[InjectableFactory<TService>]` on static methods when construction should be centralized.
+- **Hosted service registration**: mark an `IHostedService`/`BackgroundService` implementation with `[Hosted]` and GenDI emits `AddHostedService<T>(...)` with full `[Inject]` property and constructor injection support.
 - **Module filtering**: group registrations with `[InjectableModule]` / `Module` and load only selected modules.
 - **Registration strategy control**: `RegistrationMultiplicity` + `RegistrationEmissionStrategy` let you choose `Single`/`Multiple` and `Add`/`TryAdd` generation semantics.
 - **Options mapping evolution**: `[OptionConfig]` supports optional key fallback (`type name`) plus optimized `AddOptions<T>().BindConfiguration(section)` registration.
@@ -290,6 +291,36 @@ Constructor injection is also supported and can use the native DI attribute:
 public MyConsumer([FromKeyedServices("primary")] IMyService service) { }
 ```
 
+### Hosted services (`[Hosted]`)
+
+Mark a class that implements `IHostedService` — directly or through its base chain (for
+example, `BackgroundService`) — with `[Hosted]`, and GenDI registers it through
+`AddHostedService<T>(...)` as part of `AddGenDIServices()`:
+
+```csharp
+[Hosted]
+internal sealed class Worker : BackgroundService
+{
+    [Inject]
+    internal required ILogger<Worker> Logger { get; init; }
+
+    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        // implementation
+        return Task.CompletedTask;
+    }
+}
+```
+
+The generated registration uses the factory overload of `AddHostedService`, so the worker is
+created through a lambda — this is what enables `[Inject]` property injection (constructor
+injection is supported too). Because the worker is activated from the resolved
+`IServiceProvider`, its dependencies must be registered separately (through other GenDI
+attributes or by the host, such as logging).
+
+> ⚠️ If a `[Hosted]` type does not implement `IHostedService`, the generator reports
+> `GENDISG002` and skips it instead of emitting an uncompilable registration.
+
 ### Analyzer diagnostics (`GenDI.Analyzers`)
 
 `GenDI.Analyzers` currently publishes:
@@ -299,6 +330,11 @@ public MyConsumer([FromKeyedServices("primary")] IMyService service) { }
 - `GENDI003` — constructor injection can be converted to GenDI property injection (code-fix available)
 - `GENDI004` — non-generic `[DecoratorFor]` must resolve exactly one closed `[ServiceInjection]` contract
 - `GENDI005` — decorators must expose the decorated contract as a constructor parameter or `[Inject]` property
+
+The source generator (`GenDI.SourceGenerator`) additionally reports:
+
+- `GENDISG001` — open-generic type ignored (only closed-generic types are registered)
+- `GENDISG002` — `[Hosted]` type does not implement `IHostedService`
 
 Official diagnostics list:
 

@@ -85,13 +85,15 @@ public sealed class BenchmarkServiceDecorated : IBenchmarkServiceDecorated
     [Inject]
     public required IOptions<BenchmarkOptions> Options { get; init; }
 
-    public string Execute() => $"{{{Options.Value.OptionValue}}} >>> {Repository.GetCount()}@{Clock.UtcNow:O}";
+    public string Execute() =>
+        $"{{{Options.Value.OptionValue}}} >>> {Repository.GetCount()}@{Clock.UtcNow:O}";
 }
 
 [DecoratorFor<IBenchmarkServiceDecorated>]
 public sealed class BenchmarkServiceDecorator : IBenchmarkServiceDecorated
 {
-    [Inject] public required IBenchmarkServiceDecorated Inner { get; init; }
+    [Inject]
+    public required IBenchmarkServiceDecorated Inner { get; init; }
 
     public string Execute() => $"[Decorated]{Inner.Execute()}";
 }

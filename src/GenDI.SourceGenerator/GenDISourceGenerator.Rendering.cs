@@ -32,10 +32,38 @@ public sealed partial class GenDISourceGenerator
             .Replace("{{NAMESPACE}}", projectNamespace)
             .Replace("{{EXCLUDE_FROM_COVERAGE}}", excludeAttribute)
             .Replace("{{REGISTRATIONS}}", registrationLines)
-            .Replace("{{DECORATOR_REGISTERS}}", registrations.Any(reg => reg.IsDecorator) ? GenDiSourceTemplates.DecoratorRegistersTemplate : string.Empty)
-            .Replace("{{CHECK_MODULE}}", registrations.Any(reg => !string.IsNullOrWhiteSpace(reg.ModuleName)) ? GenDiSourceTemplates.CheckModuleTemplate : string.Empty)
-            .Replace("{{TRY_ADD_MULTIPLE_GUARD}}", registrations.Any(reg => reg.AllowMultiple && reg.UseTryAdd && string.IsNullOrWhiteSpace(reg.KeyExpression)) ? GenDiSourceTemplates.TryAddMultipleGuardTemplate : string.Empty)
-            .Replace("{{TRY_ADD_MULTIPLE_KEYED_GUARD}}", registrations.Any(reg => reg.AllowMultiple && reg.UseTryAdd && !string.IsNullOrWhiteSpace(reg.KeyExpression)) ? GenDiSourceTemplates.TryAddMultipleKeyedGuardTemplate : string.Empty);
+            .Replace(
+                "{{DECORATOR_REGISTERS}}",
+                registrations.Any(reg => reg.IsDecorator)
+                    ? GenDiSourceTemplates.DecoratorRegistersTemplate
+                    : string.Empty
+            )
+            .Replace(
+                "{{CHECK_MODULE}}",
+                registrations.Any(reg => !string.IsNullOrWhiteSpace(reg.ModuleName))
+                    ? GenDiSourceTemplates.CheckModuleTemplate
+                    : string.Empty
+            )
+            .Replace(
+                "{{TRY_ADD_MULTIPLE_GUARD}}",
+                registrations.Any(reg =>
+                    reg.AllowMultiple
+                    && reg.UseTryAdd
+                    && string.IsNullOrWhiteSpace(reg.KeyExpression)
+                )
+                    ? GenDiSourceTemplates.TryAddMultipleGuardTemplate
+                    : string.Empty
+            )
+            .Replace(
+                "{{TRY_ADD_MULTIPLE_KEYED_GUARD}}",
+                registrations.Any(reg =>
+                    reg.AllowMultiple
+                    && reg.UseTryAdd
+                    && !string.IsNullOrWhiteSpace(reg.KeyExpression)
+                )
+                    ? GenDiSourceTemplates.TryAddMultipleKeyedGuardTemplate
+                    : string.Empty
+            );
     }
 
     private static string BuildRegistrationLine(ServiceRegistration registration)
@@ -72,7 +100,8 @@ public sealed partial class GenDISourceGenerator
         string registrationStatement
     )
     {
-        var environments = registration.Environments.Where(env => !string.IsNullOrWhiteSpace(env.EnvironmentName))
+        var environments = registration
+            .Environments.Where(env => !string.IsNullOrWhiteSpace(env.EnvironmentName))
             .OrderBy(env => env.NotEnvironment)
             .ThenBy(env => env.EnvironmentName)
             .ToImmutableArray();
@@ -82,23 +111,45 @@ public sealed partial class GenDISourceGenerator
 
         var groups = environments.GroupBy(env => env.NotEnvironment);
 
-        var notFalse = groups.Any(g => g.Key != true) ? groups.Where(g => g.Key != true).SelectMany(g =>
-            g.Select(env =>
-                string.Format(GenDiSourceTemplates.ConditionalRegistrationFilterTemplate, EscapeStringLiteral(env.EnvironmentName), string.Empty)
-            )
-        ).Aggregate(new StringBuilder(), (sb, condition) =>
-            sb.Length == 0 ? sb.Append(condition) : sb.Append(" || ").Append(condition),
-            sb => $"({sb})"
-        ) : null;
+        var notFalse = groups.Any(g => g.Key != true)
+            ? groups
+                .Where(g => g.Key != true)
+                .SelectMany(g =>
+                    g.Select(env =>
+                        string.Format(
+                            GenDiSourceTemplates.ConditionalRegistrationFilterTemplate,
+                            EscapeStringLiteral(env.EnvironmentName),
+                            string.Empty
+                        )
+                    )
+                )
+                .Aggregate(
+                    new StringBuilder(),
+                    (sb, condition) =>
+                        sb.Length == 0 ? sb.Append(condition) : sb.Append(" || ").Append(condition),
+                    sb => $"({sb})"
+                )
+            : null;
 
-        var notTrue = groups.Any(g => g.Key == true) ? groups.Where(g => g.Key == true).SelectMany(g =>
-            g.Select(env =>
-                string.Format(GenDiSourceTemplates.ConditionalRegistrationFilterTemplate, EscapeStringLiteral(env.EnvironmentName), "!")
-            )
-        ).Aggregate(new StringBuilder(), (sb, condition) =>
-            sb.Length == 0 ? sb.Append(condition) : sb.Append(" && ").Append(condition),
-            sb => $"({sb})"
-        ) : null;
+        var notTrue = groups.Any(g => g.Key == true)
+            ? groups
+                .Where(g => g.Key == true)
+                .SelectMany(g =>
+                    g.Select(env =>
+                        string.Format(
+                            GenDiSourceTemplates.ConditionalRegistrationFilterTemplate,
+                            EscapeStringLiteral(env.EnvironmentName),
+                            "!"
+                        )
+                    )
+                )
+                .Aggregate(
+                    new StringBuilder(),
+                    (sb, condition) =>
+                        sb.Length == 0 ? sb.Append(condition) : sb.Append(" && ").Append(condition),
+                    sb => $"({sb})"
+                )
+            : null;
 
         var conditions = new[] { notFalse, notTrue }.Where(c => c is not null).ToArray();
 
@@ -132,7 +183,11 @@ public sealed partial class GenDISourceGenerator
         {
             if (registration.IsDecorator)
             {
-                var body = ParseDecorationRecursion(registration.FactoryBody, registration.ServiceType, out var interceptedKey);
+                var body = ParseDecorationRecursion(
+                    registration.FactoryBody,
+                    registration.ServiceType,
+                    out var interceptedKey
+                );
 
                 if (interceptedKey is null)
                 {
@@ -184,7 +239,11 @@ public sealed partial class GenDISourceGenerator
 
         if (registration.IsDecorator)
         {
-            var body = ParseDecorationRecursion(registration.FactoryBody, registration.ServiceType, out var interceptedKey);
+            var body = ParseDecorationRecursion(
+                registration.FactoryBody,
+                registration.ServiceType,
+                out var interceptedKey
+            );
 
             return string.Format(
                 GenDiSourceTemplates.KeyedAddDecoratorTemplate,
@@ -228,15 +287,24 @@ public sealed partial class GenDISourceGenerator
     }
 
     [ExcludeFromCodeCoverage]
-    private static object ParseDecorationRecursion(string factoryBody, string serviceType, out string? interceptedKeyExpression)
+    private static object ParseDecorationRecursion(
+        string factoryBody,
+        string serviceType,
+        out string? interceptedKeyExpression
+    )
     {
         interceptedKeyExpression = null;
 
         string serviceTypeEscaped = Regex.Escape($"<{serviceType}>");
 
-        string pattern = $@"^(.+?)(GetKeyedService|GetRequiredKeyedService|GetService|GetRequiredService)({serviceTypeEscaped}\()([^)]*)(\).*)$";
+        string pattern =
+            $@"^(.+?)(GetKeyedService|GetRequiredKeyedService|GetService|GetRequiredService)({serviceTypeEscaped}\()([^)]*)(\).*)$";
 
-        var regex = new Regex(pattern, RegexOptions.Compiled | RegexOptions.Singleline, TimeSpan.FromSeconds(1));
+        var regex = new Regex(
+            pattern,
+            RegexOptions.Compiled | RegexOptions.Singleline,
+            TimeSpan.FromSeconds(1)
+        );
         var match = regex.Match(factoryBody);
 
         if (!match.Success)
@@ -254,13 +322,15 @@ public sealed partial class GenDISourceGenerator
         {
             "GetService" => "GetKeyedService",
             "GetRequiredService" => "GetRequiredKeyedService",
-            _ => match.Groups[2].Value
+            _ => match.Groups[2].Value,
         };
 
         return $"{match.Groups[1].Value}{methodName}{match.Groups[3].Value}internalKey{match.Groups[5].Value}";
     }
 
-    private static string BuildThreadIsolationRegistrationStatement(ServiceRegistration registration)
+    private static string BuildThreadIsolationRegistrationStatement(
+        ServiceRegistration registration
+    )
     {
         var threadIsolationMethod = GetRegistrationMethod(registration.ThreadIsolationLifetime);
         var addPrefix = registration.UseTryAdd ? "TryAdd" : "Add";
@@ -320,9 +390,9 @@ public sealed partial class GenDISourceGenerator
 
         var parts = assemblyName
             .Split('.')
-            .Select(static part => new string(
-                [.. part.Select(ch => char.IsLetterOrDigit(ch) || ch == '_' ? ch : '_')]
-            ))
+            .Select(static part => new string([
+                .. part.Select(ch => char.IsLetterOrDigit(ch) || ch == '_' ? ch : '_'),
+            ]))
             .Where(static part => !string.IsNullOrWhiteSpace(part))
             .Select(static part => part.Length > 0 && char.IsDigit(part[0]) ? $"_{part}" : part)
             .ToImmutableArray();

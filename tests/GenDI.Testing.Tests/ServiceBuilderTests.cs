@@ -93,13 +93,17 @@ public class ServiceBuilderTests
     [Fact]
     public void AddSingleton_instance_throws_when_null()
     {
-        Assert.Throws<ArgumentNullException>(() => ServiceBuilder.Create().AddSingleton<ITestClock>(null!));
+        Assert.Throws<ArgumentNullException>(() =>
+            ServiceBuilder.Create().AddSingleton<ITestClock>(null!)
+        );
     }
 
     [Fact]
     public void ConfigureServices_throws_when_delegate_is_null()
     {
-        Assert.Throws<ArgumentNullException>(() => ServiceBuilder.Create().ConfigureServices(null!));
+        Assert.Throws<ArgumentNullException>(() =>
+            ServiceBuilder.Create().ConfigureServices(null!)
+        );
     }
 
     [Fact]
@@ -115,12 +119,24 @@ public class ServiceBuilderTests
             new FixedClock(new DateTimeOffset(2026, 5, 16, 0, 0, 0, TimeSpan.Zero))
         );
 
-        Assert.Throws<ArgumentNullException>(() => ServiceBuilderDescriptorExtensions.TryAdd(null!, descriptor));
-        Assert.Throws<ArgumentNullException>(() => ServiceBuilderDescriptorExtensions.TryAdd(ServiceBuilder.Create(), null!));
-        Assert.Throws<ArgumentNullException>(() => ServiceBuilderDescriptorExtensions.Replace(null!, descriptor));
-        Assert.Throws<ArgumentNullException>(() => ServiceBuilderDescriptorExtensions.Replace(ServiceBuilder.Create(), null!));
-        Assert.Throws<ArgumentNullException>(() => ServiceBuilderDescriptorExtensions.TryAddEnumerable(null!, descriptor));
-        Assert.Throws<ArgumentNullException>(() => ServiceBuilderDescriptorExtensions.TryAddEnumerable(ServiceBuilder.Create(), null!));
+        Assert.Throws<ArgumentNullException>(() =>
+            ServiceBuilderDescriptorExtensions.TryAdd(null!, descriptor)
+        );
+        Assert.Throws<ArgumentNullException>(() =>
+            ServiceBuilderDescriptorExtensions.TryAdd(ServiceBuilder.Create(), null!)
+        );
+        Assert.Throws<ArgumentNullException>(() =>
+            ServiceBuilderDescriptorExtensions.Replace(null!, descriptor)
+        );
+        Assert.Throws<ArgumentNullException>(() =>
+            ServiceBuilderDescriptorExtensions.Replace(ServiceBuilder.Create(), null!)
+        );
+        Assert.Throws<ArgumentNullException>(() =>
+            ServiceBuilderDescriptorExtensions.TryAddEnumerable(null!, descriptor)
+        );
+        Assert.Throws<ArgumentNullException>(() =>
+            ServiceBuilderDescriptorExtensions.TryAddEnumerable(ServiceBuilder.Create(), null!)
+        );
     }
 
     [Fact]
@@ -131,10 +147,12 @@ public class ServiceBuilderTests
         var descriptor = ServiceDescriptor.Transient<ITestClock, FixedClock>();
         builder.TryAddEnumerable(descriptor).TryAddEnumerable(descriptor);
 
-        Assert.Single(builder.Services, service =>
+        Assert.Single(
+            builder.Services,
+            service =>
                 service.ServiceType == typeof(ITestClock)
-                    && service.ImplementationType == typeof(FixedClock)
-            );
+                && service.ImplementationType == typeof(FixedClock)
+        );
     }
 }
 
@@ -151,13 +169,17 @@ public sealed class FixedClock(DateTimeOffset utcNow) : ITestClock
 public sealed record MarkerService(string Value);
 
 public interface IOtherService;
+
 public sealed class OtherService : IOtherService;
 
 public interface IScopedDependency;
+
 public sealed class ScopedDependency : IScopedDependency;
 
 public interface ITransientDependency;
+
 public sealed class TransientDependency : ITransientDependency;
 
 public interface IParameterlessService;
+
 public sealed class ParameterlessService : IParameterlessService;
