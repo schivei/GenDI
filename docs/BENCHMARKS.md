@@ -40,21 +40,21 @@ dotnet run -c Release --project tests/GenDI.Benchmarks/GenDI.Benchmarks.csproj -
 ## Latest CI benchmark snapshot
 
 <!-- benchmark-ci:start -->
-_Updated by [CI run #217](https://github.com/schivei/GenDI/actions/runs/28632858672) on 2026-07-03 01:45 UTC_
+_Updated by [CI run #220](https://github.com/schivei/GenDI/actions/runs/29259519909) on 2026-07-13 14:52 UTC_
 
 | Method | Mean | Allocated |
 |---|---:|---:|
-| Manual registration (no GenDI) | 3.378 μs | 7.42 KB |
-| GenDI: constructor injection (generated) | 12.351 μs | 9.98 KB |
-| GenDI: property injection (generated) | 12.318 μs | 9.98 KB |
-| GenDI: with decorator, property injection (generated) | 21.374 μs | 14.26 KB |
-| Reflection registration (no GenDI, assembly scan) | 75.409 μs | 23.9 KB |
+| Manual registration (no GenDI) | 3.152 μs | 7.42 KB |
+| GenDI: constructor injection (generated) | 11.911 μs | 9.98 KB |
+| GenDI: property injection (generated) | 11.881 μs | 9.98 KB |
+| GenDI: with decorator, property injection (generated) | 20.558 μs | 14.26 KB |
+| Reflection registration (no GenDI, assembly scan) | 77.653 μs | 23.9 KB |
 
 ### CI analysis
 
-- GenDI constructor injection is **+265.6%** versus manual registration.
-- GenDI property injection is **+264.7%** versus manual registration.
-- Reflection scanning remains the outlier at **~22.3x slower** and **~3.2x higher allocation** than manual registration.
+- GenDI constructor injection is **+277.9%** versus manual registration.
+- GenDI property injection is **+276.9%** versus manual registration.
+- Reflection scanning remains the outlier at **~24.6x slower** and **~3.2x higher allocation** than manual registration.
 - Compatibility note: this benchmark compares manual and generated registrations against a reflection scanner baseline; as documented below, reflection scanning is not suitable for trimming/NativeAOT scenarios, while manual and GenDI-generated registrations remain the supported path.
 <!-- benchmark-ci:end -->
 
