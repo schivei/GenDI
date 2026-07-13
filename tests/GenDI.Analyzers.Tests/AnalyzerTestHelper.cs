@@ -76,7 +76,7 @@ internal static class AnalyzerTestHelper
         );
         references.Add(MetadataReference.CreateFromFile(typeof(ServiceLifetime).Assembly.Location));
 
-        return [..references];
+        return [.. references];
     }
 
     public static async Task<string> ApplyConstructorInjectionCodeFixAsync(string userSource)

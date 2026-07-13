@@ -16,12 +16,17 @@ public class Phase6PlatformValidationTests
     {
         get
         {
-            var source = CancellationTokenSource.CreateLinkedTokenSource(new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token, TestContext.Current.CancellationToken).Token.Register(() =>
-            {
-                Assert.Fail(
-                    $"Test timed out after 30 seconds. This may be due to an issue with the .NET SDK installation or environment configuration.{Environment.NewLine}Ensure that the .NET SDK is correctly installed and that F# templates are available."
-                );
-            });
+            var source = CancellationTokenSource
+                .CreateLinkedTokenSource(
+                    new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token,
+                    TestContext.Current.CancellationToken
+                )
+                .Token.Register(() =>
+                {
+                    Assert.Fail(
+                        $"Test timed out after 30 seconds. This may be due to an issue with the .NET SDK installation or environment configuration.{Environment.NewLine}Ensure that the .NET SDK is correctly installed and that F# templates are available."
+                    );
+                });
 
             return source.Token;
         }
@@ -34,7 +39,10 @@ public class Phase6PlatformValidationTests
             "GenDI.Phase6.MinimalApiValidation.App/GenDI.Phase6.MinimalApiValidation.App.csproj"
         );
 
-        return RunDotnetCommandAsync($"publish \"{projectPath}\" -c Release --nologo", cancellationToken: Token);
+        return RunDotnetCommandAsync(
+            $"publish \"{projectPath}\" -c Release --nologo",
+            cancellationToken: Token
+        );
     }
 
     [Fact]
@@ -44,7 +52,10 @@ public class Phase6PlatformValidationTests
             "GenDI.Phase6.WorkerValidation.App/GenDI.Phase6.WorkerValidation.App.csproj"
         );
 
-        return RunDotnetCommandAsync($"publish \"{projectPath}\" -c Release --nologo", cancellationToken: Token);
+        return RunDotnetCommandAsync(
+            $"publish \"{projectPath}\" -c Release --nologo",
+            cancellationToken: Token
+        );
     }
 
     [Fact]
@@ -54,7 +65,10 @@ public class Phase6PlatformValidationTests
             "GenDI.Phase6.BlazorWasmValidation.App/GenDI.Phase6.BlazorWasmValidation.App.csproj"
         );
 
-        return RunDotnetCommandAsync($"publish \"{projectPath}\" -c Release --nologo", cancellationToken: Token);
+        return RunDotnetCommandAsync(
+            $"publish \"{projectPath}\" -c Release --nologo",
+            cancellationToken: Token
+        );
     }
 
     [Fact]
@@ -177,9 +191,11 @@ public class Phase6PlatformValidationTests
         var root = Directory.GetCurrentDirectory();
         while (!File.Exists(Path.Combine(root, "GenDI.slnx")))
         {
-            var parent = Directory.GetParent(root) ?? throw new DirectoryNotFoundException(
-                "Could not locate repository root containing GenDI.slnx."
-            );
+            var parent =
+                Directory.GetParent(root)
+                ?? throw new DirectoryNotFoundException(
+                    "Could not locate repository root containing GenDI.slnx."
+                );
             root = parent.FullName;
         }
 
@@ -193,7 +209,11 @@ public class Phase6PlatformValidationTests
         CancellationToken cancellationToken = default
     )
     {
-        var (ExitCode, Output) = await TryRunDotnetCommandAsync(arguments, workingDirectory, cancellationToken);
+        var (ExitCode, Output) = await TryRunDotnetCommandAsync(
+            arguments,
+            workingDirectory,
+            cancellationToken
+        );
 
         if (expectSuccess)
         {

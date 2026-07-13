@@ -25,8 +25,7 @@ internal sealed class ServiceRegistrationComparer : IEqualityComparer<ServiceReg
         unchecked
         {
             var hashCode =
-                obj.ServiceType.GetHashCode() * 397
-                ^ obj.ImplementationType.GetHashCode();
+                obj.ServiceType.GetHashCode() * 397 ^ obj.ImplementationType.GetHashCode();
             hashCode = hashCode * 397 ^ (obj.KeyExpression?.GetHashCode() ?? 0);
             hashCode = hashCode * 397 ^ (obj.Environments?.GetHashCode() ?? 0);
             hashCode = hashCode * 397 ^ (obj.ThreadIsolationLifetime?.GetHashCode() ?? 0);

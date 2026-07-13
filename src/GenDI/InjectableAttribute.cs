@@ -14,7 +14,8 @@ namespace GenDI;
 /// </remarks>
 /// <param name="lifetime">The service lifetime for the generated registration.</param>
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
-public sealed class InjectableAttribute(ServiceLifetime lifetime = ServiceLifetime.Transient) : Attribute
+public sealed class InjectableAttribute(ServiceLifetime lifetime = ServiceLifetime.Transient)
+    : Attribute
 {
     /// <summary>
     /// Default value for ordering members when no explicit value is provided.
@@ -82,9 +83,10 @@ public sealed class InjectableAttribute(ServiceLifetime lifetime = ServiceLifeti
 /// </remarks>
 /// <param name="lifetime">The service lifetime for the generated registration.</param>
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
-public sealed class InjectableAttribute<TService>(ServiceLifetime lifetime = ServiceLifetime.Transient) : Attribute
+public sealed class InjectableAttribute<TService>(
+    ServiceLifetime lifetime = ServiceLifetime.Transient
+) : Attribute
 {
-
     /// <summary>
     /// Gets the lifetime used by the generated registration.
     /// </summary>

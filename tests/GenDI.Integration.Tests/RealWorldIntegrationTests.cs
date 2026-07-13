@@ -4,6 +4,7 @@ using GenDI.Integration.Tests.DependencyInjection;
 using GenDI.ReferenceLibrary;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+
 // ReSharper disable RedundantTypeArgumentsInsideNameof
 // ReSharper disable ClassNeverInstantiated.Global
 // ReSharper disable UnusedTypeParameter
@@ -165,7 +166,7 @@ public class RealWorldIntegrationTests
                 workerThreadInstance = threadProvider.GetRequiredService<IThreadIsolatedContract>();
             }
         });
-        
+
         workerThread.Start(provider);
         workerThread.Join();
 
@@ -236,7 +237,9 @@ public class RealWorldIntegrationTests
         services.AddGenDIServices();
         using var provider = services.BuildServiceProvider();
 
-        var exception = Assert.Throws<InvalidOperationException>(provider.GetRequiredService<IUsesGenericIndirect>);
+        var exception = Assert.Throws<InvalidOperationException>(
+            provider.GetRequiredService<IUsesGenericIndirect>
+        );
         Assert.Contains(
             nameof(IGenericRepository<Order>),
             exception.Message,
@@ -512,7 +515,9 @@ public sealed class MultipleTryAddContractFirst : IMultipleTryAddContract;
 public sealed class MultipleTryAddContractSecond : IMultipleTryAddContract;
 
 [DecoratorFor<IReferencedContract>]
-public sealed class ReferencedContractDecorator([FromKeyedServices("abc")] IReferencedContract inner) : IReferencedContract
+public sealed class ReferencedContractDecorator(
+    [FromKeyedServices("abc")] IReferencedContract inner
+) : IReferencedContract
 {
     public IReferencedContract Inner { get; } = inner;
 }
