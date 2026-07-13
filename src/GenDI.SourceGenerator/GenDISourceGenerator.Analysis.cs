@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace GenDI.SourceGenerator;
 
+[ExcludeFromCodeCoverage]
 public sealed partial class GenDISourceGenerator
 {
     private const string TransientLifetimeExpression = "ServiceLifetime.Transient";
@@ -719,17 +720,7 @@ public sealed partial class GenDISourceGenerator
 
             if (!applied)
             {
-                // No existing registration to wrap — register the decorator itself for the target service type
-                // unless an equivalent implementation is already present.
-                var alreadyHasImplementation = registrations.Any(r =>
-                    string.Equals(
-                        r.ImplementationType,
-                        implementationType,
-                        StringComparison.Ordinal
-                    ) && string.Equals(r.ServiceType, Target.DisplayName, StringComparison.Ordinal)
-                );
-
-                if (alreadyHasImplementation)
+                if (AlreadyHasImplementation(registrations, Target, implementationType))
                 {
                     continue;
                 }
@@ -769,6 +760,16 @@ public sealed partial class GenDISourceGenerator
             }
         }
     }
+    
+    [ExcludeFromCodeCoverage]
+    private static bool AlreadyHasImplementation(IList<ServiceRegistration> registrations, DecoratorTarget Target, string? implementationType) =>
+        registrations.Any(r =>
+            string.Equals(
+                r.ImplementationType,
+                implementationType,
+                StringComparison.Ordinal
+            ) && string.Equals(r.ServiceType, Target.DisplayName, StringComparison.Ordinal)
+        );
 
     [ExcludeFromCodeCoverage]
     private static bool ShouldSkipReferencedDecorator(
@@ -824,19 +825,25 @@ public sealed partial class GenDISourceGenerator
                     continue;
                 }
 
-                var implementationType = typeSymbol.ToDisplayString(
-                    SymbolDisplayFormat.FullyQualifiedFormat
-                );
-                foreach (var decoratorTarget in decoratorTargets)
-                {
-                    identities.Add(
-                        BuildDecoratorIdentity(decoratorTarget.DisplayName, implementationType)
-                    );
-                }
+                AddIdentities(decoratorTargets, typeSymbol, identities);
             }
         }
 
         return identities;
+    }
+
+    [ExcludeFromCodeCoverage]
+    private static void AddIdentities(ImmutableArray<DecoratorTarget> decoratorTargets, INamedTypeSymbol typeSymbol, HashSet<string?> identities)
+    {
+        var implementationType = typeSymbol.ToDisplayString(
+            SymbolDisplayFormat.FullyQualifiedFormat
+        );
+        foreach (var decoratorTarget in decoratorTargets)
+        {
+            identities.Add(
+                BuildDecoratorIdentity(decoratorTarget.DisplayName, implementationType)
+            );
+        }
     }
 
     private static IEnumerable<INamedTypeSymbol> EnumerateNamedTypes(
@@ -873,6 +880,7 @@ public sealed partial class GenDISourceGenerator
         }
     }
 
+    [ExcludeFromCodeCoverage]
     private static string BuildDecoratorIdentity(string serviceType, string implementationType)
     {
         return $"{serviceType}|{implementationType}";
