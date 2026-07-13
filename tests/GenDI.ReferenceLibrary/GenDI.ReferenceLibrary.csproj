@@ -7,24 +7,30 @@
   </PropertyGroup>
 
   <ItemGroup>
-	  <ProjectReference Include="../../src/GenDI/GenDI.csproj" PrivateAssets="all" />
-	  <ProjectReference
-		Include="../../src/GenDI.Analyzers/GenDI.Analyzers.csproj"
-		IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"
-		PrivateAssets="compile; runtime; contentfiles"
-		OutputItemType="Analyzer"
-		ReferenceOutputAssembly="false"
+    <ProjectReference Include="../../src/GenDI/GenDI.csproj" PrivateAssets="all" />
+    <ProjectReference
+      Include="../../src/GenDI.Analyzers/GenDI.Analyzers.csproj"
+      IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"
+      PrivateAssets="compile; runtime; contentfiles"
+      OutputItemType="Analyzer"
+      ReferenceOutputAssembly="false"
     />
-	  <ProjectReference
-		Include="../../src/GenDI.SourceGenerator/GenDI.SourceGenerator.csproj"
-		IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"
-		PrivateAssets="compile; runtime; contentfiles"
-		OutputItemType="Analyzer"
-		ReferenceOutputAssembly="false"
+    <ProjectReference
+      Include="../../src/GenDI.SourceGenerator/GenDI.SourceGenerator.csproj"
+      IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"
+      PrivateAssets="compile; runtime; contentfiles"
+      OutputItemType="Analyzer"
+      ReferenceOutputAssembly="false"
     />
 
-	  <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.*" />
-	  <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.*" />
-	  <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.*" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.*" />
+    <PackageReference
+      Include="Microsoft.Extensions.DependencyInjection.Abstractions"
+      Version="10.*"
+    />
+    <PackageReference
+      Include="Microsoft.Extensions.Options.ConfigurationExtensions"
+      Version="10.*"
+    />
   </ItemGroup>
 </Project>

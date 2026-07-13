@@ -7,7 +7,11 @@ namespace GenDI;
 /// Optional configuration key/path used to select the section.
 /// When omitted, the options type name is used as the section key.
 /// </param>
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false, AllowMultiple = false)]
+[AttributeUsage(
+    AttributeTargets.Class | AttributeTargets.Struct,
+    Inherited = false,
+    AllowMultiple = false
+)]
 public sealed class OptionConfigAttribute(string? key = null) : Attribute
 {
     /// <summary>

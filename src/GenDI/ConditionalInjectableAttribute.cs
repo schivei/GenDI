@@ -15,7 +15,6 @@ namespace GenDI;
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
 public sealed class ConditionalInjectableAttribute(string environmentName) : Attribute
 {
-
     /// <summary>
     /// Gets the target environment name for conditional registration.
     /// </summary>

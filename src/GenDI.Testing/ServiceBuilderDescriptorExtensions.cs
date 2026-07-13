@@ -42,9 +42,7 @@ public static class ServiceBuilderDescriptorExtensions
         /// </summary>
         /// <param name="descriptor">Descriptor to attempt to add.</param>
         /// <returns>The current <see cref="ServiceBuilder"/>.</returns>
-        public ServiceBuilder TryAddEnumerable(
-            ServiceDescriptor descriptor
-        )
+        public ServiceBuilder TryAddEnumerable(ServiceDescriptor descriptor)
         {
             ThrowIfNull(builder, nameof(builder));
             ThrowIfNull(descriptor, nameof(descriptor));

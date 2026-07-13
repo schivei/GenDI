@@ -12,9 +12,9 @@ namespace GenDI;
 /// Initializes a new instance of the <see cref="InjectableFactoryAttribute"/> class.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-public sealed class InjectableFactoryAttribute(ServiceLifetime lifetime = ServiceLifetime.Transient) : Attribute
+public sealed class InjectableFactoryAttribute(ServiceLifetime lifetime = ServiceLifetime.Transient)
+    : Attribute
 {
-
     /// <summary>
     /// Gets the lifetime used by generated registration.
     /// </summary>
@@ -58,9 +58,10 @@ public sealed class InjectableFactoryAttribute(ServiceLifetime lifetime = Servic
 /// Initializes a new instance of the <see cref="InjectableFactoryAttribute{TService}"/> class.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-public sealed class InjectableFactoryAttribute<TService>(ServiceLifetime lifetime = ServiceLifetime.Transient) : Attribute
+public sealed class InjectableFactoryAttribute<TService>(
+    ServiceLifetime lifetime = ServiceLifetime.Transient
+) : Attribute
 {
-
     /// <summary>
     /// Gets the explicit service contract for the factory registration.
     /// </summary>
