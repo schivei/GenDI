@@ -12,7 +12,9 @@ public class AnalysisPrivateMethodsTests
 {
     private static Assembly LoadGeneratorAssembly()
     {
-        var candidate = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "GenDI.SourceGenerator.dll"));
+        var candidate = Path.GetFullPath(
+            Path.Combine(AppContext.BaseDirectory, "GenDI.SourceGenerator.dll")
+        );
         if (File.Exists(candidate))
         {
             var bytes = File.ReadAllBytes(candidate);
@@ -23,7 +25,10 @@ public class AnalysisPrivateMethodsTests
         throw new FileNotFoundException("GenDI.SourceGenerator.dll not found for tests.");
     }
 
-    private static CSharpCompilation BuildCompilation(string source, params MetadataReference[] extraReferences)
+    private static CSharpCompilation BuildCompilation(
+        string source,
+        params MetadataReference[] extraReferences
+    )
     {
         var tpa = AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string ?? string.Empty;
         var refs = tpa.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
@@ -49,7 +54,10 @@ public class AnalysisPrivateMethodsTests
     {
         var asm = LoadGeneratorAssembly();
         var type = asm.GetType("GenDI.SourceGenerator.GenDISourceGenerator", throwOnError: true)!;
-        var method = type.GetMethod("LifetimePriority", BindingFlags.NonPublic | BindingFlags.Static)!;
+        var method = type.GetMethod(
+            "LifetimePriority",
+            BindingFlags.NonPublic | BindingFlags.Static
+        )!;
 
         Assert.Equal(3, (int)method.Invoke(null, ["ServiceLifetime.Scoped"])!);
         Assert.Equal(2, (int)method.Invoke(null, ["ServiceLifetime.Singleton"])!);
@@ -61,7 +69,8 @@ public class AnalysisPrivateMethodsTests
     public void IsClosedType_and_IsClosedTypeArgument_behave_as_expected()
 #pragma warning restore S3776
     {
-        var source = @"
+        var source =
+            @"
 namespace TestCases
 {
     public class Generic<T> { }
@@ -87,23 +96,32 @@ namespace TestCases
 
             if (closed is null)
             {
-                var closedDecl = root.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax>()
+                var closedDecl = root.DescendantNodes()
+                    .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax>()
                     .FirstOrDefault(c => c.Identifier.ValueText == "Closed");
-                closed = closedDecl is null ? null : model.GetDeclaredSymbol(closedDecl, TestContext.Current.CancellationToken);
+                closed = closedDecl is null
+                    ? null
+                    : model.GetDeclaredSymbol(closedDecl, TestContext.Current.CancellationToken);
             }
 
             if (openGeneric is null)
             {
-                var openDecl = root.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax>()
+                var openDecl = root.DescendantNodes()
+                    .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax>()
                     .FirstOrDefault(c => c.Identifier.ValueText == "OpenGeneric");
-                openGeneric = openDecl is null ? null : model.GetDeclaredSymbol(openDecl, TestContext.Current.CancellationToken);
+                openGeneric = openDecl is null
+                    ? null
+                    : model.GetDeclaredSymbol(openDecl, TestContext.Current.CancellationToken);
             }
 
             if (generic is null)
             {
-                var genericDecl = root.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax>()
+                var genericDecl = root.DescendantNodes()
+                    .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax>()
                     .FirstOrDefault(c => c.Identifier.ValueText == "Generic");
-                generic = genericDecl is null ? null : model.GetDeclaredSymbol(genericDecl, TestContext.Current.CancellationToken);
+                generic = genericDecl is null
+                    ? null
+                    : model.GetDeclaredSymbol(genericDecl, TestContext.Current.CancellationToken);
             }
         }
 
@@ -113,8 +131,14 @@ namespace TestCases
 
         var asm = LoadGeneratorAssembly();
         var type = asm.GetType("GenDI.SourceGenerator.GenDISourceGenerator", throwOnError: true)!;
-        var isClosed = type.GetMethod("IsClosedType", BindingFlags.NonPublic | BindingFlags.Static)!;
-        var isClosedArg = type.GetMethod("IsClosedTypeArgument", BindingFlags.NonPublic | BindingFlags.Static)!;
+        var isClosed = type.GetMethod(
+            "IsClosedType",
+            BindingFlags.NonPublic | BindingFlags.Static
+        )!;
+        var isClosedArg = type.GetMethod(
+            "IsClosedTypeArgument",
+            BindingFlags.NonPublic | BindingFlags.Static
+        )!;
 
         // Closed concrete type -> true
         Assert.True((bool)isClosed.Invoke(null, [closed])!);
@@ -134,7 +158,8 @@ namespace TestCases
     [Fact]
     public void IsDeclaredSymbolAccessibleFromGeneratedCode_respects_internal_visibility_across_assemblies()
     {
-        var referencedSource = @"
+        var referencedSource =
+            @"
 namespace ReferencedLib
 {
     internal class Hidden
@@ -150,12 +175,16 @@ namespace ReferencedLib
         // Build referenced assembly and get metadata reference
         var referencedCompilation = BuildCompilation(referencedSource);
         using var ms = new MemoryStream();
-        var emit = referencedCompilation.Emit(ms, cancellationToken: TestContext.Current.CancellationToken);
+        var emit = referencedCompilation.Emit(
+            ms,
+            cancellationToken: TestContext.Current.CancellationToken
+        );
         Assert.True(emit.Success, string.Join("\n", emit.Diagnostics.Select(d => d.ToString())));
         ms.Position = 0;
         var metadataRef = MetadataReference.CreateFromImage(ms.ToArray());
 
-        var consumerSource = @"
+        var consumerSource =
+            @"
 namespace Consumer
 {
     public class UsesReferenced
@@ -174,7 +203,10 @@ namespace Consumer
 
         var asm = LoadGeneratorAssembly();
         var type = asm.GetType("GenDI.SourceGenerator.GenDISourceGenerator", throwOnError: true)!;
-        var method = type.GetMethod("IsDeclaredSymbolAccessibleFromGeneratedCode", BindingFlags.NonPublic | BindingFlags.Static)!;
+        var method = type.GetMethod(
+            "IsDeclaredSymbolAccessibleFromGeneratedCode",
+            BindingFlags.NonPublic | BindingFlags.Static
+        )!;
 
         // Public symbol from referenced assembly -> accessible
         Assert.True((bool)method.Invoke(null, [referencedPublic, compilation])!);

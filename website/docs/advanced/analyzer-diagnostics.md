@@ -22,6 +22,15 @@ For the canonical details (message, trigger, fix), see:
 
 - [Analyzer diagnostics index (repository docs)](https://github.com/schivei/GenDI/blob/main/docs/ANALYZER_DIAGNOSTICS.md)
 
+## ⚙️ Source generator diagnostics (GenDI.SourceGenerator)
+
+The source generator reports its own diagnostics (prefix `GENDISG`):
+
+| Code | Severity | Purpose |
+|---|---|---|
+| `GENDISG001` | Warning | Open-generic type ignored — only closed-generic types are registered |
+| `GENDISG002` | Error | `[Hosted]` type must implement `IHostedService` (directly or through its base chain) |
+
 ## 🔗 IDE help links
 
 Each diagnostic now exposes `HelpLinkUri`, so IDEs can open the documentation page directly from the analyzer warning/info entry.

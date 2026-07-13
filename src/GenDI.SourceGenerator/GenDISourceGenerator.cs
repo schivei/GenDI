@@ -17,6 +17,14 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true
     );
+    private static readonly DiagnosticDescriptor HostedServiceContractMissingDescriptor = new(
+        id: "GENDISG002",
+        title: "Hosted class does not implement IHostedService",
+        messageFormat: "GenDI ignored '{0}' marked with [Hosted]. The type must implement 'Microsoft.Extensions.Hosting.IHostedService' directly or through its base chain.",
+        category: "GenDI.SourceGenerator",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true
+    );
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -66,8 +74,13 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
                     );
                 }
 
-                var normalizedRegistrations = buildResult.Registrations
-                    .Distinct(ServiceRegistrationComparer.Instance)
+                foreach (var diagnostic in buildResult.Diagnostics)
+                {
+                    sourceProductionContext.ReportDiagnostic(diagnostic);
+                }
+
+                var normalizedRegistrations = buildResult
+                    .Registrations.Distinct(ServiceRegistrationComparer.Instance)
                     .OrderBy(static registration => registration.IsDecorator)
                     .ThenBy(static registration => registration.Group)
                     .ThenBy(static registration => registration.Order)
@@ -157,7 +170,8 @@ public sealed partial class GenDISourceGenerator : IIncrementalGenerator
             || attributeName.Contains("ConditionalInjectable", StringComparison.Ordinal)
             || attributeName.Contains("InjectableModule", StringComparison.Ordinal)
             || attributeName.Contains("InjectableFactory", StringComparison.Ordinal)
-            || attributeName.Contains("GenDICoveration", StringComparison.Ordinal);
+            || attributeName.Contains("GenDICoveration", StringComparison.Ordinal)
+            || attributeName.Contains("Hosted", StringComparison.Ordinal);
     }
 
     private static bool IsInjectableAttribute(INamedTypeSymbol attributeClass)

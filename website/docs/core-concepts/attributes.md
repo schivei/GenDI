@@ -91,6 +91,36 @@ public Consumer([FromKeyedServices("primary")] IOtherService otherService) { }
 - Property must be `get; init;`
 - Property must be `public` or `internal`
 
+## `HostedAttribute`
+
+Marks a concrete class as a hosted service. When the class implements `IHostedService` — directly or through its base chain (for example, `BackgroundService`) — GenDI emits its registration through `AddHostedService<T>(...)` as part of the generated `AddGenDIServices()`.
+
+```csharp
+[Hosted]
+internal sealed class Worker : BackgroundService
+{
+    [Inject]
+    internal required ILogger<Worker> Logger { get; init; }
+
+    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        // implementation
+        return Task.CompletedTask;
+    }
+}
+```
+
+### 🧩 How it works
+
+- The generated registration uses the **factory overload** of `AddHostedService`, so the worker is built through a lambda. This is what enables `[Inject]` property injection — constructor injection is supported too.
+- Dependencies are resolved from the `IServiceProvider` at activation time, so they must be registered separately (through other GenDI attributes or by the host, such as logging).
+- `[Hosted]` is independent of `[Injectable]`: it registers the type only as a hosted service, not as a resolvable service.
+
+### ✅ Requirements for `[Hosted]`
+
+- The class must implement `Microsoft.Extensions.Hosting.IHostedService` directly or through its base-class chain.
+- Otherwise the generator reports [`GENDISG002`](../advanced/analyzer-diagnostics.md) and skips the type.
+
 ## `GenDICoverationAttribute`
 
 Assembly-level toggle for generated extension coverage behavior.

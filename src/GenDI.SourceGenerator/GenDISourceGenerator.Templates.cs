@@ -16,6 +16,9 @@ internal static class GenDiSourceTemplates
     internal const string KeyedAddRegistrationTemplate =
         "        services.AddKeyed{0}<{1}>({2}, static (serviceProvider, _) => {3});";
 
+    internal const string HostedServiceRegistrationTemplate =
+        "        services.AddHostedService<{0}>(static serviceProvider => {1});";
+
     internal const string UnkeyedTryAddRegistrationTemplate =
         "        services.TryAdd{0}<{1}>(static serviceProvider => {2});";
 
@@ -59,7 +62,7 @@ internal static class GenDiSourceTemplates
             {1}
                 }}
         """;
-    
+
     internal const string ConditionalRegistrationFilterTemplate = """
                 {1}(
                     string.Equals(Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"), "{0}", StringComparison.OrdinalIgnoreCase) ||
@@ -78,11 +81,11 @@ internal static class GenDiSourceTemplates
 
             private static void RegisterDecorator<TService>(object? serviceKey, IServiceCollection services, ServiceLifetime lifetime, Func<IServiceProvider, object?, object> factory) =>
                 RegisterDecorator<TService>(serviceKey, services, lifetime, (serviceProvider, internalKey, _) => factory(serviceProvider, internalKey));
-        
+
             private static void RegisterDecorator<TService>(object? serviceKey, IServiceCollection services, ServiceLifetime lifetime, Func<IServiceProvider, object?, object?, object> factory)
             {
                 var descriptors = services.Where(d => d.ServiceType == typeof(TService) && (!d.IsKeyedService || EqualityComparer<object?>.Default.Equals(d.ServiceKey, serviceKey))).ToList();
-        
+
                 if (descriptors.Count == 0 && serviceKey is null)
                 {
                     services.Add(new ServiceDescriptor(
@@ -90,7 +93,7 @@ internal static class GenDiSourceTemplates
                         serviceProvider => factory(serviceProvider, null, null),
                         lifetime
                     ));
-        
+
                     return;
                 }
                 else if (descriptors.Count == 0)
@@ -101,16 +104,16 @@ internal static class GenDiSourceTemplates
                         (serviceProvider, key) => factory(serviceProvider, null, key),
                         lifetime
                     ));
-        
+
                     return;
                 }
-        
+
                 foreach (var descriptor in descriptors)
                 {
                     services.Remove(descriptor);
-        
+
                     var internalKey = Guid.NewGuid().ToString("N");
-        
+
                     if (descriptor.IsKeyedService && descriptor.KeyedImplementationInstance is not null)
                     {
                         services.Add(new ServiceDescriptor(
@@ -165,7 +168,7 @@ internal static class GenDiSourceTemplates
                             descriptor.Lifetime
                         ));
                     }
-        
+
                     if (serviceKey is null)
                     {
                         services.Add(new ServiceDescriptor(
@@ -199,7 +202,7 @@ internal static class GenDiSourceTemplates
                         return true;
                     }
                 }
-        
+
                 return false;
             }
 
@@ -220,10 +223,10 @@ internal static class GenDiSourceTemplates
                     {
                         continue;
                     }
-        
+
                     return true;
                 }
-        
+
                 return false;
             }
 
@@ -250,10 +253,10 @@ internal static class GenDiSourceTemplates
                     {
                         continue;
                     }
-        
+
                     return true;
                 }
-        
+
                 return false;
             }
 
@@ -305,7 +308,7 @@ internal static class GenDiSourceTemplates
                 return services;
             }
         }
-        
+
         #pragma warning restore CS8669
         """;
 }
