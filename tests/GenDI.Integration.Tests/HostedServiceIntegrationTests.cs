@@ -39,7 +39,9 @@ public class HostedServiceIntegrationTests
 [Injectable]
 public sealed class Heartbeat
 {
-    public string Pulse() => "beat";
+    private readonly string _id = "beat";
+
+    public string Pulse() => _id;
 }
 
 [Hosted]

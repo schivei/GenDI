@@ -132,22 +132,33 @@ public sealed partial class GenDISourceGenerator
 
         return new RegistrationBuildResult(
             normalizedRegistrations,
-            [
-                .. warnings
-                    .Where(static warning => warning.Location is { IsInSource: true })
-                    .GroupBy(static warning =>
-                        (
-                            warning.Location.GetLineSpan().Path,
-                            warning.Location.SourceSpan.Start,
-                            warning.Context,
-                            warning.TypeDisplay
-                        )
-                    )
-                    .Select(static group => group.First()),
-            ],
+            [.. warnings.Where(WarningFilter).GroupBy(WarningGrouping).Select(WarningSelector)],
             [.. diagnostics]
         );
     }
+
+    [ExcludeFromCodeCoverage]
+    private static bool WarningFilter(OpenGenericBypassWarning warning) =>
+        warning.Location is { IsInSource: true };
+
+    [ExcludeFromCodeCoverage]
+    private static (string Path, int Start, string Context, string TypeDisplay) WarningGrouping(
+        OpenGenericBypassWarning warning
+    ) =>
+        (
+            warning.Location.GetLineSpan().Path,
+            warning.Location.SourceSpan.Start,
+            warning.Context,
+            warning.TypeDisplay
+        );
+
+    [ExcludeFromCodeCoverage]
+    private static OpenGenericBypassWarning WarningSelector(
+        IGrouping<
+            (string Path, int Start, string Context, string TypeDisplay),
+            OpenGenericBypassWarning
+        > group
+    ) => group.First();
 
     private static IEnumerable<ServiceRegistration> BuildHostedRegistrations(
         ImmutableArray<INamedTypeSymbol> concreteTypes,
@@ -253,29 +264,10 @@ public sealed partial class GenDISourceGenerator
         INamedTypeSymbol concreteType
     )
     {
-        if (HasDecoratorTarget(compilation, concreteType))
+        if (
+            !IsValid(compilation, warnings, concreteType, out InjectableMetadata injectableMetadata)
+        )
         {
-            return;
-        }
-
-        if (!TryGetInjectableAttribute(concreteType, out var injectableMetadata))
-        {
-            return;
-        }
-
-        if (!IsClosedType(concreteType))
-        {
-            warnings.Add(
-                BuildOpenGenericBypassWarning(concreteType, "Injectable class registration")
-            );
-            return;
-        }
-
-        if (injectableMetadata.HasOpenGenericExplicitServiceType)
-        {
-            warnings.Add(
-                BuildOpenGenericBypassWarning(concreteType, "Injectable explicit service contract")
-            );
             return;
         }
 
@@ -283,6 +275,45 @@ public sealed partial class GenDISourceGenerator
         registrations.AddRange(
             BuildDirectRegistrations(compilation, concreteType, injectableMetadata, warnings)
         );
+    }
+
+    [ExcludeFromCodeCoverage]
+    private static bool IsValid(
+        Compilation compilation,
+        List<OpenGenericBypassWarning> warnings,
+        INamedTypeSymbol concreteType,
+        out InjectableMetadata injectableMetadata
+    )
+    {
+        injectableMetadata = null!;
+
+        if (HasDecoratorTarget(compilation, concreteType))
+        {
+            return false;
+        }
+
+        if (!TryGetInjectableAttribute(concreteType, out injectableMetadata))
+        {
+            return false;
+        }
+
+        if (!IsClosedType(concreteType))
+        {
+            warnings.Add(
+                BuildOpenGenericBypassWarning(concreteType, "Injectable class registration")
+            );
+            return false;
+        }
+
+        if (injectableMetadata.HasOpenGenericExplicitServiceType)
+        {
+            warnings.Add(
+                BuildOpenGenericBypassWarning(concreteType, "Injectable explicit service contract")
+            );
+            return false;
+        }
+
+        return true;
     }
 
     private static ImmutableArray<ServiceRegistration> NormalizeRegistrationMultiplicity(
