@@ -16,30 +16,56 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.3.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.6.0" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../GenDI.Analyzers/GenDI.Analyzers.csproj" PrivateAssets="all" ReferenceOutputAssembly="false" />
+    <ProjectReference
+      Include="../GenDI.Analyzers/GenDI.Analyzers.csproj"
+      PrivateAssets="all"
+      ReferenceOutputAssembly="false"
+    />
     <ProjectReference Include="..\GenDI\GenDI.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="$(OutputPath)$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <None
+      Include="$(OutputPath)$(AssemblyName).dll"
+      Pack="true"
+      PackagePath="analyzers/dotnet/cs"
+      Visible="false"
+    />
     <None Include="../../README.md" Pack="true" PackagePath="\" Visible="false" />
     <None Include="../../LICENSE" Pack="true" PackagePath="\" Visible="false" />
     <None Include="../../assets/icon.png" Pack="true" PackagePath="icon.png" Visible="false" />
-    <None Include="buildTransitive/GenDI.SourceGenerator.props" Pack="true" PackagePath="buildTransitive/GenDI.SourceGenerator.props" Visible="true" />
-    <None Include="buildTransitive/GenDI.SourceGenerator.targets" Pack="true" PackagePath="buildTransitive/GenDI.SourceGenerator.targets" Visible="true" />
+    <None
+      Include="buildTransitive/GenDI.SourceGenerator.props"
+      Pack="true"
+      PackagePath="buildTransitive/GenDI.SourceGenerator.props"
+      Visible="true"
+    />
+    <None
+      Include="buildTransitive/GenDI.SourceGenerator.targets"
+      Pack="true"
+      PackagePath="buildTransitive/GenDI.SourceGenerator.targets"
+      Visible="true"
+    />
   </ItemGroup>
 
   <Target Name="IncludeBundledAnalyzerInPackage">
-    <MSBuild Projects="../GenDI.Analyzers/GenDI.Analyzers.csproj" Targets="GetTargetPath" Properties="Configuration=$(Configuration);TargetFramework=$(BundledAnalyzerTargetFramework)">
+    <MSBuild
+      Projects="../GenDI.Analyzers/GenDI.Analyzers.csproj"
+      Targets="GetTargetPath"
+      Properties="Configuration=$(Configuration);TargetFramework=$(BundledAnalyzerTargetFramework)"
+    >
       <Output TaskParameter="TargetOutputs" ItemName="_BundledAnalyzerTargetPath" />
     </MSBuild>
 
     <ItemGroup>
-      <TfmSpecificPackageFile Include="@(_BundledAnalyzerTargetPath)" Condition="'%(_BundledAnalyzerTargetPath.Filename)' == 'GenDI.Analyzers' and '%(_BundledAnalyzerTargetPath.Extension)' == '.dll'">
+      <TfmSpecificPackageFile
+        Include="@(_BundledAnalyzerTargetPath)"
+        Condition="'%(_BundledAnalyzerTargetPath.Filename)' == 'GenDI.Analyzers' and '%(_BundledAnalyzerTargetPath.Extension)' == '.dll'"
+      >
         <PackagePath>analyzers/dotnet/cs</PackagePath>
       </TfmSpecificPackageFile>
     </ItemGroup>

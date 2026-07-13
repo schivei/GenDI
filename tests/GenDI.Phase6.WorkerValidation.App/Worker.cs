@@ -1,15 +1,21 @@
 namespace GenDI.Phase6.WorkerValidation.App;
 
-public sealed class Worker(ILogger<Worker> logger, IHeartbeatFormatter heartbeatFormatter)
-    : BackgroundService
+[Hosted]
+public sealed class Worker : BackgroundService
 {
+    [Inject]
+    public required ILogger<Worker> Logger { get; init; }
+
+    [Inject]
+    public required IHeartbeatFormatter HeartbeatFormatter { get; init; }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            if (logger.IsEnabled(LogLevel.Information))
+            if (Logger.IsEnabled(LogLevel.Information))
             {
-                logger.LogInformation("{Message}", heartbeatFormatter.Format());
+                Logger.LogInformation("{Message}", HeartbeatFormatter.Format());
             }
 
             await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);

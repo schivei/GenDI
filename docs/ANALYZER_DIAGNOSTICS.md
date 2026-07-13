@@ -72,6 +72,26 @@ public sealed class CheckoutService
 - **When it appears**: A decorator does not expose the decorated contract as a public constructor parameter or `[Inject]` init-only property.
 - **How to fix**: Add a matching constructor parameter or injectable init-only property so GenDI can compose the pipeline statically.
 
+## Source generator diagnostics (`GenDI.SourceGenerator`)
+
+These IDs are reported by the source generator itself (prefix `GENDISG`) rather than by `GenDI.Analyzers`.
+
+### GENDISG001 - Open-generic type ignored by GenDI source generation
+
+- **Category**: `GenDI.SourceGenerator`
+- **Severity**: Warning
+- **Message**: `GenDI ignored open-generic type '{0}' in {1}. Only closed-generic types are supported for generated registrations.`
+- **When it appears**: An open-generic type is discovered where only a closed-generic registration can be emitted.
+- **How to fix**: Register a closed-generic type, or register the open generic manually (for example, `services.AddScoped(typeof(IRepository<>), typeof(Repository<>))`).
+
+### GENDISG002 - Hosted class does not implement IHostedService
+
+- **Category**: `GenDI.SourceGenerator`
+- **Severity**: Error
+- **Message**: `GenDI ignored '{0}' marked with [Hosted]. The type must implement 'Microsoft.Extensions.Hosting.IHostedService' directly or through its base chain.`
+- **When it appears**: A class marked with `[Hosted]` does not implement `Microsoft.Extensions.Hosting.IHostedService`, directly or through a base type such as `BackgroundService`.
+- **How to fix**: Implement `IHostedService` (or derive from `BackgroundService`), or remove the `[Hosted]` attribute.
+
 ## IDE links and parity
 
 All diagnostics provide `HelpLinkUri` metadata so IDE warning entries can open the corresponding documentation page quickly. Keep this file and `website/docs/advanced/analyzer-diagnostics.md` synchronized when diagnostics change.

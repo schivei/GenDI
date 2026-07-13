@@ -38,7 +38,8 @@ internal sealed class ServiceRegistration(
 
     public string? KeyExpression { get; } = keyExpression;
 
-    public IEnumerable<(string? EnvironmentName, bool? NotEnvironment)> Environments { get; } = environments ?? [];
+    public IEnumerable<(string? EnvironmentName, bool? NotEnvironment)> Environments { get; } =
+        environments ?? [];
 
     public string? ModuleName { get; } = moduleName;
 
