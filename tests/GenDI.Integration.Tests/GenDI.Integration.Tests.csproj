@@ -16,7 +16,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.9" />
     <PackageReference Include="xunit.v3" Version="3.*" PrivateAssets="all" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.*" PrivateAssets="all" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.*" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
