@@ -91,12 +91,12 @@ jobs:
         uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
         with:
           dotnet-version: '10.x'
-
-      - name: Install SonarScanner for .NET
-        if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork) && env.SONAR_TOKEN != '' }}
-        run: |
-          dotnet tool install --global dotnet-sonarscanner --version "9.*"
-          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+#
+#      - name: Install SonarScanner for .NET
+#        if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork) && env.SONAR_TOKEN != '' }}
+#        run: |
+#          dotnet tool install --global dotnet-sonarscanner --version "9.*"
+#          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
       - name: Cache NuGet packages
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
@@ -105,31 +105,31 @@ jobs:
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
-
-      - name: SonarQube begin analysis (.NET scanner)
-        if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork) && env.SONAR_TOKEN != '' }}
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_HEAD_REF: ${{ github.head_ref }}
-          PR_BASE_REF: ${{ github.base_ref }}
-        run: |
-          SONAR_ARGS=(
-            '/k:schivei_GenDI'
-            '/o:schivei'
-            "/d:sonar.token=${SONAR_TOKEN}"
-            '/d:sonar.host.url=https://sonarcloud.io'
-            '/d:sonar.cs.vscoveragexml.reportsPaths=coverage-merged.xml'
-            '/d:sonar.exclusions=website/**,**/bin/**,**/obj/**'
-            '/d:sonar.coverage.exclusions=tests/**'
-          )
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            SONAR_ARGS+=(
-              "/d:sonar.pullrequest.key=${PR_NUMBER}"
-              "/d:sonar.pullrequest.branch=${PR_HEAD_REF}"
-              "/d:sonar.pullrequest.base=${PR_BASE_REF}"
-            )
-          fi
-          dotnet sonarscanner begin "${SONAR_ARGS[@]}"
+#
+#      - name: SonarQube begin analysis (.NET scanner)
+#        if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork) && env.SONAR_TOKEN != '' }}
+#        env:
+#          PR_NUMBER: ${{ github.event.pull_request.number }}
+#          PR_HEAD_REF: ${{ github.head_ref }}
+#          PR_BASE_REF: ${{ github.base_ref }}
+#        run: |
+#          SONAR_ARGS=(
+#            '/k:schivei_GenDI'
+#            '/o:schivei'
+#            "/d:sonar.token=${SONAR_TOKEN}"
+#            '/d:sonar.host.url=https://sonarcloud.io'
+#            '/d:sonar.cs.vscoveragexml.reportsPaths=coverage-merged.xml'
+#            '/d:sonar.exclusions=website/**,**/bin/**,**/obj/**'
+#            '/d:sonar.coverage.exclusions=tests/**'
+#          )
+#          if [ "${{ github.event_name }}" = "pull_request" ]; then
+#            SONAR_ARGS+=(
+#              "/d:sonar.pullrequest.key=${PR_NUMBER}"
+#              "/d:sonar.pullrequest.branch=${PR_HEAD_REF}"
+#              "/d:sonar.pullrequest.base=${PR_BASE_REF}"
+#            )
+#          fi
+#          dotnet sonarscanner begin "${SONAR_ARGS[@]}"
 
       - name: Restore dependencies
         run: dotnet restore GenDI.slnx
@@ -317,10 +317,10 @@ jobs:
             exit 1
           fi
           git push origin "HEAD:${PR_HEAD_REF}"
-
-      - name: SonarQube end analysis (.NET scanner)
-        if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork) && env.SONAR_TOKEN != '' }}
-        run: dotnet sonarscanner end /d:sonar.token="${SONAR_TOKEN}"
+#
+#      - name: SonarQube end analysis (.NET scanner)
+#        if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork) && env.SONAR_TOKEN != '' }}
+#        run: dotnet sonarscanner end /d:sonar.token="${SONAR_TOKEN}"
 
   package:
     name: Build and Package
