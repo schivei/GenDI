@@ -14,7 +14,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.6.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.9" PrivateAssets="all" />
     <PackageReference
       Include="Microsoft.Extensions.Configuration.Binder"
@@ -23,7 +23,7 @@
     />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.*" PrivateAssets="all" />
     <PackageReference Include="xunit.v3" Version="3.*" PrivateAssets="all" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.*" PrivateAssets="all" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.*" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
