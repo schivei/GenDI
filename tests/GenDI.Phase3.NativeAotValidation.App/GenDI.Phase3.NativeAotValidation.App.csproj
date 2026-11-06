@@ -7,8 +7,7 @@
     <LangVersion>latest</LangVersion>
     <PublishAot Condition="'$(GenDI_EnableNativeAotPublish)' == 'true'">true</PublishAot>
     <TargetLatestRuntimePatch Condition="'$(GenDI_EnableNativeAotPublish)' == 'true'"
-      >false</TargetLatestRuntimePatch
-    >
+      >false</TargetLatestRuntimePatch>
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
